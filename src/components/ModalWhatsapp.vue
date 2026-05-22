@@ -1,0 +1,213 @@
+<template>
+  <div class="modal-card max-w-xl w-full mx-auto" style="border-radius: var(--border-radius-lg, 14px); overflow: hidden; background: white; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);">
+    <div class="modal-header" style="background: #25d366; color: white; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i class="ti ti-brand-whatsapp" style="font-size: 24px;"></i>
+        <div>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Compartir Designaciones</h3>
+          <span style="font-size: 11px; opacity: 0.9;">Mensaje formateado para enviar por WhatsApp</span>
+        </div>
+      </div>
+      <button 
+        @click="closeModal" 
+        style="background: transparent; border: none; color: white; cursor: pointer; padding: 4px; display: inline-flex; border-radius: 50%;"
+        onmouseover="this.style.background='rgba(255, 255, 255, 0.15)'"
+        onmouseout="this.style.background='transparent'"
+      >
+        <i class="ti ti-x" style="font-size: 20px;"></i>
+      </button>
+    </div>
+
+    <div class="modal-body" style="padding: 1.5rem;">
+      <div v-if="state.designaciones.length === 0" class="empty-state" style="text-align: center; padding: 2rem 0;">
+        <i class="ti ti-alert-circle" style="font-size: 48px; color: var(--color-text-secondary); margin-bottom: 1rem;"></i>
+        <div style="font-weight: 600; color: var(--color-text-primary); margin-bottom: 0.5rem;">No hay designaciones completas</div>
+        <div style="font-size: 13px; color: var(--color-text-secondary);">Asigna árbitros a tus partidos primero para poder generar el mensaje de WhatsApp.</div>
+      </div>
+
+      <div v-else>
+        <div style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 12px;">
+          Podés editar el texto acá abajo antes de copiarlo o enviarlo:
+        </div>
+
+        <textarea
+          v-model="messageText"
+          style="
+            width: 100%;
+            height: 320px;
+            padding: 1rem;
+            border: 1px solid var(--color-border-primary);
+            border-radius: var(--border-radius-md, 8px);
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            resize: none;
+            background: #fafafa;
+            color: #1f2937;
+            outline: none;
+            transition: border-color 0.15s;
+          "
+          onfocus="this.style.borderColor='#25d366'; this.style.boxShadow='0 0 0 2px rgba(37, 211, 102, 0.15)';"
+          onblur="this.style.borderColor='var(--color-border-primary)'; this.style.boxShadow='none';"
+        ></textarea>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 1.5rem; gap: 12px; flex-wrap: wrap;">
+          <button 
+            class="btn" 
+            @click="copyToClipboard"
+            :style="{
+              borderColor: copied ? '#1d9e75' : 'var(--color-border-secondary)',
+              color: copied ? '#1d9e75' : 'var(--color-text-primary)',
+              background: copied ? '#e1f5ee' : 'transparent',
+              flex: '1',
+              justifyContent: 'center',
+              fontWeight: '500'
+            }"
+            onmouseover="this.style.background=this.style.color==='#1d9e75' ? '#e1f5ee' : 'var(--color-background-secondary)'"
+            onmouseout="this.style.background=this.style.color==='#1d9e75' ? '#e1f5ee' : 'transparent'"
+          >
+            <i class="ti" :class="copied ? 'ti-check' : 'ti-copy'"></i>
+            {{ copied ? '¡Copiado!' : 'Copiar Mensaje' }}
+          </button>
+
+          <button 
+            class="btn primary" 
+            @click="sendWhatsApp"
+            style="background: #25d366; border-color: #25d366; color: white; flex: '1.2'; justify-content: 'center'; font-weight: '500';"
+            onmouseover="this.style.background='#1ebd59'"
+            onmouseout="this.style.background='#25d366'"
+          >
+            <i class="ti ti-brand-whatsapp"></i>
+            Enviar por WhatsApp
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from "vue"
+import { state, closeModal, getCancha } from "../store"
+
+const messageText = ref("")
+const copied = ref(false)
+
+const diasSemana = [
+  "Domingo",
+  "Lunes",
+  "Martes",
+  "Miércoles",
+  "Jueves",
+  "Viernes",
+  "Sábado",
+]
+
+const meses = [
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
+]
+
+const generateMessage = () => {
+  if (state.designaciones.length === 0) return
+
+  const groups = {}
+  
+  state.designaciones.forEach((d) => {
+    if (!d.fecha) return
+    const datePart = d.fecha.split("T")[0]
+    if (!groups[datePart]) {
+      groups[datePart] = []
+    }
+    groups[datePart].push(d)
+  })
+
+  const sortedDates = Object.keys(groups).sort()
+  let text = "📋 *DESIGNACIONES DE ÁRBITROS*\n\n"
+
+  sortedDates.forEach((dateStr) => {
+    const [yyyy, mm, dd] = dateStr.split("-").map(Number)
+    const dateObj = new Date(yyyy, mm - 1, dd)
+    const diaNombre = diasSemana[dateObj.getDay()]
+    const mesNombre = meses[mm - 1]
+
+    text += `*${diaNombre} ${dd} de ${mesNombre}:*\n`
+
+    // Ordenar designaciones por horario de inicio
+    const dayDesignations = groups[dateStr].sort((a, b) => {
+      const timeA = a.fecha.includes("T") ? a.fecha.split("T")[1] : ""
+      const timeB = b.fecha.includes("T") ? b.fecha.split("T")[1] : ""
+      return timeA.localeCompare(timeB)
+    })
+
+    dayDesignations.forEach((d) => {
+      const canchaNombre =
+        d.cancha?.nombreCancha ||
+        getCancha(d.idCancha || d.canchaId)?.nombre ||
+        "Cancha Desconocida"
+
+      let timeFormatted = ""
+      if (d.fecha.includes("T")) {
+        const timePart = d.fecha.split("T")[1]
+        const [hh, min] = timePart.split(":")
+        timeFormatted =
+          Number(min) === 0 ? `${parseInt(hh)}hs` : `${hh}:${min}hs`
+      }
+
+      text += `  🏟️ *${canchaNombre}*${
+        timeFormatted ? `, horario de inicio ${timeFormatted}` : ""
+      }\n`
+
+      // Árbitros designados
+      if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
+        // Ordenar árbitros por rol si es necesario
+        d.arbitrosDesignados.forEach((arb) => {
+          const nombreCompleto = `${arb.arbitro?.nombre || ""} ${
+            arb.arbitro?.apellido || ""
+          }`.trim()
+          const rol = arb.arbitro?.rol || "Árbitro"
+          text += `    • 👤 ${nombreCompleto} - *${rol}*\n`
+        })
+      } else {
+        text += `    • _Sin árbitros asignados_\n`
+      }
+      text += "\n"
+    })
+  })
+
+  // Quitar el último salto de línea innecesario
+  messageText.value = text.trim()
+}
+
+const copyToClipboard = async () => {
+  try {
+    await navigator.clipboard.writeText(messageText.value)
+    copied.value = true
+    setTimeout(() => {
+      copied.value = false
+    }, 2000)
+  } catch (err) {
+    console.error("Error al copiar al portapapeles:", err)
+    alert("No se pudo copiar automáticamente. Podés seleccionarlo manualmente.")
+  }
+}
+
+const sendWhatsApp = () => {
+  const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(messageText.value)}`
+  window.open(url, "_blank")
+}
+
+onMounted(() => {
+  generateMessage()
+})
+</script>
