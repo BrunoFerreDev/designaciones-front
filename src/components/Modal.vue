@@ -18,6 +18,9 @@
 
     <!-- Compartir WhatsApp -->
     <ModalWhatsapp v-if="state.modal.type === 'whatsappMessage'" />
+
+    <!-- Ver Suspensión -->
+    <ModalVerSuspencion v-if="state.modal.type === 'viewSuspension'" />
   </div>
 </template>
 
@@ -28,4 +31,5 @@ import ModalArbitroForm from "./ModalArbitroForm.vue"
 import DesignacionWizard from "./DesignacionWizard.vue"
 import ModalGestionarArbitros from "./ModalGestionarArbitros.vue"
 import ModalWhatsapp from "./ModalWhatsapp.vue"
+import ModalVerSuspencion from "./ModalVerSuspencion.vue"
 </script>

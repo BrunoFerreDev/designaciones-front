@@ -14,8 +14,7 @@
           onmouseover="this.style.background = '#e8f9f0'"
           onmouseout="this.style.background = 'transparent'"
         >
-          <i class="ti ti-brand-whatsapp" style="font-size: 16px"></i>Compartir
-          WhatsApp
+          <i class="ti ti-brand-whatsapp" style="font-size: 16px"></i>Compartir WhatsApp
         </button>
         <button class="btn primary" @click="openModal('addDesignacion')">
           <i class="ti ti-plus"></i>Nueva designación
@@ -23,13 +22,12 @@
       </div>
     </div>
 
-    <div class="content">
+    <div class="content animate-fade-in">
       <!-- Designaciones Incompletas -->
       <div v-if="state.designacionesIncompletas.length > 0">
         <div class="alert alert-warning">
           <i class="ti ti-alert-triangle"></i>
-          {{ state.designacionesIncompletas.length }}
-          designación(es) por completar - Asigna árbitros
+          {{ state.designacionesIncompletas.length }} designación(es) por completar - Asigna árbitros
         </div>
 
         <div style="margin-bottom: 2rem">
@@ -52,83 +50,12 @@
               <div v-if="incSabado.length === 0" style="padding: 1rem; border: 1px dashed var(--color-border-tertiary); border-radius: var(--border-radius-lg); text-align: center; color: var(--color-text-secondary); font-size: 12px; margin-bottom: 1rem; background: var(--color-background-primary);">
                 Sin designaciones pendientes para el sábado
               </div>
-              <div
-                v-for="d in incSabado"
-                :key="`inc-${d.idDesignacion || d.id}`"
-                class="card"
-                style="margin-bottom: 1rem; border-left: 4px solid #ff9800"
-              >
-                <div class="card-header">
-                  <div>
-                    <div class="card-title">
-                      🏟️
-                      {{
-                        d.cancha?.nombreCancha ||
-                        getCancha(d.idCancha || d.canchaId)?.nombre ||
-                        "Cancha Desconocida"
-                      }}
-                    </div>
-                    <div class="card-sub">
-                      {{ d.cantidadPartidos }} partidos · Fecha:
-                      {{ formatFecha(d.fecha) }}
-                    </div>
-                  </div>
-                  <div class="card-header-actions">
-                    <span class="badge badge-amber">Incompleta</span>
-                    <button
-                      class="btn primary"
-                      @click.prevent="asignarArbitros(d.idDesignacion || d.id)"
-                      style="padding: 5px 9px; font-size: 12px"
-                    >
-                      <i class="ti ti-users"></i>
-                      Asignar autom.
-                    </button>
-                    <button
-                      class="btn"
-                      @click="openModal('manageReferees', d.idDesignacion || d.id)"
-                      style="
-                        padding: 5px 9px;
-                        font-size: 12px;
-                        border-color: var(--color-primary);
-                        color: var(--color-primary);
-                      "
-                    >
-                      <i class="ti ti-edit"></i>
-                      Editar árbitros
-                    </button>
-                    <button
-                      class="btn danger"
-                      @click="deleteDesignacion(d.idDesignacion || d.id)"
-                      style="padding: 5px 9px"
-                    >
-                      <i class="ti ti-trash"></i>
-                    </button>
-                  </div>
-                </div>
-
-                <div
-                  style="
-                    font-size: 12px;
-                    color: #ff6f00;
-                    background: #fff3e0;
-                    border-radius: 6px;
-                    padding: 8px 12px;
-                  "
-                >
-                  <i class="ti ti-alert-circle"></i>
-                  Requiere mínimo {{ minArbitrosReq(d.cantidadPartidos) }} árbitros
-                  ({{ d.arbitrosAsignados || 0 }} asignados)
-                </div>
-
-                <div
-                  style="
-                    font-size: 12px;
-                    color: var(--color-text-secondary);
-                    margin-top: 8px;
-                  "
-                >
-                  Etapa: {{ d.etapaCampeonato || d.etapaTorneo || "FECHA_NORMAL" }}
-                </div>
+              <div class="flex flex-col gap-3">
+                <DesignacionCard
+                  v-for="d in incSabado"
+                  :key="`inc-${d.idDesignacion || d.id}`"
+                  :designacion="d"
+                />
               </div>
             </div>
 
@@ -140,83 +67,12 @@
               <div v-if="incDomingo.length === 0" style="padding: 1rem; border: 1px dashed var(--color-border-tertiary); border-radius: var(--border-radius-lg); text-align: center; color: var(--color-text-secondary); font-size: 12px; margin-bottom: 1rem; background: var(--color-background-primary);">
                 Sin designaciones pendientes para el domingo
               </div>
-              <div
-                v-for="d in incDomingo"
-                :key="`inc-${d.idDesignacion || d.id}`"
-                class="card"
-                style="margin-bottom: 1rem; border-left: 4px solid #ff9800"
-              >
-                <div class="card-header">
-                  <div>
-                    <div class="card-title">
-                      🏟️
-                      {{
-                        d.cancha?.nombreCancha ||
-                        getCancha(d.idCancha || d.canchaId)?.nombre ||
-                        "Cancha Desconocida"
-                      }}
-                    </div>
-                    <div class="card-sub">
-                      {{ d.cantidadPartidos }} partidos · Fecha:
-                      {{ formatFecha(d.fecha) }}
-                    </div>
-                  </div>
-                  <div class="card-header-actions">
-                    <span class="badge badge-amber">Incompleta</span>
-                    <button
-                      class="btn primary"
-                      @click.prevent="asignarArbitros(d.idDesignacion || d.id)"
-                      style="padding: 5px 9px; font-size: 12px"
-                    >
-                      <i class="ti ti-users"></i>
-                      Asignar autom.
-                    </button>
-                    <button
-                      class="btn"
-                      @click="openModal('manageReferees', d.idDesignacion || d.id)"
-                      style="
-                        padding: 5px 9px;
-                        font-size: 12px;
-                        border-color: var(--color-primary);
-                        color: var(--color-primary);
-                      "
-                    >
-                      <i class="ti ti-edit"></i>
-                      Editar árbitros
-                    </button>
-                    <button
-                      class="btn danger"
-                      @click="deleteDesignacion(d.idDesignacion || d.id)"
-                      style="padding: 5px 9px"
-                    >
-                      <i class="ti ti-trash"></i>
-                    </button>
-                  </div>
-                </div>
-
-                <div
-                  style="
-                    font-size: 12px;
-                    color: #ff6f00;
-                    background: #fff3e0;
-                    border-radius: 6px;
-                    padding: 8px 12px;
-                  "
-                >
-                  <i class="ti ti-alert-circle"></i>
-                  Requiere mínimo {{ minArbitrosReq(d.cantidadPartidos) }} árbitros
-                  ({{ d.arbitrosAsignados || 0 }} asignados)
-                </div>
-
-                <div
-                  style="
-                    font-size: 12px;
-                    color: var(--color-text-secondary);
-                    margin-top: 8px;
-                  "
-                >
-                  Etapa: {{ d.etapaCampeonato || d.etapaTorneo || "FECHA_NORMAL" }}
-                </div>
+              <div class="flex flex-col gap-3">
+                <DesignacionCard
+                  v-for="d in incDomingo"
+                  :key="`inc-${d.idDesignacion || d.id}`"
+                  :designacion="d"
+                />
               </div>
             </div>
           </div>
@@ -272,135 +128,15 @@
             <div v-if="compSabado.length === 0" style="padding: 1rem; border: 1px dashed var(--color-border-tertiary); border-radius: var(--border-radius-lg); text-align: center; color: var(--color-text-secondary); font-size: 12px; margin-bottom: 1rem; background: var(--color-background-primary);">
               Sin designaciones completadas para el sábado
             </div>
-            <div
-              v-for="d in compSabado"
-              :key="`comp-${d.idDesignacion || d.id}`"
-              class="card"
-              style="margin-bottom: 1rem"
-            >
-              <div class="card-header">
-                <div>
-                  <div class="card-title">
-                    🏟️
-                    {{
-                      d.cancha?.nombreCancha ||
-                      getCancha(d.idCancha || d.canchaId)?.nombre ||
-                      "Cancha Desconocida"
-                    }}
-                  </div>
-                  <div class="card-sub uppercase">
-                    {{
-                      d.cancha?.ciudad ||
-                      getCancha(d.idCancha || d.canchaId)?.ciudad
-                    }}
-                    · {{ d.cantidadPartidos }} partidos · Fecha:
-                    {{ formatFecha(d.fecha) }}
-                  </div>
-                </div>
-                <div class="card-header-actions">
-                  <span class="badge badge-green"> ✓ Completa </span>
-                  <button
-                    v-if="d.estadoDesignacion === 1"
-                    class="btn primary"
-                    @click="verArbitros(d)"
-                    style="padding: 5px 9px; font-size: 12px"
-                  >
-                    <i class="ti ti-users"></i>
-                    Ver árbitros
-                  </button>
-                  <button
-                    v-if="d.estadoDesignacion === 1"
-                    class="btn"
-                    @click="openModal('manageReferees', d.idDesignacion || d.id)"
-                    style="
-                      padding: 5px 9px;
-                      font-size: 12px;
-                      border-color: var(--color-primary);
-                      color: var(--color-primary);
-                    "
-                  >
-                    <i class="ti ti-edit"></i>
-                    Editar árbitros
-                  </button>
-                  <button
-                    v-if="d.estadoDesignacion === 1"
-                    class="btn"
-                    @click="finalizarDesignacionManual(d.idDesignacion || d.id)"
-                    style="
-                      padding: 5px 9px;
-                      font-size: 12px;
-                      border-color: #185fa5;
-                      color: #185fa5;
-                    "
-                    onmouseover="this.style.background = '#e6f1fb'"
-                    onmouseout="this.style.background = 'transparent'"
-                  >
-                    <i class="ti ti-flag"></i>
-                    Finalizar
-                  </button>
-                  <button
-                    class="btn danger"
-                    @click="deleteDesignacion(d.idDesignacion || d.id)"
-                    style="padding: 5px 9px"
-                  >
-                    <i class="ti ti-trash"></i>
-                  </button>
-                </div>
-              </div>
-
-              <div
-                style="
-                  font-size: 12px;
-                  color: var(--color-text-secondary);
-                  margin-bottom: 6px;
-                "
-              >
-                Etapa: {{ d.etapaCampeonato || d.etapaTorneo || "FECHA_NORMAL" }}
-              </div>
-
-              <div
-                v-if="arbitrosDesignados[d.idDesignacion || d.id]"
-                style="
-                  margin-top: 12px;
-                  padding: 12px;
-                  background: #f5f5f5;
-                  border-radius: 6px;
-                "
-              >
-                <div
-                  style="
-                    font-size: 13px;
-                    font-weight: 600;
-                    margin-bottom: 8px;
-                    color: var(--color-text-secondary);
-                  "
-                >
-                  👥 Árbitros asignados:
-                </div>
-                <div
-                  v-for="arb in arbitrosDesignados[d.idDesignacion || d.id]"
-                  :key="arb.idDesignados || arb.id"
-                  style="
-                    font-size: 12px;
-                    padding: 6px 8px;
-                    background: white;
-                    border-radius: 4px;
-                    margin-bottom: 4px;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                  "
-                >
-                  <i class="ti ti-user" style="color: var(--color-primary)"></i>
-                  <span>{{ arb.arbitro?.nombre }} {{ arb.arbitro?.apellido }}</span>
-                  <span class="badge badge-gray" style="font-size: 10px">
-                    {{ arb.arbitro?.rol }}
-                  </span>
-                  <span style="font-size: 10px; color: #666">
-                    {{ arb.partidosDirigidos }} partidos
-                  </span>
-                </div>
-              </div>
+            <div class="flex flex-col gap-3">
+              <DesignacionCard
+                v-for="d in compSabado"
+                :key="`comp-${d.idDesignacion || d.id}`"
+                :designacion="d"
+                :arbitros="arbitrosDesignados[d.idDesignacion || d.id]"
+                show-ver-arbitros-btn
+                @ver-arbitros="verArbitros"
+              />
             </div>
           </div>
 
@@ -412,142 +148,22 @@
             <div v-if="compDomingo.length === 0" style="padding: 1rem; border: 1px dashed var(--color-border-tertiary); border-radius: var(--border-radius-lg); text-align: center; color: var(--color-text-secondary); font-size: 12px; margin-bottom: 1rem; background: var(--color-background-primary);">
               Sin designaciones completadas para el domingo
             </div>
-            <div
-              v-for="d in compDomingo"
-              :key="`comp-${d.idDesignacion || d.id}`"
-              class="card"
-              style="margin-bottom: 1rem"
-            >
-              <div class="card-header">
-                <div>
-                  <div class="card-title">
-                    🏟️
-                    {{
-                      d.cancha?.nombreCancha ||
-                      getCancha(d.idCancha || d.canchaId)?.nombre ||
-                      "Cancha Desconocida"
-                    }}
-                  </div>
-                  <div class="card-sub uppercase">
-                    {{
-                      d.cancha?.ciudad ||
-                      getCancha(d.idCancha || d.canchaId)?.ciudad
-                    }}
-                    · {{ d.cantidadPartidos }} partidos · Fecha:
-                    {{ formatFecha(d.fecha) }}
-                  </div>
-                </div>
-                <div class="card-header-actions">
-                  <span class="badge badge-green"> ✓ Completa </span>
-                  <button
-                    v-if="d.estadoDesignacion === 1"
-                    class="btn primary"
-                    @click="verArbitros(d)"
-                    style="padding: 5px 9px; font-size: 12px"
-                  >
-                    <i class="ti ti-users"></i>
-                    Ver árbitros
-                  </button>
-                  <button
-                    v-if="d.estadoDesignacion === 1"
-                    class="btn"
-                    @click="openModal('manageReferees', d.idDesignacion || d.id)"
-                    style="
-                      padding: 5px 9px;
-                      font-size: 12px;
-                      border-color: var(--color-primary);
-                      color: var(--color-primary);
-                    "
-                  >
-                    <i class="ti ti-edit"></i>
-                    Editar árbitros
-                  </button>
-                  <button
-                    v-if="d.estadoDesignacion === 1"
-                    class="btn"
-                    @click="finalizarDesignacionManual(d.idDesignacion || d.id)"
-                    style="
-                      padding: 5px 9px;
-                      font-size: 12px;
-                      border-color: #185fa5;
-                      color: #185fa5;
-                    "
-                    onmouseover="this.style.background = '#e6f1fb'"
-                    onmouseout="this.style.background = 'transparent'"
-                  >
-                    <i class="ti ti-flag"></i>
-                    Finalizar
-                  </button>
-                  <button
-                    class="btn danger"
-                    @click="deleteDesignacion(d.idDesignacion || d.id)"
-                    style="padding: 5px 9px"
-                  >
-                    <i class="ti ti-trash"></i>
-                  </button>
-                </div>
-              </div>
-
-              <div
-                style="
-                  font-size: 12px;
-                  color: var(--color-text-secondary);
-                  margin-bottom: 6px;
-                "
-              >
-                Etapa: {{ d.etapaCampeonato || d.etapaTorneo || "FECHA_NORMAL" }}
-              </div>
-
-              <div
-                v-if="arbitrosDesignados[d.idDesignacion || d.id]"
-                style="
-                  margin-top: 12px;
-                  padding: 12px;
-                  background: #f5f5f5;
-                  border-radius: 6px;
-                "
-              >
-                <div
-                  style="
-                    font-size: 13px;
-                    font-weight: 600;
-                    margin-bottom: 8px;
-                    color: var(--color-text-secondary);
-                  "
-                >
-                  👥 Árbitros asignados:
-                </div>
-                <div
-                  v-for="arb in arbitrosDesignados[d.idDesignacion || d.id]"
-                  :key="arb.idDesignados || arb.id"
-                  style="
-                    font-size: 12px;
-                    padding: 6px 8px;
-                    background: white;
-                    border-radius: 4px;
-                    margin-bottom: 4px;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                  "
-                >
-                  <i class="ti ti-user" style="color: var(--color-primary)"></i>
-                  <span>{{ arb.arbitro?.nombre }} {{ arb.arbitro?.apellido }}</span>
-                  <span class="badge badge-gray" style="font-size: 10px">
-                    {{ arb.arbitro?.rol }}
-                  </span>
-                  <span style="font-size: 10px; color: #666">
-                    {{ arb.partidosDirigidos }} partidos
-                  </span>
-                </div>
-              </div>
+            <div class="flex flex-col gap-3">
+              <DesignacionCard
+                v-for="d in compDomingo"
+                :key="`comp-${d.idDesignacion || d.id}`"
+                :designacion="d"
+                :arbitros="arbitrosDesignados[d.idDesignacion || d.id]"
+                show-ver-arbitros-btn
+                @ver-arbitros="verArbitros"
+              />
             </div>
           </div>
         </div>
       </div>
 
       <!-- Designaciones Finalizadas -->
-      <div v-if="state.designacionesFinalizadas.length > 0">
+      <div v-if="state.designacionesFinalizadas.length > 0" class="mt-4">
         <div
           style="
             font-size: 14px;
@@ -568,104 +184,15 @@
             <div v-if="finSabado.length === 0" style="padding: 1rem; border: 1px dashed var(--color-border-tertiary); border-radius: var(--border-radius-lg); text-align: center; color: var(--color-text-secondary); font-size: 12px; margin-bottom: 1rem; background: var(--color-background-primary);">
               Sin designaciones finalizadas para el sábado
             </div>
-            <div
-              v-for="d in finSabado"
-              :key="`fin-${d.idDesignacion || d.id}`"
-              class="card"
-              style="margin-bottom: 1rem"
-            >
-              <div class="card-header">
-                <div>
-                  <div class="card-title">
-                    🏟️
-                    {{
-                      d.cancha?.nombreCancha ||
-                      getCancha(d.idCancha || d.canchaId)?.nombre ||
-                      "Cancha Desconocida"
-                    }}
-                  </div>
-                  <div class="card-sub">
-                    {{
-                      d.cancha?.ciudad ||
-                      getCancha(d.idCancha || d.canchaId)?.ciudad
-                    }}
-                    · {{ d.cantidadPartidos }} partidos · Fecha:
-                    {{ formatFecha(d.fecha) }}
-                  </div>
-                </div>
-                <div class="card-header-actions">
-                  <span class="badge badge-blue">Finalizada</span>
-                  <button
-                    class="btn primary"
-                    @click="verArbitros(d)"
-                    style="padding: 5px 9px; font-size: 12px"
-                  >
-                    <i class="ti ti-users"></i>
-                    Ver árbitros
-                  </button>
-                  <button
-                    class="btn danger"
-                    @click="deleteDesignacion(d.idDesignacion || d.id)"
-                    style="padding: 5px 9px"
-                  >
-                    <i class="ti ti-trash"></i>
-                  </button>
-                </div>
-              </div>
-
-              <div
-                style="
-                  font-size: 12px;
-                  color: var(--color-text-secondary);
-                  margin-bottom: 6px;
-                "
-              >
-                Etapa: {{ d.etapaCampeonato || d.etapaTorneo || "FECHA_NORMAL" }}
-              </div>
-
-              <div
-                v-if="arbitrosDesignados[d.idDesignacion || d.id]"
-                style="
-                  margin-top: 12px;
-                  padding: 12px;
-                  background: #f5f5f5;
-                  border-radius: 6px;
-                "
-              >
-                <div
-                  style="
-                    font-size: 13px;
-                    font-weight: 600;
-                    margin-bottom: 8px;
-                    color: var(--color-text-secondary);
-                  "
-                >
-                  👥 Árbitros asignados:
-                </div>
-                <div
-                  v-for="arb in arbitrosDesignados[d.idDesignacion || d.id]"
-                  :key="arb.idDesignados || arb.id"
-                  style="
-                    font-size: 12px;
-                    padding: 6px 8px;
-                    background: white;
-                    border-radius: 4px;
-                    margin-bottom: 4px;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                  "
-                >
-                  <i class="ti ti-user" style="color: var(--color-primary)"></i>
-                  <span>{{ arb.arbitro?.nombre }} {{ arb.arbitro?.apellido }}</span>
-                  <span class="badge badge-gray" style="font-size: 10px">
-                    {{ arb.arbitro?.rol }}
-                  </span>
-                  <span style="font-size: 10px; color: #666">
-                    {{ arb.partidosDirigidos }} partidos
-                  </span>
-                </div>
-              </div>
+            <div class="flex flex-col gap-3">
+              <DesignacionCard
+                v-for="d in finSabado"
+                :key="`fin-${d.idDesignacion || d.id}`"
+                :designacion="d"
+                :arbitros="arbitrosDesignados[d.idDesignacion || d.id]"
+                show-ver-arbitros-btn
+                @ver-arbitros="verArbitros"
+              />
             </div>
           </div>
 
@@ -677,104 +204,15 @@
             <div v-if="finDomingo.length === 0" style="padding: 1rem; border: 1px dashed var(--color-border-tertiary); border-radius: var(--border-radius-lg); text-align: center; color: var(--color-text-secondary); font-size: 12px; margin-bottom: 1rem; background: var(--color-background-primary);">
               Sin designaciones finalizadas para el domingo
             </div>
-            <div
-              v-for="d in finDomingo"
-              :key="`fin-${d.idDesignacion || d.id}`"
-              class="card"
-              style="margin-bottom: 1rem"
-            >
-              <div class="card-header">
-                <div>
-                  <div class="card-title">
-                    🏟️
-                    {{
-                      d.cancha?.nombreCancha ||
-                      getCancha(d.idCancha || d.canchaId)?.nombre ||
-                      "Cancha Desconocida"
-                    }}
-                  </div>
-                  <div class="card-sub">
-                    {{
-                      d.cancha?.ciudad ||
-                      getCancha(d.idCancha || d.canchaId)?.ciudad
-                    }}
-                    · {{ d.cantidadPartidos }} partidos · Fecha:
-                    {{ formatFecha(d.fecha) }}
-                  </div>
-                </div>
-                <div class="card-header-actions">
-                  <span class="badge badge-blue">Finalizada</span>
-                  <button
-                    class="btn primary"
-                    @click="verArbitros(d)"
-                    style="padding: 5px 9px; font-size: 12px"
-                  >
-                    <i class="ti ti-users"></i>
-                    Ver árbitros
-                  </button>
-                  <button
-                    class="btn danger"
-                    @click="deleteDesignacion(d.idDesignacion || d.id)"
-                    style="padding: 5px 9px"
-                  >
-                    <i class="ti ti-trash"></i>
-                  </button>
-                </div>
-              </div>
-
-              <div
-                style="
-                  font-size: 12px;
-                  color: var(--color-text-secondary);
-                  margin-bottom: 6px;
-                "
-              >
-                Etapa: {{ d.etapaCampeonato || d.etapaTorneo || "FECHA_NORMAL" }}
-              </div>
-
-              <div
-                v-if="arbitrosDesignados[d.idDesignacion || d.id]"
-                style="
-                  margin-top: 12px;
-                  padding: 12px;
-                  background: #f5f5f5;
-                  border-radius: 6px;
-                "
-              >
-                <div
-                  style="
-                    font-size: 13px;
-                    font-weight: 600;
-                    margin-bottom: 8px;
-                    color: var(--color-text-secondary);
-                  "
-                >
-                  👥 Árbitros asignados:
-                </div>
-                <div
-                  v-for="arb in arbitrosDesignados[d.idDesignacion || d.id]"
-                  :key="arb.idDesignados || arb.id"
-                  style="
-                    font-size: 12px;
-                    padding: 6px 8px;
-                    background: white;
-                    border-radius: 4px;
-                    margin-bottom: 4px;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                  "
-                >
-                  <i class="ti ti-user" style="color: var(--color-primary)"></i>
-                  <span>{{ arb.arbitro?.nombre }} {{ arb.arbitro?.apellido }}</span>
-                  <span class="badge badge-gray" style="font-size: 10px">
-                    {{ arb.arbitro?.rol }}
-                  </span>
-                  <span style="font-size: 10px; color: #666">
-                    {{ arb.partidosDirigidos }} partidos
-                  </span>
-                </div>
-              </div>
+            <div class="flex flex-col gap-3">
+              <DesignacionCard
+                v-for="d in finDomingo"
+                :key="`fin-${d.idDesignacion || d.id}`"
+                :designacion="d"
+                :arbitros="arbitrosDesignados[d.idDesignacion || d.id]"
+                show-ver-arbitros-btn
+                @ver-arbitros="verArbitros"
+              />
             </div>
           </div>
         </div>
@@ -788,17 +226,13 @@ import { onMounted, ref, computed } from "vue";
 import {
   state,
   openModal,
-  getCancha,
-  deleteDesignacion,
   loadDesignacionesIncompletas,
   loadDesignacionesCompletas,
   loadDesignacionesFinalizadas,
   loadArbitrosDesignados,
   minArbitros,
-  asignarArbitros,
-  formatFecha,
-  finalizarDesignacionManual,
 } from "../store";
+import DesignacionCard from "../components/DesignacionCard.vue";
 
 onMounted(() => {
   loadDesignacionesIncompletas();
@@ -807,7 +241,6 @@ onMounted(() => {
 });
 
 const arbitrosDesignados = ref({});
-const minArbitrosReq = (partidos) => minArbitros(partidos);
 
 const getDayOfWeek = (fechaStr) => {
   if (!fechaStr) return -1;

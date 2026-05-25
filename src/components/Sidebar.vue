@@ -7,26 +7,28 @@
         <div class="logo-sub">Fútbol · Árbitros</div>
       </div>
     </div>
-    
-    <button 
-      v-for="nav in navItems" 
+
+    <router-link
+      v-for="nav in navItems"
       :key="nav.id"
-      :class="['nav-item', { active: state.view === nav.id }]"
-      @click="setView(nav.id)"
+      :to="nav.path"
+      class="nav-item"
+      active-class="active"
     >
-      <i :class="['ti', nav.icon]" aria-hidden="true"></i>{{ nav.label }}
-    </button>
+      <i :class="['ti', nav.icon]" aria-hidden="true"></i>
+      <span>{{ nav.label }}</span>
+    </router-link>
   </div>
 </template>
 
 <script setup>
-import { state, setView } from '../store'
-
 const navItems = [
-  { id:'dashboard', icon:'ti-dashboard', label:'Resumen' },
-  { id:'canchas', icon:'ti-map-pin', label:'Canchas' },
-  { id:'arbitros', icon:'ti-users', label:'Árbitros' },
-  { id:'designaciones', icon:'ti-clipboard-list', label:'Designaciones' },
-  { id:'buscar', icon:'ti-search', label:'Buscador' },
-]
+  { id: "dashboard", path: "/", icon: "ti-dashboard", label: "Resumen" },
+  { id: "canchas", path: "/canchas", icon: "ti-map-pin", label: "Canchas" },
+  { id: "arbitros", path: "/arbitros", icon: "ti-users", label: "Árbitros" },
+  { id: "suspensiones", path: "/suspensiones", icon: "ti-ban", label: "Suspensiones" },
+  { id: "designaciones", path: "/designaciones", icon: "ti-clipboard-list", label: "Designaciones" },
+  { id: "buscar", path: "/buscar", icon: "ti-search", label: "Buscador" },
+];
 </script>
+

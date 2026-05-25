@@ -2,6 +2,7 @@ import { reactive, computed } from "vue";
 import arbitroService from "./services/arbitroService";
 import canchaService from "./services/canchaService";
 import designacionService from "./services/designacionService";
+import suspencionService from "./services/suspencionService";
 
 export const ROLES_ARB = [
   "Árbitro Principal",
@@ -21,7 +22,6 @@ export const ROLE_COLORS = [
 ];
 
 export const state = reactive({
-  view: "dashboard",
   canchas: [],
   arbitros: [],
   designaciones: [],
@@ -32,8 +32,10 @@ export const state = reactive({
   nextCanchaId: 4,
   nextArbId: 9,
   nextDesId: 3,
+  nextSuspId: 1,
   form: {},
   selectedArbitros: [],
+  suspensiones: [],
 });
 
 // Helpers
@@ -125,9 +127,6 @@ export const sortDesignaciones = (list) => {
 };
 
 // Actions
-export const setView = (v) => {
-  state.view = v;
-};
 
 export const openModal = (type, id = null) => {
   state.modal = { type, id };
@@ -371,7 +370,7 @@ export const toggleDisponible = (id) => {
 export const marcarTodosNoDisponibles = () => {
   if (
     !confirm(
-      "¿Estás seguro de que deseas marcar a todos los árbitros como no disponibles?"
+      "¿Estás seguro de que deseas marcar a todos los árbitros como no disponibles?",
     )
   )
     return;
@@ -420,12 +419,22 @@ export const loadCanchas = async (page = 0, size = 100) => {
   }
 };
 
+const getMostRecentSaturday = () => {
+  const referenceDate = new Date();
+  const day = referenceDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const daysToSaturday = day + 1;
+  const satDate = new Date(referenceDate);
+  satDate.setDate(referenceDate.getDate() - daysToSaturday);
+  return satDate.toISOString().split("T")[0];
+};
+
 export const loadDesignacionesIncompletas = async (page = 0, size = 100) => {
   try {
     const res = await designacionService.getByEstado(0, page, size);
-    state.designacionesIncompletas = sortDesignaciones(
-      Array.isArray(res) ? res : res.content || res
-    );
+    let list = Array.isArray(res) ? res : res.content || res;
+    const limitDate = getMostRecentSaturday();
+    list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
+    state.designacionesIncompletas = sortDesignaciones(list);
   } catch (e) {
     console.warn("Failed to load designaciones incompletas", e);
   }
@@ -434,9 +443,10 @@ export const loadDesignacionesIncompletas = async (page = 0, size = 100) => {
 export const loadDesignacionesCompletas = async (page = 0, size = 100) => {
   try {
     const res = await designacionService.getByEstado(1, page, size);
-    state.designaciones = sortDesignaciones(
-      Array.isArray(res) ? res : res.content || res
-    );
+    let list = Array.isArray(res) ? res : res.content || res;
+    const limitDate = getMostRecentSaturday();
+    list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
+    state.designaciones = sortDesignaciones(list);
   } catch (e) {
     console.warn("Failed to load designaciones completas", e);
   }
@@ -445,9 +455,10 @@ export const loadDesignacionesCompletas = async (page = 0, size = 100) => {
 export const loadDesignacionesFinalizadas = async (page = 0, size = 100) => {
   try {
     const res = await designacionService.getByEstado(2, page, size);
-    state.designacionesFinalizadas = sortDesignaciones(
-      Array.isArray(res) ? res : res.content || res
-    );
+    let list = Array.isArray(res) ? res : res.content || res;
+    const limitDate = getMostRecentSaturday();
+    list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
+    state.designacionesFinalizadas = sortDesignaciones(list);
   } catch (e) {
     console.warn("Failed to load designaciones finalizadas", e);
   }
@@ -505,7 +516,9 @@ export const saveDesignacion = () => {
         ...dto,
         arbitros: [],
       });
-      state.designacionesIncompletas = sortDesignaciones(state.designacionesIncompletas);
+      state.designacionesIncompletas = sortDesignaciones(
+        state.designacionesIncompletas,
+      );
       closeModal();
     });
 };
@@ -586,10 +599,16 @@ export const asignarArbitroADesignacionManual = async (
     return res;
   } catch (error) {
     console.error("Error al asignar árbitro manualmente", error);
-    const msg =
-      error.response?.data?.message ||
-      error.message ||
-      "Hubo un error al intentar asignar el árbitro.";
+    let msg = "Hubo un error al intentar asignar el árbitro.";
+    if (error.response?.data) {
+      if (typeof error.response.data === "string") {
+        msg = error.response.data;
+      } else if (typeof error.response.data === "object") {
+        msg = error.response.data.message || error.response.data.error || msg;
+      }
+    } else {
+      msg = error.message || msg;
+    }
     alert(msg);
     throw error;
   }
@@ -615,5 +634,122 @@ export const finalizarDesignacionManual = async (idDesignacion) => {
       "Hubo un error al intentar finalizar la designación.";
     alert(msg);
     throw error;
+  }
+};
+
+export const clonarDesignaciones = async (designaciones) => {
+  if (!Array.isArray(designaciones) || designaciones.length === 0) return;
+
+  const promises = designaciones.map((d) => {
+    let newFecha = d.fecha;
+    if (d.fecha) {
+      try {
+        const dateObj = new Date(d.fecha);
+        dateObj.setDate(dateObj.getDate() + 7);
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        const hours = String(dateObj.getHours()).padStart(2, "0");
+        const minutes = String(dateObj.getMinutes()).padStart(2, "0");
+        const seconds = String(dateObj.getSeconds()).padStart(2, "0");
+        newFecha = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+      } catch (e) {
+        console.warn("Error parsing or shifting date", e);
+      }
+    }
+
+    const idCancha =
+      d.idCancha ||
+      d.canchaId ||
+      (d.cancha ? d.cancha.idCancha || d.cancha.id : null);
+
+    const dto = {
+      idCancha,
+      fecha: newFecha,
+      cantidadPartidos: d.cantidadPartidos,
+      etapaCampeonato: d.etapaCampeonato || "FECHA_NORMAL",
+    };
+
+    return designacionService.createDesignacion(dto);
+  });
+
+  try {
+    await Promise.all(promises);
+    await loadDesignacionesIncompletas();
+    await loadDesignacionesCompletas();
+    await loadDesignacionesFinalizadas();
+  } catch (error) {
+    console.error("Error al clonar designaciones", error);
+    alert("Hubo un error al clonar algunas designaciones.");
+    await loadDesignacionesIncompletas();
+    await loadDesignacionesCompletas();
+    await loadDesignacionesFinalizadas();
+    throw error;
+  }
+};
+
+export const loadSuspensiones = async () => {
+  try {
+    const res = await suspencionService.getAll();
+    state.suspensiones = Array.isArray(res) ? res : res.content || res;
+  } catch (e) {
+    console.warn("Failed to load suspensiones, using local state", e);
+  }
+};
+
+export const saveSuspencion = async (dto) => {
+  try {
+    const created = await suspencionService.create(dto);
+    const newSusp = {
+      id: created?.id || created?.idSuspencion || state.nextSuspId++,
+      ...dto,
+      ...created,
+    };
+    state.suspensiones.push(newSusp);
+
+    if (dto.tipoSuspencion === 2) {
+      const arb = getArbitro(dto.arbitro);
+      if (arb && arb.estado) {
+        arb.estado = false;
+        try {
+          await arbitroService.updateDisponibilidad(dto.arbitro);
+        } catch (err) {
+          console.warn("Failed to persist availability change in backend", err);
+        }
+      }
+    }
+    return newSusp;
+  } catch (e) {
+    console.warn("create suspencion failed, using local fallback", e);
+    const newSusp = {
+      id: state.nextSuspId++,
+      ...dto,
+    };
+    state.suspensiones.push(newSusp);
+
+    if (dto.tipoSuspencion === 2) {
+      const arb = getArbitro(dto.arbitro);
+      if (arb && arb.estado) {
+        arb.estado = false;
+      }
+    }
+    return newSusp;
+  }
+};
+
+export const deleteSuspencion = async (idSuspencion) => {
+  if (!confirm("¿Deseas eliminar/revocar esta sanción?")) return;
+  try {
+    await suspencionService.deleteSuspencion(idSuspencion);
+    state.suspensiones = state.suspensiones.filter(
+      (s) => s.id !== idSuspencion && s.idSuspencion !== idSuspencion,
+    );
+    alert("Sanción eliminada correctamente");
+  } catch (e) {
+    console.warn("delete suspencion failed, using local fallback", e);
+    state.suspensiones = state.suspensiones.filter(
+      (s) => s.id !== idSuspencion && s.idSuspencion !== idSuspencion,
+    );
+    alert("Sanción eliminada correctamente");
   }
 };

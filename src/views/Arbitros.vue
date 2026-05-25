@@ -144,129 +144,8 @@
             Ningún árbitro disponible coincide con los filtros
           </div>
 
-          <div v-for="a in disp" :key="a.idArbitro" class="arb-list-item">
-            <div class="arb-list-item-main">
-              <div
-                class="arb-avatar"
-                style="
-                  background: linear-gradient(135deg, #1d9e75, #125c44);
-                  color: white;
-                  width: 36px;
-                  height: 36px;
-                  font-size: 13px;
-                "
-              >
-                {{ getInitials(a.nombre, a.apellido) }}
-              </div>
-              <div class="arb-info">
-                <div
-                  style="
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    flex-wrap: wrap;
-                  "
-                >
-                  <span
-                    class="arb-name"
-                    style="font-size: 14px; font-weight: 600"
-                    >{{ a.nombre }} {{ a.apellido }}</span
-                  >
-                  <span :class="['badge', getCategoryClass(a.categoria)]">{{
-                    getCategoryLabel(a.categoria)
-                  }}</span>
-                </div>
-                <div
-                  style="
-                    margin-top: 3px;
-                    font-size: 12px;
-                    color: var(--color-text-secondary);
-                  "
-                >
-                  Partidos:
-                  <strong style="color: var(--color-text-primary)">{{
-                    a.designaciones || 0
-                  }}</strong>
-                  designaciones
-                </div>
-                <div
-                  style="
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    margin-top: 5px;
-                    font-size: 11px;
-                  "
-                >
-                  <a
-                    v-if="a.whatsapp"
-                    :href="getWhatsappLink(a.whatsapp)"
-                    target="_blank"
-                    style="
-                      color: #1e7e34;
-                      text-decoration: none;
-                      display: inline-flex;
-                      align-items: center;
-                      gap: 4px;
-                      font-weight: 500;
-                    "
-                    title="Enviar WhatsApp"
-                  >
-                    <i class="ti ti-brand-whatsapp" style="font-size: 13px"></i>
-                    {{ a.whatsapp }}
-                  </a>
-                  <span v-else style="color: var(--color-text-secondary)"
-                    >📱 Sin número</span
-                  >
-
-                  <span
-                    style="
-                      color: var(--color-text-secondary);
-                      display: inline-flex;
-                      align-items: center;
-                      gap: 3px;
-                    "
-                  >
-                    👕 {{ a.talleCamiseta || "M" }} · 🩳
-                    {{ a.talleShort || "M" }}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div class="arb-list-actions">
-              <button
-                class="btn"
-                @click="openModal('editArbitro', a.idArbitro)"
-                style="
-                  padding: 6px 10px;
-                  font-size: 12px;
-                  color: #185fa5;
-                  border-color: #bcd1e6;
-                  background: #f6fafd;
-                "
-                title="Editar árbitro"
-              >
-                <i class="ti ti-edit"></i>
-                Editar
-              </button>
-              <button
-                class="btn"
-                @click="toggleDisponible(a.idArbitro)"
-                style="padding: 6px 10px; font-size: 12px"
-                title="Marcar como no disponible"
-              >
-                <i class="ti ti-circle-x"></i>
-                No disp.
-              </button>
-              <button
-                class="btn danger"
-                @click="deleteArbitro(a.idArbitro)"
-                style="padding: 6px 10px"
-                title="Eliminar árbitro"
-              >
-                <i class="ti ti-trash"></i>
-              </button>
-            </div>
+          <div class="flex flex-col gap-3">
+            <ArbitroCard v-for="a in disp" :key="a.idArbitro" :arbitro="a" />
           </div>
         </div>
 
@@ -315,134 +194,8 @@
             Ningún árbitro no disponible coincide con los filtros
           </div>
 
-          <div v-for="a in nodip" :key="a.idArbitro" class="arb-list-item">
-            <div class="arb-list-item-main">
-              <div
-                class="arb-avatar"
-                style="
-                  background: linear-gradient(135deg, #888, #555);
-                  color: white;
-                  width: 36px;
-                  height: 36px;
-                  font-size: 13px;
-                "
-              >
-                {{ getInitials(a.nombre, a.apellido) }}
-              </div>
-              <div class="arb-info">
-                <div
-                  style="
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    flex-wrap: wrap;
-                  "
-                >
-                  <span
-                    class="arb-name"
-                    style="
-                      font-size: 14px;
-                      font-weight: 600;
-                      color: var(--color-text-secondary);
-                    "
-                    >{{ a.nombre }} {{ a.apellido }}</span
-                  >
-                  <span
-                    :class="['badge', getCategoryClass(a.categoria)]"
-                    style="opacity: 0.85"
-                    >{{ getCategoryLabel(a.categoria) }}</span
-                  >
-                </div>
-                <div
-                  style="
-                    margin-top: 3px;
-                    font-size: 12px;
-                    color: var(--color-text-secondary);
-                  "
-                >
-                  Partidos:
-                  <strong style="color: var(--color-text-secondary)">{{
-                    a.designaciones || 0
-                  }}</strong>
-                  designaciones
-                </div>
-                <div
-                  style="
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    margin-top: 5px;
-                    font-size: 11px;
-                  "
-                >
-                  <a
-                    v-if="a.whatsapp"
-                    :href="getWhatsappLink(a.whatsapp)"
-                    target="_blank"
-                    style="
-                      color: var(--color-text-secondary);
-                      text-decoration: none;
-                      display: inline-flex;
-                      align-items: center;
-                      gap: 4px;
-                    "
-                    title="Enviar WhatsApp"
-                  >
-                    <i class="ti ti-brand-whatsapp" style="font-size: 13px"></i>
-                    {{ a.whatsapp }}
-                  </a>
-                  <span v-else style="color: var(--color-text-secondary)"
-                    >📱 Sin número</span
-                  >
-
-                  <span
-                    style="
-                      color: var(--color-text-secondary);
-                      display: inline-flex;
-                      align-items: center;
-                      gap: 3px;
-                    "
-                  >
-                    👕 {{ a.talleCamiseta || "M" }} · 🩳
-                    {{ a.talleShort || "M" }}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div class="arb-list-actions">
-              <button
-                class="btn"
-                @click="openModal('editArbitro', a.idArbitro)"
-                style="
-                  padding: 6px 10px;
-                  font-size: 12px;
-                  color: #185fa5;
-                  border-color: #bcd1e6;
-                  background: #f6fafd;
-                "
-                title="Editar árbitro"
-              >
-                <i class="ti ti-edit"></i>
-                Editar
-              </button>
-              <button
-                class="btn"
-                @click="toggleDisponible(a.idArbitro)"
-                style="padding: 6px 10px; font-size: 12px"
-                title="Marcar como disponible"
-              >
-                <i class="ti ti-circle-check"></i>
-                Disponible
-              </button>
-              <button
-                class="btn danger"
-                @click="deleteArbitro(a.idArbitro)"
-                style="padding: 6px 10px"
-                title="Eliminar árbitro"
-              >
-                <i class="ti ti-trash"></i>
-              </button>
-            </div>
+          <div class="flex flex-col gap-3">
+            <ArbitroCard v-for="a in nodip" :key="a.idArbitro" :arbitro="a" />
           </div>
         </div>
       </div>
@@ -455,11 +208,10 @@ import { ref, computed } from "vue";
 import {
   state,
   openModal,
-  toggleDisponible,
-  deleteArbitro,
   disponiblesCount,
   marcarTodosNoDisponibles,
 } from "../store";
+import ArbitroCard from "../components/ArbitroCard.vue";
 
 // Filtros locales
 const searchQuery = ref("");
@@ -492,38 +244,4 @@ const activeDispCount = computed(
 const activeNodipCount = computed(
   () => state.arbitros.filter((a) => !a.estado).length,
 );
-
-const getInitials = (nombre, apellido) => {
-  const n = nombre ? nombre[0] : "";
-  const a = apellido ? apellido[0] : "";
-  return (n + a).toUpperCase().slice(0, 2);
-};
-
-const getCategoryLabel = (cat) => {
-  const map = {
-    ELITE: "Elite",
-    AVANZADO: "Avanzado",
-    INTERMEDIO: "Intermedio",
-    EN_FORMACION: "En Formación",
-    INCIAL: "Inicial",
-  };
-  return map[cat] || cat || "Inicial";
-};
-
-const getCategoryClass = (cat) => {
-  const map = {
-    ELITE: "badge-green",
-    AVANZADO: "badge-blue",
-    INTERMEDIO: "badge-amber",
-    EN_FORMACION: "badge-gray",
-    INCIAL: "badge-red",
-  };
-  return map[cat] || "badge-gray";
-};
-
-const getWhatsappLink = (phone) => {
-  if (!phone) return "#";
-  const clean = phone.replace(/[^0-9+]/g, "");
-  return `https://wa.me/${clean}`;
-};
 </script>

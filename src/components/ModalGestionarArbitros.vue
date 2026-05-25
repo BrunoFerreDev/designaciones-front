@@ -229,7 +229,17 @@ const assignReferee = async () => {
     await loadAssigned()
   } catch (error) {
     console.error(error)
-    errorMessage.value = error.response?.data?.message || error.message || "No se pudo asignar el árbitro."
+    let msg = "No se pudo asignar el árbitro."
+    if (error.response?.data) {
+      if (typeof error.response.data === "string") {
+        msg = error.response.data
+      } else if (typeof error.response.data === "object") {
+        msg = error.response.data.message || error.response.data.error || msg
+      }
+    } else {
+      msg = error.message || msg
+    }
+    errorMessage.value = msg
   } finally {
     assigning.value = false
   }
@@ -245,7 +255,17 @@ const removeReferee = async (idArbitro) => {
     await loadAssigned()
   } catch (error) {
     console.error(error)
-    errorMessage.value = error.response?.data?.message || error.message || "No se pudo quitar el árbitro."
+    let msg = "No se pudo quitar el árbitro."
+    if (error.response?.data) {
+      if (typeof error.response.data === "string") {
+        msg = error.response.data
+      } else if (typeof error.response.data === "object") {
+        msg = error.response.data.message || error.response.data.error || msg
+      }
+    } else {
+      msg = error.message || msg
+    }
+    errorMessage.value = msg
   }
 }
 
