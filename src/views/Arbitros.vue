@@ -7,7 +7,7 @@
           {{ disponiblesCount }} disponibles de {{ state.arbitros.length }}
         </div>
       </div>
-      <div style="display: flex; gap: 8px;">
+      <div style="display: flex; gap: 8px">
         <button
           class="btn danger"
           @click="marcarTodosNoDisponibles"
@@ -234,8 +234,16 @@ const filteredArbitros = computed(() => {
   });
 });
 
-const disp = computed(() => filteredArbitros.value.filter((a) => a.estado));
-const nodip = computed(() => filteredArbitros.value.filter((a) => !a.estado));
+const disp = computed(() =>
+  filteredArbitros.value.filter(
+    (a) => a.estado || a.disponibleSabado || a.disponibleDomingo,
+  ),
+);
+const nodip = computed(() =>
+  filteredArbitros.value.filter(
+    (a) => !a.estado || !a.disponibleSabado || !a.disponibleDomingo,
+  ),
+);
 
 // Cantidad real disponible / no disponible en toda la base de datos (para las estadísticas principales)
 const activeDispCount = computed(

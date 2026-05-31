@@ -21,6 +21,9 @@
 
     <!-- Ver Suspensión -->
     <ModalVerSuspencion v-if="state.modal.type === 'viewSuspension'" />
+
+    <!-- Editar Designación -->
+    <ModalEditDesignacion v-if="state.modal.type === 'editDesignacion'" />
   </div>
 </template>
 
@@ -32,4 +35,5 @@ import DesignacionWizard from "./DesignacionWizard.vue"
 import ModalGestionarArbitros from "./ModalGestionarArbitros.vue"
 import ModalWhatsapp from "./ModalWhatsapp.vue"
 import ModalVerSuspencion from "./ModalVerSuspencion.vue"
+import ModalEditDesignacion from "./ModalEditDesignacion.vue"
 </script>

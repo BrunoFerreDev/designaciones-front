@@ -145,7 +145,12 @@ const resultadosCargados = ref({});
 
 // Inicializar con la fecha actual
 onMounted(() => {
-  const hoyStr = new Date().toISOString().split("T")[0];
+  const hoy = new Date();
+  const yyyy = hoy.getFullYear();
+  const mm = String(hoy.getMonth() + 1).padStart(2, "0");
+  const dd = String(hoy.getDate()).padStart(2, "0");
+  const hoyStr = `${yyyy}-${mm}-${dd}`;
+  
   fechaSingle.value = hoyStr;
   fechaInicio.value = hoyStr;
   fechaFin.value = hoyStr;

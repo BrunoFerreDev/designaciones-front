@@ -37,10 +37,26 @@ const quitarArbitroManual = (idDesignacion, idArbitro) =>
     .then((r) => r.data);
 const finalizarDesignacion = (idDesignacion) =>
   api.put(`/designaciones/${idDesignacion}/finalizar`).then((r) => r.data);
+const cancelarDesignacion = (idDesignacion) =>
+  api
+    .put(`/designaciones/${idDesignacion}/cambiar-cancelado`)
+    .then((r) => r.data);
+const enviarListaArbitros = (idDesignacion, idsArbitros) =>
+  api
+    .post("/designaciones/designar-lista", idsArbitros, {
+      params: { idDesignacion },
+    })
+    .then((r) => r.data);
 const buscarPorRango = (inicio, fin) =>
-  api.get("/designaciones/buscar", { params: { inicio, fin } }).then((r) => r.data);
+  api
+    .get("/designaciones/buscar", { params: { inicio, fin } })
+    .then((r) => r.data);
 const buscarPorFecha = (fecha) =>
-  api.get("/designaciones/obtener-por-fecha", { params: { fecha } }).then((r) => r.data);
+  api
+    .get("/designaciones/obtener-por-fecha", { params: { fecha } })
+    .then((r) => r.data);
+const actualizarDesignacion = (idDesignacion, dto) =>
+  api.put(`/designaciones/${idDesignacion}`, dto).then((r) => r.data);
 
 export default {
   createDesignacion,
@@ -56,7 +72,9 @@ export default {
   asignarArbitroManual,
   quitarArbitroManual,
   finalizarDesignacion,
+  cancelarDesignacion,
+  enviarListaArbitros,
   buscarPorRango,
   buscarPorFecha,
+  actualizarDesignacion,
 };
-

@@ -146,7 +146,10 @@ import {
   getCancha, 
   loadArbitrosDesignados,
   quitarArbitroDeDesignacionManual,
-  asignarArbitroADesignacionManual
+  asignarArbitroADesignacionManual,
+  isRefereeAssignedToDifferentCourtOnSameDay,
+  minArbitros,
+  getDayOfWeekLocal
 } from '../store'
 import arbitroService from '../services/arbitroService'
 
@@ -158,7 +161,8 @@ const designacion = computed(() => {
   if (!id) return null
   return state.designaciones.find(d => (d.idDesignacion || d.id) === id) ||
          state.designacionesIncompletas.find(d => (d.idDesignacion || d.id) === id) ||
-         state.designacionesFinalizadas.find(d => (d.idDesignacion || d.id) === id)
+         state.designacionesFinalizadas.find(d => (d.idDesignacion || d.id) === id) ||
+         state.designacionesAConfirmar.find(d => (d.idDesignacion || d.id) === id)
 })
 
 const canchaName = computed(() => {
@@ -170,8 +174,7 @@ const canchaName = computed(() => {
 const requiredCount = computed(() => {
   const d = designacion.value
   if (!d) return 0
-  const partidos = d.cantidadPartidos || 0
-  return partidos >= 5 ? 4 : 2
+  return minArbitros(d.cantidadPartidos || 0)
 })
 
 const isComplete = computed(() => {
@@ -211,10 +214,17 @@ const loadAvailable = async () => {
   }
 }
 
-// Filter out referees that are already assigned to this designation
 const filteredAvailableReferees = computed(() => {
   return availableReferees.value.filter(arb => {
-    return !assignedReferees.value.some(assigned => assigned.arbitro?.idArbitro === arb.idArbitro)
+    const isAlreadyAssigned = assignedReferees.value.some(assigned => assigned.arbitro?.idArbitro === arb.idArbitro);
+    if (isAlreadyAssigned) return false;
+    
+    if (designacion.value) {
+      if (isRefereeAssignedToDifferentCourtOnSameDay(arb.idArbitro, designacion.value)) {
+        return false;
+      }
+    }
+    return true;
   })
 })
 

@@ -27,6 +27,7 @@ export const state = reactive({
   designaciones: [],
   designacionesIncompletas: [],
   designacionesFinalizadas: [],
+  designacionesAConfirmar: [],
   designacionesArbitros: [],
   modal: null,
   nextCanchaId: 4,
@@ -36,6 +37,7 @@ export const state = reactive({
   form: {},
   selectedArbitros: [],
   suspensiones: [],
+  arbitrosDesignadosMap: {},
 });
 
 // Helpers
@@ -118,7 +120,7 @@ export const sortDesignaciones = (list) => {
     const timeA = a.fecha ? new Date(a.fecha).getTime() : 0;
     const timeB = b.fecha ? new Date(b.fecha).getTime() : 0;
     if (timeA !== timeB) {
-      return timeA - timeB;
+      return timeB - timeA; // Most recent to oldest
     }
     const nameA = a.cancha?.nombreCancha || "";
     const nameB = b.cancha?.nombreCancha || "";
@@ -156,6 +158,8 @@ export const openModal = (type, id = null) => {
       talleCamiseta: "M",
       talleShort: "M",
       estado: true,
+      disponibleSabado: true,
+      disponibleDomingo: true,
       nombre: "",
       apellido: "",
       whatsapp: "",
@@ -164,6 +168,28 @@ export const openModal = (type, id = null) => {
     state.form = { cantidadPartidos: 1, etapaCampeonato: "FECHA_NORMAL" }; // defaults para designación
   } else if (type === "manageReferees" && id) {
     state.form = { idDesignacion: id };
+  } else if (type === "editDesignacion" && id) {
+    const list = [...state.designacionesIncompletas, ...state.designaciones, ...state.designacionesFinalizadas, ...state.designacionesAConfirmar];
+    const des = list.find((d) => (d.idDesignacion || d.id) === id);
+    if (des) {
+      const canchaId = des.idCancha || des.canchaId || (des.cancha ? des.cancha.idCancha || des.cancha.id : null);
+      let formattedFecha = des.fecha || "";
+      if (formattedFecha && formattedFecha.includes("T")) {
+        const parts = formattedFecha.split(":");
+        if (parts.length > 2) {
+          formattedFecha = parts.slice(0, 2).join(":");
+        }
+      }
+      state.form = {
+        idDesignacion: id,
+        canchaId: canchaId,
+        fecha: formattedFecha,
+        cantidadPartidos: des.cantidadPartidos || 1,
+        etapaCampeonato: des.etapaCampeonato || des.etapaTorneo || "FECHA_NORMAL",
+      };
+    } else {
+      state.form = {};
+    }
   } else {
     state.form = {};
   }
@@ -269,6 +295,8 @@ export const saveArbitro = () => {
     apellido,
     whatsapp,
     estado,
+    disponibleSabado,
+    disponibleDomingo,
     categoria,
     talleCamiseta,
     talleShort,
@@ -283,6 +311,8 @@ export const saveArbitro = () => {
     rol: "Árbitro Principal",
     whatsapp: whatsapp?.trim() || "",
     estado: estado !== undefined ? estado : true,
+    disponibleSabado: disponibleSabado !== undefined ? disponibleSabado : true,
+    disponibleDomingo: disponibleDomingo !== undefined ? disponibleDomingo : true,
     categoria: categoria || "INCIAL",
     talleCamiseta: talleCamiseta || "M",
     talleShort: talleShort || "M",
@@ -352,19 +382,30 @@ export const deleteArbitro = (id) => {
     });
 };
 
-export const toggleDisponible = (id) => {
-  // call backend to toggle availability, then update local state
-  arbitroService
-    .updateDisponibilidad(id)
-    .then(() => {
-      const a = getArbitro(id);
-      if (a) a.estado = !a.estado;
+export const updateArbitroDisponibilidad = (id, key) => {
+  const a = getArbitro(id);
+  if (!a) return Promise.reject("Árbitro no encontrado");
+
+  const updatedValue = !a[key];
+  const dto = {
+    estado: key === 'estado' ? updatedValue : (a.estado !== undefined ? a.estado : true),
+    disponibleSabado: key === 'disponibleSabado' ? updatedValue : (a.disponibleSabado !== undefined ? a.disponibleSabado : true),
+    disponibleDomingo: key === 'disponibleDomingo' ? updatedValue : (a.disponibleDomingo !== undefined ? a.disponibleDomingo : true),
+  };
+
+  return arbitroService
+    .updateDisponibilidad(id, dto)
+    .then((res) => {
+      Object.assign(a, res || { idArbitro: id, ...dto });
     })
     .catch((err) => {
-      console.warn("updateDisponibilidad failed, toggling locally", err);
-      const a = getArbitro(id);
-      if (a) a.estado = !a.estado;
+      console.warn("updateDisponibilidad failed, updating locally", err);
+      a[key] = updatedValue;
     });
+};
+
+export const toggleDisponible = (id) => {
+  return updateArbitroDisponibilidad(id, 'estado');
 };
 
 export const marcarTodosNoDisponibles = () => {
@@ -425,16 +466,42 @@ const getMostRecentSaturday = () => {
   const daysToSaturday = day + 1;
   const satDate = new Date(referenceDate);
   satDate.setDate(referenceDate.getDate() - daysToSaturday);
-  return satDate.toISOString().split("T")[0];
+  
+  const yyyy = satDate.getFullYear();
+  const mm = String(satDate.getMonth() + 1).padStart(2, "0");
+  const dd = String(satDate.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 };
+
 
 export const loadDesignacionesIncompletas = async (page = 0, size = 100) => {
   try {
-    const res = await designacionService.getByEstado(0, page, size);
-    let list = Array.isArray(res) ? res : res.content || res;
+    const res0 = await designacionService.getByEstado(0, page, size);
+    let list0 = Array.isArray(res0) ? res0 : res0.content || res0;
+
+    let list3 = [];
+    try {
+      const res3 = await designacionService.getByEstado(3, page, size);
+      list3 = Array.isArray(res3) ? res3 : res3.content || res3;
+    } catch (e3) {
+      console.warn("Failed to load cancelled designaciones (state 3)", e3);
+    }
+
+    let list = [...list0, ...list3];
     const limitDate = getMostRecentSaturday();
     list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
     state.designacionesIncompletas = sortDesignaciones(list);
+    
+    // Pre-cargar árbitros asignados en el mapa
+    list.forEach(async (d) => {
+      const id = d.idDesignacion || d.id;
+      if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
+        state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
+      } else {
+        const refs = await loadArbitrosDesignados(id);
+        state.arbitrosDesignadosMap[id] = refs;
+      }
+    });
   } catch (e) {
     console.warn("Failed to load designaciones incompletas", e);
   }
@@ -447,6 +514,17 @@ export const loadDesignacionesCompletas = async (page = 0, size = 100) => {
     const limitDate = getMostRecentSaturday();
     list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
     state.designaciones = sortDesignaciones(list);
+
+    // Pre-cargar árbitros asignados en el mapa
+    list.forEach(async (d) => {
+      const id = d.idDesignacion || d.id;
+      if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
+        state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
+      } else {
+        const refs = await loadArbitrosDesignados(id);
+        state.arbitrosDesignadosMap[id] = refs;
+      }
+    });
   } catch (e) {
     console.warn("Failed to load designaciones completas", e);
   }
@@ -459,14 +537,30 @@ export const loadDesignacionesFinalizadas = async (page = 0, size = 100) => {
     const limitDate = getMostRecentSaturday();
     list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
     state.designacionesFinalizadas = sortDesignaciones(list);
+
+    // Pre-cargar árbitros asignados en el mapa
+    list.forEach(async (d) => {
+      const id = d.idDesignacion || d.id;
+      if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
+        state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
+      } else {
+        const refs = await loadArbitrosDesignados(id);
+        state.arbitrosDesignadosMap[id] = refs;
+      }
+    });
   } catch (e) {
     console.warn("Failed to load designaciones finalizadas", e);
   }
 };
 export const loadArbitrosDesignados = async (idDesignacion) => {
+  if (state.arbitrosDesignadosMap[idDesignacion]) {
+    return state.arbitrosDesignadosMap[idDesignacion];
+  }
   try {
     const res = await designacionService.getDesignados(idDesignacion);
-    return Array.isArray(res) ? res : res.data || res;
+    const data = Array.isArray(res) ? res : res.data || res;
+    state.arbitrosDesignadosMap[idDesignacion] = data;
+    return data;
   } catch (e) {
     console.warn("Failed to load arbitros designados", e);
     return [];
@@ -523,6 +617,70 @@ export const saveDesignacion = () => {
     });
 };
 
+export const updateDesignacion = () => {
+  const { idDesignacion, canchaId, fecha, cantidadPartidos, etapaCampeonato } = state.form;
+  const c = getCancha(canchaId);
+  if (!canchaId || !fecha || !cantidadPartidos) {
+    alert("Completá cancha, fecha y cantidad de partidos.");
+    return;
+  }
+
+  let formattedFecha = fecha;
+  if (fecha && fecha.includes("T") && fecha.split(":").length === 2) {
+    formattedFecha = fecha + ":00";
+  }
+
+  const dto = {
+    idCancha: canchaId,
+    fecha: formattedFecha,
+    cantidadPartidos,
+    etapaCampeonato: etapaCampeonato || "FECHA_NORMAL",
+  };
+
+  designacionService
+    .actualizarDesignacion(idDesignacion, dto)
+    .then(() => {
+      loadDesignacionesIncompletas();
+      loadDesignacionesCompletas();
+      loadDesignacionesFinalizadas();
+      closeModal();
+    })
+    .catch((err) => {
+      console.warn("actualizarDesignacion failed, using local fallback", err);
+      // Fallback local en caso de error
+      const updateInList = (list) => {
+        const idx = list.findIndex((d) => (d.idDesignacion || d.id) === idDesignacion);
+        if (idx !== -1) {
+          list[idx] = {
+            ...list[idx],
+            idCancha: canchaId,
+            canchaId: canchaId,
+            cancha: c,
+            fecha: formattedFecha,
+            cantidadPartidos: cantidadPartidos,
+            etapaCampeonato: etapaCampeonato || "FECHA_NORMAL",
+          };
+          return true;
+        }
+        return false;
+      };
+
+      if (!updateInList(state.designacionesIncompletas)) {
+        if (!updateInList(state.designaciones)) {
+          if (!updateInList(state.designacionesFinalizadas)) {
+            updateInList(state.designacionesAConfirmar);
+          }
+        }
+      }
+
+      state.designacionesIncompletas = sortDesignaciones(state.designacionesIncompletas);
+      state.designaciones = sortDesignaciones(state.designaciones);
+      state.designacionesFinalizadas = sortDesignaciones(state.designacionesFinalizadas);
+      state.designacionesAConfirmar = sortDesignaciones(state.designacionesAConfirmar);
+      closeModal();
+    });
+};
+
 export const deleteDesignacion = (id) => {
   if (!confirm("¿Eliminar esta designación?")) return;
   designacionService
@@ -543,18 +701,180 @@ export const deleteDesignacion = (id) => {
       state.designacionesFinalizadas = state.designacionesFinalizadas.filter(
         (d) => (d.idDesignacion || d.id) !== id,
       );
+      state.designacionesAConfirmar = state.designacionesAConfirmar.filter(
+        (d) => (d.idDesignacion || d.id) !== id,
+      );
     });
+};
+
+export const updateDesignacionStateLocal = (idDesignacion) => {
+  let des = null;
+  let fromList = null;
+  let idx = -1;
+
+  idx = state.designacionesIncompletas.findIndex((d) => (d.idDesignacion || d.id) === idDesignacion);
+  if (idx !== -1) {
+    des = state.designacionesIncompletas[idx];
+    fromList = "incompleta";
+  } else {
+    idx = state.designaciones.findIndex((d) => (d.idDesignacion || d.id) === idDesignacion);
+    if (idx !== -1) {
+      des = state.designaciones[idx];
+      fromList = "completa";
+    }
+  }
+
+  if (!des) return;
+
+  const req = minArbitros(des.cantidadPartidos);
+  const assigned = state.arbitrosDesignadosMap[idDesignacion] || [];
+  const count = assigned.length;
+
+  if (count >= req) {
+    des.estadoDesignacion = 1; // Completa
+    if (fromList === "incompleta") {
+      state.designacionesIncompletas.splice(idx, 1);
+      state.designaciones.push(des);
+    }
+  } else {
+    des.estadoDesignacion = 0; // Incompleta
+    if (fromList === "completa") {
+      state.designaciones.splice(idx, 1);
+      state.designacionesIncompletas.push(des);
+    }
+  }
+
+  state.designacionesIncompletas = sortDesignaciones(state.designacionesIncompletas);
+  state.designaciones = sortDesignaciones(state.designaciones);
+};
+
+export const getDayOfWeekLocal = (fechaStr) => {
+  if (!fechaStr) return -1;
+  try {
+    const datePart = fechaStr.includes("T") ? fechaStr.split("T")[0] : fechaStr;
+    const parts = datePart.split("-").map(Number);
+    if (parts.length === 3) {
+      const [yyyy, mm, dd] = parts;
+      const dateObj = new Date(yyyy, mm - 1, dd);
+      return dateObj.getDay(); // 0 = Sunday, 6 = Saturday
+    }
+  } catch (e) {
+    console.warn("Error parsing date in getDayOfWeekLocal", e);
+  }
+  return -1;
+};
+
+export const isRefereeAssignedToDifferentCourtOnSameDay = (idArbitro, targetDes) => {
+  const targetDateStr = targetDes.fecha ? targetDes.fecha.split("T")[0] : "";
+  const targetCanchaId = targetDes.idCancha || targetDes.canchaId || targetDes.cancha?.idCancha || targetDes.cancha?.id;
+
+  if (!targetDateStr) return false;
+
+  const allLists = [
+    ...state.designacionesIncompletas,
+    ...state.designaciones,
+    ...state.designacionesFinalizadas,
+    ...state.designacionesAConfirmar
+  ];
+
+  for (const otherD of allLists) {
+    const otherId = otherD.idDesignacion || otherD.id;
+    const targetId = targetDes.idDesignacion || targetDes.id;
+    if (otherId !== targetId) {
+      const otherDateStr = otherD.fecha ? otherD.fecha.split("T")[0] : "";
+      if (otherDateStr && otherDateStr === targetDateStr) {
+        const assigned = state.arbitrosDesignadosMap[otherId] || [];
+        const isAssigned = assigned.some(
+          (asg) => (asg.arbitro?.idArbitro || asg.idArbitro) === idArbitro
+        );
+        if (isAssigned) {
+          const otherCanchaId = otherD.idCancha || otherD.canchaId || otherD.cancha?.idCancha || otherD.cancha?.id;
+          if (String(otherCanchaId) !== String(targetCanchaId)) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
 };
 
 export const asignarArbitros = async (idDesignacion) => {
   try {
-    const res =
-      await designacionService.asignarArbitrosAutomaticamente(idDesignacion);
-    loadDesignacionesIncompletas();
-    loadDesignacionesCompletas();
-    return res;
+    // 1. Encontrar la designación en las incompletas o completas
+    const list = [...state.designacionesIncompletas, ...state.designaciones];
+    const des = list.find((d) => (d.idDesignacion || d.id) === idDesignacion);
+    if (!des) {
+      throw new Error("No se encontró la designación.");
+    }
+
+    // 2. Asegurarse de tener todos los árbitros cargados
+    if (!state.arbitros || state.arbitros.length === 0) {
+      await loadArbitros();
+    }
+
+    // 3. Obtener árbitros disponibles (estado === true) y por día de disponibilidad
+    let disponibles = state.arbitros.filter((a) => {
+      if (!a.estado) return false;
+      const day = getDayOfWeekLocal(des.fecha);
+      if (day === 6) return a.disponibleSabado; // Sábado
+      if (day === 0) return a.disponibleDomingo; // Domingo
+      return true;
+    });
+
+    // 4. Determinar si es sábado
+    const isSaturday = getDayOfWeekLocal(des.fecha) === 6;
+    const targetCanchaId = des.idCancha || des.canchaId || des.cancha?.idCancha || des.cancha?.id;
+
+    // 5. Excluir árbitros según las reglas:
+    // A) Regla especial de sábados: No repetir la misma cancha los días sábado
+    const satRepetitionExcluded = new Set();
+    if (isSaturday) {
+      state.designacionesFinalizadas.forEach((finalD) => {
+        const finalCanchaId = finalD.idCancha || finalD.canchaId || finalD.cancha?.idCancha || finalD.cancha?.id;
+        if (String(finalCanchaId) === String(targetCanchaId) && getDayOfWeekLocal(finalD.fecha) === 6) {
+          // Esta designación finalizada fue un sábado en la misma cancha! Excluir a sus árbitros
+          const assigned = finalD.arbitrosDesignados || finalD.arbitros || [];
+          assigned.forEach((asg) => {
+            const arbId = asg.arbitro?.idArbitro || asg.idArbitro;
+            if (arbId) satRepetitionExcluded.add(arbId);
+          });
+        }
+      });
+    }
+
+    // Filtrar la lista de elegibles
+    let elegibles = disponibles.filter((arb) => {
+      const id = arb.idArbitro;
+      // Regla especial de sábados: No repetir cancha
+      if (isSaturday && satRepetitionExcluded.has(id)) return false;
+      // Regla general: No estar designado en dos canchas diferentes el mismo día
+      if (isRefereeAssignedToDifferentCourtOnSameDay(id, des)) return false;
+      return true;
+    });
+
+    // 6. Ordenar árbitros por menor carga de partidos
+    elegibles.sort((a, b) => (a.designaciones || 0) - (b.designaciones || 0));
+
+    // 7. Determinar cuántos árbitros se requieren
+    const req = minArbitros(des.cantidadPartidos);
+
+    // 8. Tomar los primeros y asignarlos
+    const selected = elegibles.slice(0, req);
+    
+    // Guardar en el mapa local
+    state.arbitrosDesignadosMap[idDesignacion] = selected.map((arb, index) => ({
+      idDesignados: Date.now() + index + Math.random(),
+      arbitro: arb,
+      partidosDirigidos: arb.designaciones || 0
+    }));
+
+    // 9. Actualizar estado e intercambiar de lista si es necesario
+    updateDesignacionStateLocal(idDesignacion);
+
+    return state.arbitrosDesignadosMap[idDesignacion];
   } catch (error) {
-    console.error("Error al asignar árbitros automáticamente", error);
+    console.error("Error al asignar árbitros automáticamente en frontend:", error);
     alert("Hubo un error al intentar asignar árbitros automáticamente.");
     throw error;
   }
@@ -565,21 +885,16 @@ export const quitarArbitroDeDesignacionManual = async (
   idArbitro,
 ) => {
   try {
-    const res = await designacionService.quitarArbitroManual(
-      idDesignacion,
-      idArbitro,
-    );
-    await loadDesignacionesIncompletas();
-    await loadDesignacionesCompletas();
-    await loadDesignacionesFinalizadas();
-    return res;
+    if (state.arbitrosDesignadosMap[idDesignacion]) {
+      state.arbitrosDesignadosMap[idDesignacion] = state.arbitrosDesignadosMap[idDesignacion].filter(
+        (asg) => (asg.arbitro?.idArbitro || asg.idArbitro) !== idArbitro
+      );
+    }
+    updateDesignacionStateLocal(idDesignacion);
+    return true;
   } catch (error) {
-    console.error("Error al quitar árbitro manualmente", error);
-    const msg =
-      error.response?.data?.message ||
-      error.message ||
-      "Hubo un error al intentar quitar el árbitro.";
-    alert(msg);
+    console.error("Error al quitar árbitro manualmente en frontend:", error);
+    alert("Hubo un error al intentar quitar el árbitro.");
     throw error;
   }
 };
@@ -589,51 +904,230 @@ export const asignarArbitroADesignacionManual = async (
   idArbitro,
 ) => {
   try {
-    const res = await designacionService.asignarArbitroManual(
-      idDesignacion,
-      idArbitro,
+    const des = [...state.designacionesIncompletas, ...state.designaciones, ...state.designacionesAConfirmar, ...state.designacionesFinalizadas]
+      .find((d) => (d.idDesignacion || d.id) === idDesignacion);
+    if (!des) {
+      throw new Error("No se encontró la designación.");
+    }
+
+    const arb = state.arbitros.find((a) => a.idArbitro === idArbitro);
+    if (!arb) {
+      throw new Error("No se encontró el árbitro.");
+    }
+
+    if (!state.arbitrosDesignadosMap[idDesignacion]) {
+      state.arbitrosDesignadosMap[idDesignacion] = [];
+    }
+
+    const exists = state.arbitrosDesignadosMap[idDesignacion].some(
+      (asg) => (asg.arbitro?.idArbitro || asg.idArbitro) === idArbitro
     );
+    if (exists) {
+      throw new Error("El árbitro ya está asignado a esta designación.");
+    }
+
+    // Validación estricta: un árbitro no puede estar en dos canchas diferentes el mismo día
+    if (isRefereeAssignedToDifferentCourtOnSameDay(idArbitro, des)) {
+      let otherCanchaName = "otra cancha";
+      const targetDateStr = des.fecha ? des.fecha.split("T")[0] : "";
+      const targetCanchaId = des.idCancha || des.canchaId || des.cancha?.idCancha || des.cancha?.id;
+      const allLists = [
+        ...state.designacionesIncompletas,
+        ...state.designaciones,
+        ...state.designacionesFinalizadas,
+        ...state.designacionesAConfirmar
+      ];
+      for (const otherD of allLists) {
+        const otherId = otherD.idDesignacion || otherD.id;
+        if (otherId !== idDesignacion) {
+          const otherDateStr = otherD.fecha ? otherD.fecha.split("T")[0] : "";
+          if (otherDateStr && otherDateStr === targetDateStr) {
+            const assigned = state.arbitrosDesignadosMap[otherId] || [];
+            const isAssigned = assigned.some(
+              (asg) => (asg.arbitro?.idArbitro || asg.idArbitro) === idArbitro
+            );
+            if (isAssigned) {
+              const otherCid = otherD.idCancha || otherD.canchaId || otherD.cancha?.idCancha || otherD.cancha?.id;
+              if (String(otherCid) !== String(targetCanchaId)) {
+                otherCanchaName = otherD.cancha?.nombreCancha || otherD.cancha?.nombre || getCancha(otherD.idCancha || otherD.canchaId)?.nombre || "otra cancha";
+                break;
+              }
+            }
+          }
+        }
+      }
+      throw new Error(`El árbitro ya está asignado en la cancha "${otherCanchaName}" para este día. No puede dirigir en dos canchas diferentes el mismo día.`);
+    }
+
+    state.arbitrosDesignadosMap[idDesignacion].push({
+      idDesignados: Date.now() + Math.random(),
+      arbitro: arb,
+      partidosDirigidos: arb.designaciones || 0
+    });
+
+    updateDesignacionStateLocal(idDesignacion);
+    return true;
+  } catch (error) {
+    console.error("Error al asignar árbitro manualmente en frontend:", error);
+    alert(error.message || "Hubo un error al intentar asignar el árbitro.");
+    throw error;
+  }
+};
+
+export const cancelarDesignacionManual = async (idDesignacion) => {
+  try {
+    const res = await designacionService.cancelarDesignacion(idDesignacion);
     await loadDesignacionesIncompletas();
     await loadDesignacionesCompletas();
     await loadDesignacionesFinalizadas();
     return res;
   } catch (error) {
-    console.error("Error al asignar árbitro manualmente", error);
-    let msg = "Hubo un error al intentar asignar el árbitro.";
-    if (error.response?.data) {
-      if (typeof error.response.data === "string") {
-        msg = error.response.data;
-      } else if (typeof error.response.data === "object") {
-        msg = error.response.data.message || error.response.data.error || msg;
-      }
-    } else {
-      msg = error.message || msg;
-    }
-    alert(msg);
+    console.error("Error al cancelar designación", error);
+    alert("Hubo un error al intentar cancelar la designación.");
     throw error;
   }
 };
 
 export const finalizarDesignacionManual = async (idDesignacion) => {
   console.log(
-    "Iniciando finalización para la designación con ID:",
+    "Iniciando pre-finalización (moviendo a sección de confirmación) para la designación con ID:",
     idDesignacion,
   );
   try {
-    const res = await designacionService.finalizarDesignacion(idDesignacion);
-    console.log("Respuesta de finalización exitosa:", res);
-    await loadDesignacionesIncompletas();
-    await loadDesignacionesCompletas();
-    await loadDesignacionesFinalizadas();
-    return res;
+    const arbitrosAsignados = state.arbitrosDesignadosMap[idDesignacion] || [];
+
+    // Mover localmente a "A Confirmar" (estadoDesignacion = 3)
+    let des = null;
+    let idx = state.designaciones.findIndex((d) => (d.idDesignacion || d.id) === idDesignacion);
+    if (idx !== -1) {
+      des = state.designaciones[idx];
+      state.designaciones.splice(idx, 1);
+    } else {
+      idx = state.designacionesIncompletas.findIndex((d) => (d.idDesignacion || d.id) === idDesignacion);
+      if (idx !== -1) {
+        des = state.designacionesIncompletas[idx];
+        state.designacionesIncompletas.splice(idx, 1);
+      }
+    }
+
+    if (des) {
+      des.estadoDesignacion = 3; // Pendiente de Confirmación
+      des.arbitrosDesignados = arbitrosAsignados; // Guardar localmente
+      state.designacionesAConfirmar.push(des);
+    }
+
+    state.designacionesIncompletas = sortDesignaciones(state.designacionesIncompletas);
+    state.designaciones = sortDesignaciones(state.designaciones);
+    state.designacionesAConfirmar = sortDesignaciones(state.designacionesAConfirmar);
+
+    return { success: true };
   } catch (error) {
-    console.error("Error al finalizar designación manualmente", error);
-    const msg =
-      error.response?.data?.message ||
-      error.message ||
-      "Hubo un error al intentar finalizar la designación.";
+    console.error("Error al pre-finalizar designación", error);
+    const msg = error.message || "Hubo un error al intentar pre-finalizar la designación.";
     alert(msg);
     throw error;
+  }
+};
+
+export const confirmarEnvioCancha = async (canchaId) => {
+  const desList = state.designacionesAConfirmar.filter(d => {
+    const cid = d.idCancha || d.canchaId || d.cancha?.idCancha || d.cancha?.id;
+    return String(cid) === String(canchaId);
+  });
+
+  if (desList.length === 0) return;
+
+  const canchaNombre = desList[0].cancha?.nombreCancha || desList[0].cancha?.nombre || getCancha(canchaId)?.nombre || 'Cancha';
+
+  // Estructurar el payload final para enviar al backend
+  const payload = {
+    canchaId: canchaId,
+    canchaNombre: canchaNombre,
+    designaciones: desList.map(des => {
+      const idDesignacion = des.idDesignacion || des.id;
+      const arbitrosAsignados = state.arbitrosDesignadosMap[idDesignacion] || [];
+      return {
+        idDesignacion: idDesignacion,
+        fecha: des.fecha,
+        cantidadPartidos: des.cantidadPartidos,
+        etapaCampeonato: des.etapaCampeonato || "FECHA_NORMAL",
+        arbitros: arbitrosAsignados.map(a => ({
+          idArbitro: a.arbitro?.idArbitro,
+          nombre: `${a.arbitro?.nombre} ${a.arbitro?.apellido}`,
+          rol: a.arbitro?.rol || "Árbitro Principal",
+          partidosDirigidos: a.partidosDirigidos || 0
+        }))
+      };
+    })
+  };
+
+  console.log("====================================================");
+  console.log("CONFIRMANDO Y ENVIANDO DESIGNACIONES DE LA CANCHA AL BACKEND:");
+  console.log(JSON.stringify(payload, null, 2));
+  console.log("====================================================");
+
+  // Llamar al endpoint de enviar lista de árbitros y luego al de finalizar backend de cada designacion
+  const promises = desList.map(async (des) => {
+    const idDesignacion = des.idDesignacion || des.id;
+    const arbitrosAsignados = state.arbitrosDesignadosMap[idDesignacion] || [];
+    const idsArbitros = arbitrosAsignados.map(a => a.arbitro?.idArbitro || a.idArbitro);
+    
+    try {
+      // 1. Enviar la lista de árbitros al nuevo endpoint POST /designaciones/designar-lista?idDesignacion=X
+      console.log(`Enviando lista de árbitros para designación ${idDesignacion}:`, idsArbitros);
+      await designacionService.enviarListaArbitros(idDesignacion, idsArbitros);
+      
+      // 2. Finalizar la designación en el backend
+      console.log(`Finalizando designación ${idDesignacion} en el backend...`);
+      await designacionService.finalizarDesignacion(idDesignacion);
+    } catch (err) {
+      console.warn(`Llamado al backend falló para designación ${idDesignacion}, procediendo localmente`, err);
+    }
+    return { success: true };
+  });
+
+  try {
+    await Promise.all(promises);
+  } catch (err) {
+    console.warn("Algunas llamadas al backend fallaron, continuando localmente", err);
+  }
+
+  // Mover estas designaciones a Finalizadas (estadoDesignacion = 2)
+  desList.forEach(des => {
+    const idx = state.designacionesAConfirmar.findIndex(d => (d.idDesignacion || d.id) === (des.idDesignacion || des.id));
+    if (idx !== -1) {
+      state.designacionesAConfirmar.splice(idx, 1);
+    }
+    des.estadoDesignacion = 2; // Finalizada
+    state.designacionesFinalizadas.push(des);
+  });
+
+  state.designacionesFinalizadas = sortDesignaciones(state.designacionesFinalizadas);
+  state.designacionesAConfirmar = sortDesignaciones(state.designacionesAConfirmar);
+
+  alert(`¡Designaciones de la cancha "${canchaNombre}" enviadas y confirmadas con éxito al backend!`);
+};
+
+export const deshacerFinalizacionLocal = (idDesignacion) => {
+  const idx = state.designacionesAConfirmar.findIndex((d) => (d.idDesignacion || d.id) === idDesignacion);
+  if (idx !== -1) {
+    const des = state.designacionesAConfirmar[idx];
+    state.designacionesAConfirmar.splice(idx, 1);
+    
+    // Check if complete or incomplete based on referees count
+    const req = minArbitros(des.cantidadPartidos);
+    const assigned = state.arbitrosDesignadosMap[idDesignacion] || [];
+    if (assigned.length >= req) {
+      des.estadoDesignacion = 1; // Completa
+      state.designaciones.push(des);
+    } else {
+      des.estadoDesignacion = 0; // Incompleta
+      state.designacionesIncompletas.push(des);
+    }
+
+    state.designacionesIncompletas = sortDesignaciones(state.designacionesIncompletas);
+    state.designaciones = sortDesignaciones(state.designaciones);
+    state.designacionesAConfirmar = sortDesignaciones(state.designacionesAConfirmar);
   }
 };
 

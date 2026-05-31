@@ -81,6 +81,20 @@
       </label>
     </div>
 
+    <div class="form-group">
+      <label class="form-label">Disponibilidad por Día</label>
+      <div style="display: flex; gap: 20px; align-items: center; margin-top: 6px;">
+        <label class="checkbox-label" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <input v-model="state.form.disponibleSabado" type="checkbox" />
+          Sábado
+        </label>
+        <label class="checkbox-label" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <input v-model="state.form.disponibleDomingo" type="checkbox" />
+          Domingo
+        </label>
+      </div>
+    </div>
+
     <div class="modal-footer">
       <button class="btn" @click="closeModal">Cancelar</button>
       <button class="btn primary" @click="saveArbitro">

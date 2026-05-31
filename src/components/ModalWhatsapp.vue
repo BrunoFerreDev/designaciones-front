@@ -26,6 +26,25 @@
       </div>
 
       <div v-else>
+        <!-- Selector de Día -->
+        <div style="display: flex; gap: 8px; margin-bottom: 1.25rem;">
+          <button
+            v-for="opt in [{id: 'todos', label: 'Todos'}, {id: 'sabado', label: 'Sábados'}, {id: 'domingo', label: 'Domingos'}]"
+            :key="opt.id"
+            class="tab-btn"
+            style="flex: 1; padding: 8px 12px; font-size: 12px; border-radius: 20px; transition: all 0.2s; border: 1.5px solid; cursor: pointer;"
+            :style="{
+              borderColor: filterDay === opt.id ? '#25d366' : 'var(--color-border-primary)',
+              background: filterDay === opt.id ? '#e8f9f0' : 'transparent',
+              color: filterDay === opt.id ? '#0f6e56' : 'var(--color-text-secondary)',
+              fontWeight: filterDay === opt.id ? '600' : '500'
+            }"
+            @click="filterDay = opt.id"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+
         <div style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 12px;">
           Podés editar el texto acá abajo antes de copiarlo o enviarlo:
         </div>
@@ -87,9 +106,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue"
+import { ref, onMounted, watch } from "vue"
 import { state, closeModal, getCancha } from "../store"
 
+const filterDay = ref(state.modal?.id || "todos")
 const messageText = ref("")
 const copied = ref(false)
 
@@ -118,12 +138,39 @@ const meses = [
   "diciembre",
 ]
 
+const getDayOfWeek = (fechaStr) => {
+  if (!fechaStr) return -1;
+  try {
+    const datePart = fechaStr.includes("T") ? fechaStr.split("T")[0] : fechaStr;
+    const parts = datePart.split("-").map(Number);
+    if (parts.length === 3) {
+      const [yyyy, mm, dd] = parts;
+      const dateObj = new Date(yyyy, mm - 1, dd);
+      return dateObj.getDay(); // 0 = Sunday, 6 = Saturday
+    }
+  } catch (e) {
+    console.warn("Error parsing date in getDayOfWeek", e);
+  }
+  return -1;
+};
+
 const generateMessage = () => {
-  if (state.designaciones.length === 0) return
+  let list = [...state.designaciones]
+  
+  if (filterDay.value === "sabado") {
+    list = list.filter((d) => getDayOfWeek(d.fecha) !== 0)
+  } else if (filterDay.value === "domingo") {
+    list = list.filter((d) => getDayOfWeek(d.fecha) === 0)
+  }
+
+  if (list.length === 0) {
+    messageText.value = `📋 *DESIGNACIONES DE ÁRBITROS*\n\n_No hay designaciones completadas para el día seleccionado_`
+    return
+  }
 
   const groups = {}
   
-  state.designaciones.forEach((d) => {
+  list.forEach((d) => {
     if (!d.fecha) return
     const datePart = d.fecha.split("T")[0]
     if (!groups[datePart]) {
@@ -170,7 +217,6 @@ const generateMessage = () => {
 
       // Árbitros designados
       if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
-        // Ordenar árbitros por rol si es necesario
         d.arbitrosDesignados.forEach((arb) => {
           const nombreCompleto = `${arb.arbitro?.nombre || ""} ${
             arb.arbitro?.apellido || ""
@@ -206,6 +252,10 @@ const sendWhatsApp = () => {
   const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(messageText.value)}`
   window.open(url, "_blank")
 }
+
+watch(filterDay, () => {
+  generateMessage()
+})
 
 onMounted(() => {
   generateMessage()

@@ -2,40 +2,86 @@
   <div
     class="card mb-4 flex flex-col justify-between transition-all duration-200 hover:shadow-md"
     :style="{
-      borderLeft: designacion.estadoDesignacion === 0 
-        ? '4px solid #ff9800' 
-        : designacion.estadoDesignacion === 1 
-          ? '4px solid #1d9e75' 
-          : '4px solid #185fa5'
+      borderLeft:
+        designacion.estadoDesignacion === 0
+          ? '4px solid #ff9800'
+          : designacion.estadoDesignacion === 1
+            ? '4px solid #1d9e75'
+            : designacion.estadoDesignacion === 3
+              ? '4px solid #f43f5e'
+              : '4px solid #185fa5',
     }"
   >
     <div>
       <div class="card-header items-start gap-4 flex-wrap">
         <div>
-          <div class="card-title text-base font-semibold flex items-center gap-1.5 text-slate-800">
+          <div
+            class="card-title text-base font-semibold flex items-center gap-1.5 text-slate-800"
+          >
             <span>🏟️</span>
             <span>{{ canchaName }}</span>
+            <button
+              v-if="designacion.estadoDesignacion === 1"
+              class="btn-icon text-slate-400 hover:text-slate-600 transition-colors ml-1 p-0.5"
+              style="
+                border: none;
+                background: transparent;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+              "
+              @click="
+                openModal(
+                  'editDesignacion',
+                  designacion.idDesignacion || designacion.id,
+                )
+              "
+              title="Editar designación"
+            >
+              <i class="ti ti-edit" style="font-size: 14px"></i>
+            </button>
           </div>
           <div class="card-sub text-[11px] text-slate-500 uppercase mt-1">
             <span v-if="canchaCiudad">{{ canchaCiudad }} · </span>
             <span>{{ designacion.cantidadPartidos }} partidos · </span>
-            <span class="font-semibold text-slate-700 normal-case">{{ formattedFecha }}</span>
+            <span class="font-semibold text-slate-700 normal-case">{{
+              formattedFecha
+            }}</span>
           </div>
         </div>
-        
+
         <div class="card-header-actions flex items-center gap-2 flex-wrap">
           <!-- Badges según Estado -->
-          <span v-if="designacion.estadoDesignacion === 0" class="badge badge-amber">Incompleta</span>
-          <span v-else-if="designacion.estadoDesignacion === 1" class="badge badge-green">✓ Completa</span>
+          <span
+            v-if="designacion.estadoDesignacion === 0"
+            class="badge badge-amber"
+            >Incompleta</span
+          >
+          <span
+            v-else-if="designacion.estadoDesignacion === 1"
+            class="badge badge-green"
+            >✓ Completa</span
+          >
+          <span
+            v-else-if="designacion.estadoDesignacion === 3"
+            class="badge badge-red"
+            >Cancelada</span
+          >
           <span v-else class="badge badge-blue">Finalizada</span>
         </div>
       </div>
 
       <!-- Detalles de Etapa -->
-      <div class="text-xs text-slate-500 mt-2 mb-3">
+      <div class="text-xs text-slate-500 mt-2 mb-5">
         <span class="font-medium text-slate-600">Etapa:</span>
-        <span class="ml-1 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-semibold text-slate-600">
-          {{ designacion.etapaCampeonato || designacion.etapaTorneo || "FECHA_NORMAL" }}
+        <span
+          class="ml-1 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-semibold text-slate-600"
+        >
+          {{
+            designacion.etapaCampeonato ||
+            designacion.etapaTorneo ||
+            "FECHA_NORMAL"
+          }}
         </span>
       </div>
 
@@ -46,8 +92,10 @@
       >
         <i class="ti ti-alert-circle text-base text-amber-600"></i>
         <span>
-          Mínimo requerido: <strong>{{ minArbitrosReq }}</strong> árbitros 
-          ({{ assignedCount }} asignados)
+          Mínimo requerido: <strong>{{ minArbitrosReq }}</strong> árbitros ({{
+            assignedCount
+          }}
+          asignados)
         </span>
       </div>
 
@@ -56,7 +104,9 @@
         v-if="arbitros && arbitros.length > 0"
         class="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-100 animate-fade-in"
       >
-        <div class="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1.5">
+        <div
+          class="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1.5"
+        >
           <i class="ti ti-users"></i> Árbitros Asignados:
         </div>
         <div class="flex flex-col gap-1.5">
@@ -82,8 +132,10 @@
           </div>
         </div>
       </div>
-      <div 
-        v-else-if="showEmptyArbitrosState"
+      <div
+        v-else-if="
+          showEmptyArbitrosState || (arbitros && arbitros.length === 0)
+        "
         class="mt-3 p-3.5 bg-slate-50 rounded-lg border border-dashed border-slate-200 text-center text-xs text-slate-400"
       >
         Sin árbitros asignados actualmente
@@ -92,47 +144,103 @@
 
     <!-- Botones de Acción -->
     <div
-      class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap gap-2 justify-end"
+      class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap gap-3.5 justify-end"
     >
-      <!-- Asignar Automáticamente (solo si incompleta) -->
+      <!-- Asignar / Reasignar Automáticamente (para incompletas y completas) -->
       <button
-        v-if="designacion.estadoDesignacion === 0"
+        v-if="
+          designacion.estadoDesignacion === 0 ||
+          designacion.estadoDesignacion === 1
+        "
         class="btn primary text-xs"
-        style="padding: 5px 10px"
+        style="padding: 6px 12px; gap: 6px"
         @click="handleAsignarAutom"
         :disabled="loadingAction"
       >
         <i class="ti ti-sparkles"></i>
-        <span>Asignar autom.</span>
+        <span>{{
+          assignedCount > 0 ? "Reasignar árbitros" : "Asignar autom."
+        }}</span>
       </button>
 
-      <!-- Ver Árbitros (si está completa/finalizada y no están cargados) -->
+      <!-- Ver / Ocultar Árbitros -->
       <button
-        v-if="showVerArbitrosBtn && designacion.estadoDesignacion !== 0 && !arbitros"
-        class="btn primary text-xs"
-        style="padding: 5px 10px"
+        v-if="showVerArbitrosBtn"
+        class="btn text-xs"
+        :class="{ primary: !arbitros }"
+        style="padding: 6px 12px; gap: 6px"
         @click="$emit('ver-arbitros', designacion)"
       >
         <i class="ti ti-users"></i>
-        <span>Ver árbitros</span>
+        <span>{{ arbitros ? "Ocultar árbitros" : "Ver árbitros" }}</span>
       </button>
 
       <!-- Editar Árbitros -->
       <button
-        v-if="designacion.estadoDesignacion === 0 || designacion.estadoDesignacion === 1"
+        v-if="
+          designacion.estadoDesignacion === 0 ||
+          designacion.estadoDesignacion === 1
+        "
         class="btn text-xs"
-        style="padding: 5px 10px; border-color: var(--color-primary); color: var(--color-primary);"
-        @click="openModal('manageReferees', designacion.idDesignacion || designacion.id)"
+        style="
+          padding: 6px 12px;
+          gap: 6px;
+          border-color: var(--color-primary);
+          color: var(--color-primary);
+        "
+        @click="
+          openModal(
+            'manageReferees',
+            designacion.idDesignacion || designacion.id,
+          )
+        "
       >
         <i class="ti ti-edit"></i>
         <span>Editar árbitros</span>
+      </button>
+
+      <!-- Editar / Reprogramar Designación -->
+      <button
+        v-if="
+          designacion.estadoDesignacion === 0 ||
+          designacion.estadoDesignacion === 3
+        "
+        class="btn text-xs"
+        style="
+          padding: 6px 12px;
+          gap: 6px;
+          border-color: #ff9800;
+          color: #ff9800;
+        "
+        @click="
+          openModal(
+            'editDesignacion',
+            designacion.idDesignacion || designacion.id,
+          )
+        "
+      >
+        <i
+          :class="
+            designacion.estadoDesignacion === 3
+              ? 'ti ti-calendar-time'
+              : 'ti ti-edit'
+          "
+        ></i>
+        <span>{{
+          designacion.estadoDesignacion === 3 ? "Reprogramar" : "Editar"
+        }}</span>
       </button>
 
       <!-- Finalizar -->
       <button
         v-if="designacion.estadoDesignacion === 1"
         class="btn text-xs"
-        style="padding: 5px 10px; border-color: #185fa5; color: #185fa5;"
+        style="
+          padding: 6px 12px;
+          gap: 6px;
+          border-color: #185fa5;
+          color: #185fa5;
+        "
         @click="handleFinalizar"
         :disabled="loadingAction"
       >
@@ -140,10 +248,26 @@
         <span>Finalizar</span>
       </button>
 
+      <!-- Cancelar (Cambiar a estado 3) -->
+      <button
+        v-if="designacion.estadoDesignacion === 1"
+        class="btn text-xs danger"
+        style="padding: 6px 12px; gap: 6px"
+        @click="handleCancelar"
+        :disabled="loadingAction"
+      >
+        <i class="ti ti-ban"></i>
+        <span>Cancelar Jornada</span>
+      </button>
+
       <!-- Eliminar -->
       <button
+        v-if="
+          designacion.estadoDesignacion === 0 ||
+          designacion.estadoDesignacion === 1
+        "
         class="btn danger text-xs"
-        style="padding: 5px 10px"
+        style="padding: 6px 12px"
         @click="handleDelete"
         :disabled="loadingAction"
       >
@@ -155,33 +279,34 @@
 
 <script setup>
 import { computed, ref } from "vue";
-import { 
-  openModal, 
-  getCancha, 
-  minArbitros, 
-  formatFecha, 
-  asignarArbitros, 
-  finalizarDesignacionManual, 
-  deleteDesignacion 
+import {
+  openModal,
+  getCancha,
+  minArbitros,
+  formatFecha,
+  asignarArbitros,
+  finalizarDesignacionManual,
+  cancelarDesignacionManual,
+  deleteDesignacion,
 } from "../store";
 
 const props = defineProps({
   designacion: {
     type: Object,
-    required: true
+    required: true,
   },
   arbitros: {
     type: Array,
-    default: null
+    default: null,
   },
   showVerArbitrosBtn: {
     type: Boolean,
-    default: false
+    default: false,
   },
   showEmptyArbitrosState: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
 const emit = defineEmits(["ver-arbitros", "action-complete", "deleted"]);
@@ -189,12 +314,21 @@ const emit = defineEmits(["ver-arbitros", "action-complete", "deleted"]);
 const loadingAction = ref(false);
 
 const canchaObj = computed(() => {
-  const canchaId = props.designacion.idCancha || props.designacion.canchaId || props.designacion.cancha?.idCancha || props.designacion.cancha?.id;
+  const canchaId =
+    props.designacion.idCancha ||
+    props.designacion.canchaId ||
+    props.designacion.cancha?.idCancha ||
+    props.designacion.cancha?.id;
   return getCancha(Number(canchaId)) || props.designacion.cancha;
 });
 
 const canchaName = computed(() => {
-  return props.designacion.cancha?.nombreCancha || canchaObj.value?.nombre || canchaObj.value?.nombreCancha || "Cancha Desconocida";
+  return (
+    props.designacion.cancha?.nombreCancha ||
+    canchaObj.value?.nombre ||
+    canchaObj.value?.nombreCancha ||
+    "Cancha Desconocida"
+  );
 });
 
 const canchaCiudad = computed(() => {
@@ -211,7 +345,11 @@ const minArbitrosReq = computed(() => {
 
 const assignedCount = computed(() => {
   if (props.arbitros) return props.arbitros.length;
-  return props.designacion.arbitrosAsignados || props.designacion.arbitros?.length || 0;
+  return (
+    props.designacion.arbitrosAsignados ||
+    props.designacion.arbitros?.length ||
+    0
+  );
 });
 
 const handleAsignarAutom = async () => {
@@ -232,6 +370,20 @@ const handleFinalizar = async () => {
   try {
     const id = props.designacion.idDesignacion || props.designacion.id;
     await finalizarDesignacionManual(id);
+    emit("action-complete", id);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    loadingAction.value = false;
+  }
+};
+
+const handleCancelar = async () => {
+  if (!confirm("¿Estás seguro de que deseas cancelar esta jornada?")) return;
+  loadingAction.value = true;
+  try {
+    const id = props.designacion.idDesignacion || props.designacion.id;
+    await cancelarDesignacionManual(id);
     emit("action-complete", id);
   } catch (err) {
     console.error(err);
