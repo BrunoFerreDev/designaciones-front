@@ -5,6 +5,7 @@ import Arbitros from './views/Arbitros.vue';
 import Suspensiones from './views/Suspensiones.vue';
 import Designaciones from './views/Designaciones.vue';
 import BuscarDesignaciones from './views/BuscarDesignaciones.vue';
+import DesignacionesViejas from './views/DesignacionesViejas.vue';
 
 const routes = [
   {
@@ -36,6 +37,11 @@ const routes = [
     path: '/buscar',
     name: 'buscar',
     component: BuscarDesignaciones
+  },
+  {
+    path: '/designaciones-viejas',
+    name: 'designaciones-viejas',
+    component: DesignacionesViejas
   },
   // Redireccionar cualquier otra ruta al dashboard
   {

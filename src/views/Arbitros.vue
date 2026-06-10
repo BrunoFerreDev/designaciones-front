@@ -4,7 +4,7 @@
       <div>
         <div class="topbar-title">Árbitros</div>
         <div class="topbar-sub">
-          {{ disponiblesCount }} disponibles de {{ state.arbitros.length }}
+          {{ disponiblesCount }} disponibles de {{ totalArbitros }}
         </div>
       </div>
       <div style="display: flex; gap: 8px">
@@ -22,20 +22,30 @@
     </div>
 
     <div class="content">
-      <div class="stats-row three-cols">
+      <div class="stats-row five-cols">
         <div class="stat-card">
-          <div class="stat-num stat-green">{{ activeDispCount }}</div>
-          <div class="stat-label">Disponibles</div>
+          <div class="stat-num stat-blue">{{ totalArbitros }}</div>
+          <div class="stat-label">Total Árbitros</div>
         </div>
         <div class="stat-card">
-          <div class="stat-num stat-red">{{ activeNodipCount }}</div>
+          <div class="stat-num stat-green">{{ disponiblesCount }}</div>
+          <div class="stat-label">Disponibles (Activos)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num stat-red">{{ noDisponiblesCount }}</div>
           <div class="stat-label">No disponibles</div>
         </div>
         <div class="stat-card">
-          <div class="stat-num stat-blue">{{ filteredArbitros.length }}</div>
-          <div class="stat-label">
-            Resultados filtro (Total: {{ state.arbitros.length }})
+          <div class="stat-num" style="color: #185fa5">
+            {{ disponiblesSabadoCount }}
           </div>
+          <div class="stat-label">Disponibles Sábado</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" style="color: #7e22ce">
+            {{ disponiblesDomingoCount }}
+          </div>
+          <div class="stat-label">Disponibles Domingo</div>
         </div>
       </div>
 
@@ -124,11 +134,11 @@
                 Árbitros activos listos para ser designados
               </div>
             </div>
-            <span class="badge badge-green">{{ disp.length }}</span>
+            <span class="badge badge-green">{{ disponiblesCount }}</span>
           </div>
 
           <div
-            v-if="disp.length === 0"
+            v-if="disponibles.length === 0"
             class="empty-state"
             style="padding: 2.5rem 1rem"
           >
@@ -145,7 +155,11 @@
           </div>
 
           <div class="flex flex-col gap-3">
-            <ArbitroCard v-for="a in disp" :key="a.idArbitro" :arbitro="a" />
+            <ArbitroCard
+              v-for="a in disponibles"
+              :key="a.idArbitro"
+              :arbitro="a"
+            />
           </div>
         </div>
 
@@ -174,11 +188,11 @@
                 Árbitros con licencia, viaje o inactivos temporales
               </div>
             </div>
-            <span class="badge badge-red">{{ nodip.length }}</span>
+            <span class="badge badge-red">{{ noDisponiblesCount }}</span>
           </div>
 
           <div
-            v-if="nodip.length === 0"
+            v-if="noDisponibles.length === 0"
             class="empty-state"
             style="padding: 2.5rem 1rem"
           >
@@ -195,7 +209,7 @@
           </div>
 
           <div class="flex flex-col gap-3">
-            <ArbitroCard v-for="a in nodip" :key="a.idArbitro" :arbitro="a" />
+            <ArbitroCard v-for="a in noDisponibles" :key="a.idArbitro" :arbitro="a" />
           </div>
         </div>
       </div>
@@ -204,11 +218,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import {
   state,
   openModal,
   disponiblesCount,
+  noDisponiblesCount,
+  disponiblesSabadoCount,
+  disponiblesDomingoCount,
   marcarTodosNoDisponibles,
 } from "../store";
 import ArbitroCard from "../components/ArbitroCard.vue";
@@ -233,23 +250,41 @@ const filteredArbitros = computed(() => {
     return coincideBusqueda && coincideCategoria;
   });
 });
+const disponibles = computed(() =>
+  filteredArbitros.value.filter(
+    (a) => a.disponibleSabado || a.disponibleDomingo,
+  ),
+);
 
-const disp = computed(() =>
-  filteredArbitros.value.filter(
-    (a) => a.estado || a.disponibleSabado || a.disponibleDomingo,
-  ),
-);
-const nodip = computed(() =>
-  filteredArbitros.value.filter(
-    (a) => !a.estado || !a.disponibleSabado || !a.disponibleDomingo,
-  ),
-);
+const noDisponibles = computed(() => {
+  return (state.arbitrosNoDisponibles || []).filter((a) => {
+    const nombreCompleto =
+      `${a.nombre || ""} ${a.apellido || ""}`.toLowerCase();
+    const query = searchQuery.value.toLowerCase().trim();
+    const coincideBusqueda = !query || nombreCompleto.includes(query);
+
+    const coincideCategoria =
+      !filterCategory.value || a.categoria === filterCategory.value;
+
+    return coincideBusqueda && coincideCategoria;
+  });
+});
 
 // Cantidad real disponible / no disponible en toda la base de datos (para las estadísticas principales)
 const activeDispCount = computed(
   () => state.arbitros.filter((a) => a.estado).length,
 );
 const activeNodipCount = computed(
-  () => state.arbitros.filter((a) => !a.estado).length,
+  () => (state.arbitrosNoDisponibles || []).length,
 );
+
+const disp = computed(() => filteredArbitros.value.filter((a) => a.estado));
+const nodip = computed(() => filteredArbitros.value.filter((a) => !a.estado));
+const totalArbitros = computed(() => {
+  const ids = new Set([
+    ...state.arbitros.map((a) => a.idArbitro),
+    ...(state.arbitrosNoDisponibles || []).map((a) => a.idArbitro),
+  ]);
+  return ids.size;
+});
 </script>

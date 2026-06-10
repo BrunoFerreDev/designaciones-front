@@ -722,6 +722,9 @@ select.form-input {
   .stats-row.three-cols {
     grid-template-columns: repeat(3, 1fr);
   }
+  .stats-row.five-cols {
+    grid-template-columns: repeat(5, 1fr);
+  }
   .stat-card {
     padding: 1rem;
   }

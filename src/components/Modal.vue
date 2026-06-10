@@ -16,6 +16,9 @@
     <!-- Gestionar Árbitros -->
     <ModalGestionarArbitros v-if="state.modal.type === 'manageReferees'" />
 
+    <!-- Gestionar Árbitros Viejas -->
+    <ModalGestionarArbitrosViejas v-if="state.modal.type === 'manageRefereesViejas'" />
+
     <!-- Compartir WhatsApp -->
     <ModalWhatsapp v-if="state.modal.type === 'whatsappMessage'" />
 
@@ -24,6 +27,9 @@
 
     <!-- Editar Designación -->
     <ModalEditDesignacion v-if="state.modal.type === 'editDesignacion'" />
+
+    <!-- Actualizar Montos de Aranceles -->
+    <ModalUpdateFees v-if="state.modal.type === 'updateFees'" />
   </div>
 </template>
 
@@ -33,7 +39,9 @@ import ModalCanchaForm from "./ModalCanchaForm.vue"
 import ModalArbitroForm from "./ModalArbitroForm.vue"
 import DesignacionWizard from "./DesignacionWizard.vue"
 import ModalGestionarArbitros from "./ModalGestionarArbitros.vue"
+import ModalGestionarArbitrosViejas from "./ModalGestionarArbitrosViejas.vue"
 import ModalWhatsapp from "./ModalWhatsapp.vue"
 import ModalVerSuspencion from "./ModalVerSuspencion.vue"
 import ModalEditDesignacion from "./ModalEditDesignacion.vue"
+import ModalUpdateFees from "./ModalUpdateFees.vue"
 </script>

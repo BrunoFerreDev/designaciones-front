@@ -19,7 +19,7 @@
             margin-bottom: 4px;
           "
         >
-          👥 Gestionar Árbitrossss
+          👥 Gestionar Árbitros (Historial)
         </h3>
         <div style="font-size: 12px; color: var(--color-text-secondary)">
           Cancha:
@@ -62,8 +62,7 @@
       <div style="font-size: 12px; line-height: 1.4">
         <strong>{{
           isComplete ? "Designación Completa" : "Designación Incompleta"
-        }}</strong
-        ><br />
+        }}</strong><br />
         Requiere mínimo <strong>{{ requiredCount }}</strong> árbitros.
         Actualmente hay
         <strong>{{ assignedReferees.length }}</strong> asignados.
@@ -254,26 +253,8 @@
             color: var(--color-text-secondary);
           "
         >
-          ➕ Asignar Árbitro Disponible
+          ➕ Asignar Árbitro (Historial)
         </div>
-        <label
-          style="
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            color: var(--color-text-secondary);
-            cursor: pointer;
-            user-select: none;
-          "
-        >
-          <input type="checkbox" v-model="filterByDay" />
-          <span
-            >Filtrar por día ({{
-              isSaturday ? "Sáb" : isSunday ? "Dom" : "Otro"
-            }})</span
-          >
-        </label>
       </div>
 
       <div style="display: flex; gap: 10px; align-items: center">
@@ -285,16 +266,14 @@
             :disabled="loadingAvailable"
           >
             <option :value="null" disabled>
-              Selecciona un árbitro disponible...
+              Selecciona un árbitro...
             </option>
             <option
               v-for="arb in filteredAvailableReferees"
               :key="arb.idArbitro"
               :value="arb.idArbitro"
             >
-              {{ arb.nombre }} {{ arb.apellido }} ({{ arb.categoria }}) · [{{
-                getAvailabilityText(arb)
-              }}]
+              {{ arb.nombre }} {{ arb.apellido }} ({{ arb.categoria }}) · [{{ getAvailabilityText(arb) }}]
             </option>
           </select>
           <div
@@ -340,9 +319,7 @@
           padding-left: 2px;
         "
       >
-        Solo se listan árbitros que están marcados como
-        <strong style="color: #0f6e56">disponibles</strong> en el sistema y no
-        están ya asignados en esta designación.
+        Se listan todos los árbitros del sistema que no están ya asignados en esta designación.
       </div>
     </div>
 
@@ -371,40 +348,16 @@ import {
   loadArbitrosDesignados,
   quitarArbitroDeDesignacionManual,
   asignarArbitroADesignacionManual,
-  isRefereeAssignedToDifferentCourtOnSameDay,
   minArbitros,
-  getDayOfWeekLocal,
   loadArbitros,
 } from "../store";
-import arbitroService from "../services/arbitroService";
 
 const designacionId = computed(() => state.modal?.id);
 
 const designacion = computed(() => {
   const id = designacionId.value;
   if (!id) return null;
-
-  const found =
-    state.designaciones.find((d) => (d.idDesignacion || d.id) === id) ||
-    state.designacionesIncompletas.find(
-      (d) => (d.idDesignacion || d.id) === id,
-    ) ||
-    state.designacionesFinalizadas.find(
-      (d) => (d.idDesignacion || d.id) === id,
-    ) ||
-    state.designacionesAConfirmar.find(
-      (d) => (d.idDesignacion || d.id) === id,
-    ) ||
-    (state.designacionesAceptadas &&
-      state.designacionesAceptadas.find(
-        (d) => (d.idDesignacion || d.id) === id,
-      ));
-  if (found) return found;
-
-  if (
-    state.modal?.data &&
-    (state.modal.data.idDesignacion || state.modal.data.id) === id
-  ) {
+  if (state.modal?.data && (state.modal.data.idDesignacion || state.modal.data.id) === id) {
     return state.modal.data;
   }
   return null;
@@ -433,17 +386,6 @@ const isComplete = computed(() => {
 const assignedReferees = ref([]);
 const availableReferees = ref([]);
 const selectedRefereeId = ref(null);
-const filterByDay = ref(true);
-
-const isSaturday = computed(() => {
-  if (!designacion.value) return false;
-  return getDayOfWeekLocal(designacion.value.fecha) === 6;
-});
-
-const isSunday = computed(() => {
-  if (!designacion.value) return false;
-  return getDayOfWeekLocal(designacion.value.fecha) === 0;
-});
 
 const getAvailabilityText = (arb) => {
   if (arb.disponibleSabado && arb.disponibleDomingo) return "Sáb y Dom";
@@ -472,10 +414,10 @@ const loadAssigned = async () => {
 const loadAvailable = async () => {
   loadingAvailable.value = true;
   try {
-    await loadArbitros();
-    availableReferees.value = state.arbitros.filter(
-      (a) => a && a.disponibleSabado || a.disponibleDomingo ,
-    );
+    if (!state.arbitros || state.arbitros.length === 0) {
+      await loadArbitros();
+    }
+    availableReferees.value = state.arbitros;
   } catch (error) {
     console.error("Error cargando árbitros disponibles:", error);
   } finally {
@@ -485,69 +427,10 @@ const loadAvailable = async () => {
 
 const filteredAvailableReferees = computed(() => {
   return availableReferees.value.filter((arb) => {
-    if (!arb || !arb.idArbitro) return false;
     const isAlreadyAssigned = assignedReferees.value.some(
-      (assigned) =>
-        assigned &&
-        (assigned.arbitro?.idArbitro || assigned.idArbitro) === arb.idArbitro,
+      (assigned) => assigned.arbitro?.idArbitro === arb.idArbitro,
     );
-    if (isAlreadyAssigned) return false;
-
-    if (designacion.value) {
-      if (
-        isRefereeAssignedToDifferentCourtOnSameDay(
-          arb.idArbitro,
-          designacion.value,
-        )
-      ) {
-        return false;
-      }
-
-      // Evitar repetir árbitro en la misma cancha en sábados consecutivos
-      const day = getDayOfWeekLocal(designacion.value.fecha);
-      if (day === 6) {
-        const targetCanchaId =
-          designacion.value.idCancha ||
-          designacion.value.canchaId ||
-          designacion.value.cancha?.idCancha ||
-          designacion.value.cancha?.id;
-
-        const isExcluded = state.designacionesFinalizadas.some((finalD) => {
-          if (!finalD) return false;
-          const finalCanchaId =
-            finalD.idCancha ||
-            finalD.canchaId ||
-            finalD.cancha?.idCancha ||
-            finalD.cancha?.idCancha;
-          if (
-            String(finalCanchaId) === String(targetCanchaId) &&
-            getDayOfWeekLocal(finalD.fecha) === 6
-          ) {
-            const assigned = finalD.arbitrosDesignados || finalD.arbitros || [];
-            return assigned.some(
-              (asg) =>
-                asg &&
-                (asg.arbitro?.idArbitro || asg.idArbitro || asg) ===
-                  arb.idArbitro,
-            );
-          }
-          return false;
-        });
-
-        if (isExcluded) return false;
-      }
-
-      // Filter by day of week if toggle is active
-      if (filterByDay.value) {
-        if (day === 6 && !arb.disponibleSabado) {
-          return false;
-        }
-        if (day === 0 && !arb.disponibleDomingo) {
-          return false;
-        }
-      }
-    }
-    return true;
+    return !isAlreadyAssigned;
   });
 });
 
@@ -556,13 +439,13 @@ const assignReferee = async () => {
   errorMessage.value = "";
   assigning.value = true;
   try {
+    // Para designaciones viejas, el tipo es siempre 0
     await asignarArbitroADesignacionManual(
       designacionId.value,
       selectedRefereeId.value,
-      1,
+      0,
     );
     selectedRefereeId.value = null;
-    // Refresh assignments list
     await loadAssigned();
   } catch (error) {
     console.error(error);
@@ -589,7 +472,6 @@ const removeReferee = async (idArbitro) => {
   errorMessage.value = "";
   try {
     await quitarArbitroDeDesignacionManual(designacionId.value, idArbitro);
-    // Refresh assignments list
     await loadAssigned();
   } catch (error) {
     console.error(error);

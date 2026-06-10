@@ -11,7 +11,7 @@
 </template>
 
 <script setup>
-import { state, closeModal, loadArbitros, loadCanchas, loadSuspensiones } from "./store";
+import { state, closeModal, loadArbitros, loadArbitrosNoDisponibles, loadCanchas, loadSuspensiones } from "./store";
 import Sidebar from "./components/Sidebar.vue";
 import Modal from "./components/Modal.vue";
 import { onMounted } from 'vue'
@@ -19,6 +19,7 @@ import { onMounted } from 'vue'
 onMounted(() => {
   // intentar cargar datos desde la API (si está disponible)
   loadArbitros()
+  loadArbitrosNoDisponibles()
   loadCanchas()
   loadSuspensiones()
 })

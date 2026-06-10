@@ -179,7 +179,8 @@
       <button
         v-if="
           designacion.estadoDesignacion === 0 ||
-          designacion.estadoDesignacion === 1
+          designacion.estadoDesignacion === 1 ||
+          designacion.estadoDesignacion === 3
         "
         class="btn text-xs"
         style="
@@ -190,8 +191,9 @@
         "
         @click="
           openModal(
-            'manageReferees',
+            props.tipo === 0 ? 'manageRefereesViejas' : 'manageReferees',
             designacion.idDesignacion || designacion.id,
+            designacion,
           )
         "
       >
@@ -213,10 +215,13 @@
           color: #ff9800;
         "
         @click="
-          openModal(
-            'editDesignacion',
-            designacion.idDesignacion || designacion.id,
-          )
+          designacion.estadoDesignacion === 3
+            ? handleReprogramar()
+            : openModal(
+                'editDesignacion',
+                designacion.idDesignacion || designacion.id,
+                designacion,
+              )
         "
       >
         <i
@@ -231,9 +236,11 @@
         }}</span>
       </button>
 
-      <!-- Finalizar -->
+      <!-- Aceptar -->
       <button
-        v-if="designacion.estadoDesignacion === 1"
+        v-if="
+          designacion.estadoDesignacion === 0 && assignedCount >= minArbitrosReq
+        "
         class="btn text-xs"
         style="
           padding: 6px 12px;
@@ -241,11 +248,53 @@
           border-color: #185fa5;
           color: #185fa5;
         "
+        @click="handleAceptar"
+        :disabled="loadingAction"
+      >
+        <i class="ti ti-check"></i>
+        <span>Aceptar</span>
+      </button>
+
+      <!-- Finalizar (para Aceptadas) -->
+      <button
+        v-if="designacion.estadoDesignacion === 1"
+        class="btn text-xs"
+        style="
+          padding: 6px 12px;
+          gap: 6px;
+          border-color: #0f6e56;
+          color: #0f6e56;
+        "
         @click="handleFinalizar"
         :disabled="loadingAction"
       >
         <i class="ti ti-flag"></i>
         <span>Finalizar</span>
+      </button>
+
+      <!-- Compartir WhatsApp -->
+      <button
+        v-if="
+          (designacion.estadoDesignacion === 0 &&
+            assignedCount >= minArbitrosReq) ||
+          designacion.estadoDesignacion === 1
+        "
+        class="btn text-xs"
+        style="
+          padding: 6px 12px;
+          gap: 6px;
+          border-color: #25d366;
+          color: #25d366;
+        "
+        @click="
+          openModal(
+            'whatsappMessage',
+            designacion.idDesignacion || designacion.id,
+          )
+        "
+      >
+        <i class="ti ti-brand-whatsapp"></i>
+        <span>Compartir</span>
       </button>
 
       <!-- Cancelar (Cambiar a estado 3) -->
@@ -258,6 +307,28 @@
       >
         <i class="ti ti-ban"></i>
         <span>Cancelar Jornada</span>
+      </button>
+
+      <!-- Actualizar Aranceles (para Finalizadas) -->
+      <button
+        v-if="designacion.estadoDesignacion === 2"
+        class="btn text-xs"
+        style="
+          padding: 6px 12px;
+          gap: 6px;
+          border-color: #185fa5;
+          color: #185fa5;
+        "
+        @click="
+          openModal(
+            'updateFees',
+            designacion.idDesignacion || designacion.id,
+            designacion,
+          )
+        "
+      >
+        <i class="ti ti-coin"></i>
+        <span>Actualizar Aranceles</span>
       </button>
 
       <!-- Eliminar -->
@@ -285,8 +356,10 @@ import {
   minArbitros,
   formatFecha,
   asignarArbitros,
+  aceptarDesignacionManual,
   finalizarDesignacionManual,
   cancelarDesignacionManual,
+  reprogramarDesignacionManual,
   deleteDesignacion,
 } from "../store";
 
@@ -306,6 +379,10 @@ const props = defineProps({
   showEmptyArbitrosState: {
     type: Boolean,
     default: false,
+  },
+  tipo: {
+    type: Number,
+    default: 1,
   },
 });
 
@@ -365,6 +442,19 @@ const handleAsignarAutom = async () => {
   }
 };
 
+const handleAceptar = async () => {
+  loadingAction.value = true;
+  try {
+    const id = props.designacion.idDesignacion || props.designacion.id;
+    await aceptarDesignacionManual(id);
+    emit("action-complete", id);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    loadingAction.value = false;
+  }
+};
+
 const handleFinalizar = async () => {
   loadingAction.value = true;
   try {
@@ -389,6 +479,36 @@ const handleCancelar = async () => {
     console.error(err);
   } finally {
     loadingAction.value = false;
+  }
+};
+
+const handleReprogramar = async () => {
+  if (!props.designacion.fecha) return;
+
+  // Calcular fecha de reprogramacion (+7 dias)
+  const dateObj = new Date(props.designacion.fecha.replace(" ", "T"));
+  dateObj.setDate(dateObj.getDate() + 7);
+
+  const day = String(dateObj.getDate()).padStart(2, "0");
+  const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const year = dateObj.getFullYear();
+  const hours = String(dateObj.getHours()).padStart(2, "0");
+  const minutes = String(dateObj.getMinutes()).padStart(2, "0");
+  const newDateStr = `${day}/${month}/${year} a las ${hours}:${minutes} hs`;
+
+  const confirmMsg = `⚠️ AVISO DE REPROGRAMACIÓN:\n\nLa designación se reprogramará automáticamente para dentro de 7 días después:\n📅 Nueva fecha: ${newDateStr}\n\n¿Confirmar reprogramación?`;
+
+  if (confirm(confirmMsg)) {
+    loadingAction.value = true;
+    try {
+      const id = props.designacion.idDesignacion || props.designacion.id;
+      await reprogramarDesignacionManual(id);
+      emit("action-complete", id);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      loadingAction.value = false;
+    }
   }
 };
 

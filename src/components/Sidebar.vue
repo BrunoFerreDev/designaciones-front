@@ -29,6 +29,7 @@ const navItems = [
   { id: "suspensiones", path: "/suspensiones", icon: "ti-ban", label: "Suspensiones" },
   { id: "designaciones", path: "/designaciones", icon: "ti-clipboard-list", label: "Designaciones" },
   { id: "buscar", path: "/buscar", icon: "ti-search", label: "Buscador" },
+  { id: "historico", path: "/designaciones-viejas", icon: "ti-history", label: "Historial" },
 ];
 </script>
 

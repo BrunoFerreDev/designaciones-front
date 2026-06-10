@@ -19,7 +19,7 @@
     </div>
 
     <div class="modal-body" style="padding: 1.5rem;">
-      <div v-if="state.designaciones.length === 0" class="empty-state" style="text-align: center; padding: 2rem 0;">
+      <div v-if="state.designaciones.filter(d => d.estadoDesignacion === 1 || d.estado === 1).length === 0" class="empty-state" style="text-align: center; padding: 2rem 0;">
         <i class="ti ti-alert-circle" style="font-size: 48px; color: var(--color-text-secondary); margin-bottom: 1rem;"></i>
         <div style="font-weight: 600; color: var(--color-text-primary); margin-bottom: 0.5rem;">No hay designaciones completas</div>
         <div style="font-size: 13px; color: var(--color-text-secondary);">Asigna árbitros a tus partidos primero para poder generar el mensaje de WhatsApp.</div>
@@ -29,7 +29,7 @@
         <!-- Selector de Día -->
         <div style="display: flex; gap: 8px; margin-bottom: 1.25rem;">
           <button
-            v-for="opt in [{id: 'todos', label: 'Todos'}, {id: 'sabado', label: 'Sábados'}, {id: 'domingo', label: 'Domingos'}]"
+            v-for="opt in filterOptions"
             :key="opt.id"
             class="tab-btn"
             style="flex: 1; padding: 8px 12px; font-size: 12px; border-radius: 20px; transition: all 0.2s; border: 1.5px solid; cursor: pointer;"
@@ -106,10 +106,26 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue"
+import { ref, computed, onMounted, watch } from "vue"
 import { state, closeModal, getCancha } from "../store"
 
+const isSpecificId = state.modal?.id && !['todos', 'sabado', 'domingo'].includes(state.modal?.id);
 const filterDay = ref(state.modal?.id || "todos")
+
+const filterOptions = computed(() => {
+  if (isSpecificId) {
+    return [
+      { id: state.modal?.id, label: 'Esta Designación' },
+      { id: 'todos', label: 'Todas' }
+    ]
+  }
+  return [
+    {id: 'todos', label: 'Todos'}, 
+    {id: 'sabado', label: 'Sábados'}, 
+    {id: 'domingo', label: 'Domingos'}
+  ]
+})
+
 const messageText = ref("")
 const copied = ref(false)
 
@@ -155,12 +171,22 @@ const getDayOfWeek = (fechaStr) => {
 };
 
 const generateMessage = () => {
-  let list = [...state.designaciones]
+  const allDesignaciones = [
+    ...state.designacionesIncompletas,
+    ...state.designaciones,
+    ...state.designacionesAConfirmar,
+    ...state.designacionesFinalizadas
+  ];
+  
+  // Filtrar explícitamente por estadoDesignacion === 1 (Completa)
+  let list = allDesignaciones.filter(d => d.estadoDesignacion === 1 || d.estado === 1);
   
   if (filterDay.value === "sabado") {
     list = list.filter((d) => getDayOfWeek(d.fecha) !== 0)
   } else if (filterDay.value === "domingo") {
     list = list.filter((d) => getDayOfWeek(d.fecha) === 0)
+  } else if (filterDay.value !== "todos") {
+    list = list.filter((d) => (d.idDesignacion || d.id) === filterDay.value)
   }
 
   if (list.length === 0) {
