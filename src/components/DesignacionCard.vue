@@ -19,7 +19,7 @@
             class="card-title text-base font-semibold flex items-center gap-1.5 text-slate-800"
           >
             <span>🏟️</span>
-            <span>{{ canchaName }}</span>
+            <span>{{ canchaName }} ({{ designacion.idDesignacion }})</span>
             <button
               v-if="designacion.estadoDesignacion === 1"
               class="btn-icon text-slate-400 hover:text-slate-600 transition-colors ml-1 p-0.5"

@@ -6,12 +6,18 @@ import Suspensiones from './views/Suspensiones.vue';
 import Designaciones from './views/Designaciones.vue';
 import BuscarDesignaciones from './views/BuscarDesignaciones.vue';
 import DesignacionesViejas from './views/DesignacionesViejas.vue';
+import Estadisticas from './views/Estadisticas.vue';
 
 const routes = [
   {
     path: '/',
     name: 'dashboard',
     component: Dashboard
+  },
+  {
+    path: '/estadisticas',
+    name: 'estadisticas',
+    component: Estadisticas
   },
   {
     path: '/canchas',

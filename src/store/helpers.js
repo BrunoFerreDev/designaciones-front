@@ -71,6 +71,10 @@ export const formatFecha = (fechaStr) => {
       const hhStr = String(hh).padStart(2, "0");
       const minStr = String(min).padStart(2, "0");
 
+      if (hh === 0 && min === 0) {
+        return `${nombreDia} ${dd} de ${meses[mm - 1]} (Horario a confirmar)`;
+      }
+
       const timePartFormatted =
         min === 0 ? `${hhStr}hs` : `${hhStr}:${minStr}hs`;
       return `${nombreDia} ${dd} de ${meses[mm - 1]} a las ${timePartFormatted}`;
@@ -103,18 +107,17 @@ export const sortDesignaciones = (list) => {
   });
 };
 
-export const getDayOfWeekLocal = (fechaStr) => {
-  if (!fechaStr) return -1;
-  try {
-    if (fechaStr instanceof Date) {
-      return fechaStr.getDay();
-    }
-    const dateStr = String(fechaStr);
-    const datePart = dateStr.includes("T") 
-      ? dateStr.split("T")[0] 
-      : dateStr.includes(" ") 
-        ? dateStr.split(" ")[0] 
-        : dateStr;
+export const getLocalDateString = (fechaStr) => {
+  if (!fechaStr) return "";
+  if (fechaStr instanceof Date) {
+    const yyyy = fechaStr.getFullYear();
+    const mm = String(fechaStr.getMonth() + 1).padStart(2, "0");
+    const dd = String(fechaStr.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  const str = String(fechaStr);
+  if (!str.includes("T") && !str.includes(" ")) {
+    const datePart = str;
     const separator = datePart.includes("-") ? "-" : datePart.includes("/") ? "/" : "";
     if (separator) {
       const parts = datePart.split(separator).map(Number);
@@ -125,15 +128,43 @@ export const getDayOfWeekLocal = (fechaStr) => {
         } else {
           [dd, mm, yyyy] = parts;
         }
-        const dateObj = new Date(yyyy, mm - 1, dd);
-        return dateObj.getDay(); // 0 = Sunday, 6 = Saturday
+        return `${yyyy}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
       }
+    }
+    return str;
+  }
+  const hasTimezone = str.includes("Z") || str.includes("+") || (str.split("T")[1] && str.split("T")[1].includes("-"));
+  if (hasTimezone) {
+    const date = new Date(str);
+    if (!isNaN(date.getTime())) {
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, "0");
+      const dd = String(date.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  }
+  return str.split(/[T ]/)[0];
+};
+
+export const getDayOfWeekLocal = (fechaStr) => {
+  if (!fechaStr) return -1;
+  try {
+    if (fechaStr instanceof Date) {
+      return fechaStr.getDay();
+    }
+    const localDateStr = getLocalDateString(fechaStr);
+    const parts = localDateStr.split("-").map(Number);
+    if (parts.length === 3) {
+      const [yyyy, mm, dd] = parts;
+      const dateObj = new Date(yyyy, mm - 1, dd);
+      return dateObj.getDay(); // 0 = Sunday, 6 = Saturday
     }
   } catch (e) {
     console.warn("Error parsing date in getDayOfWeekLocal", e);
   }
   return -1;
 };
+
 
 
 export const isRefereeAssignedToDifferentCourtOnSameDay = (

@@ -230,15 +230,22 @@ const generateMessage = () => {
         "Cancha Desconocida"
 
       let timeFormatted = ""
+      let hasConfirmar = false
       if (d.fecha.includes("T")) {
         const timePart = d.fecha.split("T")[1]
         const [hh, min] = timePart.split(":")
-        timeFormatted =
-          Number(min) === 0 ? `${parseInt(hh)}hs` : `${hh}:${min}hs`
+        if (Number(hh) === 0 && Number(min) === 0) {
+          hasConfirmar = true
+        } else {
+          timeFormatted =
+            Number(min) === 0 ? `${parseInt(hh)}hs` : `${hh}:${min}hs`
+        }
       }
 
       text += `  🏟️ *${canchaNombre}*${
-        timeFormatted ? `, horario de inicio ${timeFormatted}` : ""
+        hasConfirmar
+          ? ", Horario a confirmar"
+          : timeFormatted ? `, horario de inicio ${timeFormatted}` : ""
       }\n`
 
       // Árbitros designados
@@ -247,8 +254,11 @@ const generateMessage = () => {
           const nombreCompleto = `${arb.arbitro?.nombre || ""} ${
             arb.arbitro?.apellido || ""
           }`.trim()
-          const rol = arb.arbitro?.rol || "Árbitro"
-          text += `    • 👤 ${nombreCompleto} - *${rol}*\n`
+          const normalized = nombreCompleto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+          const isHectorMendoza = normalized === "hector mendoza"
+          const rol = isHectorMendoza ? "Chofer" : (arb.arbitro?.rol || "Árbitro")
+          const emoji = isHectorMendoza ? "🚗" : "👤"
+          text += `    • ${emoji} ${nombreCompleto} - *${rol}*\n`
         })
       } else {
         text += `    • _Sin árbitros asignados_\n`

@@ -127,19 +127,31 @@
 
       <!-- Listado de Designaciones Existentes para la fecha -->
       <div v-if="fecha" class="animate-fade-in">
-        <div class="section-header" style="margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+        <div class="section-header" style="margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <span class="section-title" style="display: flex; align-items: center; gap: 8px;">
             📋 Designaciones Registradas para esta fecha: {{ formatFechaLocal(fecha) }}
           </span>
-          <button
-            class="btn"
-            @click="fetchDesignacionesPorFecha(true)"
-            :disabled="loadingList"
-            style="padding: 5px 12px; font-size: 12px; display: flex; align-items: center; gap: 6px;"
-          >
-            <i class="ti ti-refresh" :class="{ 'spin-anim': loadingList }"></i>
-            <span>Actualizar</span>
-          </button>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button
+              v-if="designacionesExistentes.length > 0"
+              class="btn"
+              @click="openModal('arbitrosPorDia', null, designacionesExistentes)"
+              style="border-color: #3b82f6; color: #3b82f6; background: transparent; padding: 5px 12px; font-size: 12px; display: flex; align-items: center; gap: 4px;"
+              onmouseover="this.style.background = '#f0f7ff'"
+              onmouseout="this.style.background = 'transparent'"
+            >
+              <i class="ti ti-calendar-event"></i> Resumen árbitros
+            </button>
+            <button
+              class="btn"
+              @click="fetchDesignacionesPorFecha(true)"
+              :disabled="loadingList"
+              style="padding: 5px 12px; font-size: 12px; display: flex; align-items: center; gap: 6px;"
+            >
+              <i class="ti ti-refresh" :class="{ 'spin-anim': loadingList }"></i>
+              <span>Actualizar</span>
+            </button>
+          </div>
         </div>
 
         <!-- Cargando lista -->
