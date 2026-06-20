@@ -506,35 +506,41 @@ const filteredAvailableReferees = computed(() => {
       // Evitar repetir árbitro en la misma cancha en sábados consecutivos
       const day = getDayOfWeekLocal(designacion.value.fecha);
       if (day === 6) {
-        const targetCanchaId =
-          designacion.value.idCancha ||
-          designacion.value.canchaId ||
-          designacion.value.cancha?.idCancha ||
-          designacion.value.cancha?.id;
+        const nombreCompleto = `${arb.nombre || ""} ${arb.apellido || ""}`.trim();
+        const normalized = nombreCompleto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const isHectorMendoza = normalized === "hector mendoza";
 
-        const isExcluded = state.designacionesFinalizadas.some((finalD) => {
-          if (!finalD) return false;
-          const finalCanchaId =
-            finalD.idCancha ||
-            finalD.canchaId ||
-            finalD.cancha?.idCancha ||
-            finalD.cancha?.idCancha;
-          if (
-            String(finalCanchaId) === String(targetCanchaId) &&
-            getDayOfWeekLocal(finalD.fecha) === 6
-          ) {
-            const assigned = finalD.arbitrosDesignados || finalD.arbitros || [];
-            return assigned.some(
-              (asg) =>
-                asg &&
-                (asg.arbitro?.idArbitro || asg.idArbitro || asg) ===
-                  arb.idArbitro,
-            );
-          }
-          return false;
-        });
+        if (!isHectorMendoza) {
+          const targetCanchaId =
+            designacion.value.idCancha ||
+            designacion.value.canchaId ||
+            designacion.value.cancha?.idCancha ||
+            designacion.value.cancha?.id;
 
-        if (isExcluded) return false;
+          const isExcluded = state.designacionesFinalizadas.some((finalD) => {
+            if (!finalD) return false;
+            const finalCanchaId =
+              finalD.idCancha ||
+              finalD.canchaId ||
+              finalD.cancha?.idCancha ||
+              finalD.cancha?.idCancha;
+            if (
+              String(finalCanchaId) === String(targetCanchaId) &&
+              getDayOfWeekLocal(finalD.fecha) === 6
+            ) {
+              const assigned = finalD.arbitrosDesignados || finalD.arbitros || [];
+              return assigned.some(
+                (asg) =>
+                  asg &&
+                  (asg.arbitro?.idArbitro || asg.idArbitro || asg) ===
+                    arb.idArbitro,
+              );
+            }
+            return false;
+          });
+
+          if (isExcluded) return false;
+        }
       }
 
       // Filter by day of week if toggle is active

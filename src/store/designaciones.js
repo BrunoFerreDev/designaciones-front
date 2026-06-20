@@ -393,7 +393,17 @@ export const asignarArbitros = async (idDesignacion) => {
           const assigned = finalD.arbitrosDesignados || finalD.arbitros || [];
           assigned.forEach((asg) => {
             const arbId = asg.arbitro?.idArbitro || asg.idArbitro;
-            if (arbId) satRepetitionExcluded.add(arbId);
+            if (arbId) {
+              const arbObj = state.arbitros.find(a => a.idArbitro === arbId);
+              if (arbObj) {
+                const nombreCompleto = `${arbObj.nombre || ""} ${arbObj.apellido || ""}`.trim();
+                const normalized = nombreCompleto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                if (normalized === "hector mendoza") {
+                  return; // Permitir repetir cancha
+                }
+              }
+              satRepetitionExcluded.add(arbId);
+            }
           });
         }
       });
@@ -578,35 +588,41 @@ export const asignarArbitroADesignacionManual = async (
     // Validación: Evitar repetir el árbitro en la misma cancha en sábados consecutivos
     const isSaturdayVal = getDayOfWeekLocal(des.fecha) === 6;
     if (isSaturdayVal) {
-      const targetCanchaId =
-        des.idCancha || des.canchaId || des.cancha?.idCancha || des.cancha?.id;
-      const isExcluded = state.designacionesFinalizadas.some((finalD) => {
-        const finalCanchaId =
-          finalD.idCancha ||
-          finalD.canchaId ||
-          finalD.cancha?.idCancha ||
-          finalD.cancha?.id;
-        if (
-          String(finalCanchaId) === String(targetCanchaId) &&
-          getDayOfWeekLocal(finalD.fecha) === 6
-        ) {
-          const assigned = finalD.arbitrosDesignados || finalD.arbitros || [];
-          return assigned.some(
-            (asg) => (asg.arbitro?.idArbitro || asg.idArbitro) === idArbitro,
+      const nombreCompleto = `${arb.nombre || ""} ${arb.apellido || ""}`.trim();
+      const normalized = nombreCompleto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const isHectorMendoza = normalized === "hector mendoza";
+
+      if (!isHectorMendoza) {
+        const targetCanchaId =
+          des.idCancha || des.canchaId || des.cancha?.idCancha || des.cancha?.id;
+        const isExcluded = state.designacionesFinalizadas.some((finalD) => {
+          const finalCanchaId =
+            finalD.idCancha ||
+            finalD.canchaId ||
+            finalD.cancha?.idCancha ||
+            finalD.cancha?.id;
+          if (
+            String(finalCanchaId) === String(targetCanchaId) &&
+            getDayOfWeekLocal(finalD.fecha) === 6
+          ) {
+            const assigned = finalD.arbitrosDesignados || finalD.arbitros || [];
+            return assigned.some(
+              (asg) => (asg.arbitro?.idArbitro || asg.idArbitro) === idArbitro,
+            );
+          }
+          return false;
+        });
+
+        if (isExcluded) {
+          const canchaNombre =
+            des.cancha?.nombreCancha ||
+            des.cancha?.nombre ||
+            getCancha(targetCanchaId)?.nombre ||
+            "esta cancha";
+          throw new Error(
+            `El árbitro ya estuvo asignado en la cancha "${canchaNombre}" el sábado anterior. No puede repetir la misma cancha en sábados consecutivos.`,
           );
         }
-        return false;
-      });
-
-      if (isExcluded) {
-        const canchaNombre =
-          des.cancha?.nombreCancha ||
-          des.cancha?.nombre ||
-          getCancha(targetCanchaId)?.nombre ||
-          "esta cancha";
-        throw new Error(
-          `El árbitro ya estuvo asignado en la cancha "${canchaNombre}" el sábado anterior. No puede repetir la misma cancha en sábados consecutivos.`,
-        );
       }
     }
 
