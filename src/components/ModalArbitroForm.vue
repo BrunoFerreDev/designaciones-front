@@ -35,13 +35,14 @@
     <div class="form-group">
       <label class="form-label">Categoría</label>
       <select v-model="state.form.categoria" class="form-input">
-        <option value="ELITE">Elite</option>
         <option value="AVANZADO">Avanzado</option>
-        <option value="INTERMEDIO_ALTO">Intermedio Alto</option>
         <option value="INTERMEDIO">Intermedio</option>
-        <option value="INTERMEDIO_BAJO">Intermedio Bajo</option>
-        <option value="EN_FORMACION">En Formación</option>
+        <option value="PRINCIPAL_1">Principal 1</option>
+        <option value="PRINCIPAL_2">Principal 2</option>
+        <option value="PRINCIPAL_3">Principal 3</option>
+        <option value="PRINCIPAL_4">Principal 4</option>
         <option value="INICIAL">Inicial</option>
+        <option value="ASISTENTE">Asistente</option>
       </select>
     </div>
 

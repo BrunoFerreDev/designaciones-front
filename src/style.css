@@ -17,7 +17,6 @@
   --border-radius-lg: 14px;
 }
 body {
-  font-family: var(--font-sans);
   background: #eef2f7;
   color: var(--color-text-primary);
 }

@@ -37,4 +37,7 @@ export const state = reactive({
   selectedArbitros: [],
   suspensiones: [],
   arbitrosDesignadosMap: {},
+  isAuthenticated: !!localStorage.getItem('jwt_token'),
+  user: JSON.parse(localStorage.getItem('user')) || null,
+  token: localStorage.getItem('jwt_token') || null,
 });
