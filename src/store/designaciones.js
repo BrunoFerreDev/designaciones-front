@@ -394,10 +394,14 @@ export const asignarArbitros = async (idDesignacion) => {
           assigned.forEach((asg) => {
             const arbId = asg.arbitro?.idArbitro || asg.idArbitro;
             if (arbId) {
-              const arbObj = state.arbitros.find(a => a.idArbitro === arbId);
+              const arbObj = state.arbitros.find((a) => a.idArbitro === arbId);
               if (arbObj) {
-                const nombreCompleto = `${arbObj.nombre || ""} ${arbObj.apellido || ""}`.trim();
-                const normalized = nombreCompleto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                const nombreCompleto =
+                  `${arbObj.nombre || ""} ${arbObj.apellido || ""}`.trim();
+                const normalized = nombreCompleto
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .toLowerCase();
                 if (normalized === "hector mendoza") {
                   return; // Permitir repetir cancha
                 }
@@ -589,12 +593,18 @@ export const asignarArbitroADesignacionManual = async (
     const isSaturdayVal = getDayOfWeekLocal(des.fecha) === 6;
     if (isSaturdayVal) {
       const nombreCompleto = `${arb.nombre || ""} ${arb.apellido || ""}`.trim();
-      const normalized = nombreCompleto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const normalized = nombreCompleto
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
       const isHectorMendoza = normalized === "hector mendoza";
 
       if (!isHectorMendoza) {
         const targetCanchaId =
-          des.idCancha || des.canchaId || des.cancha?.idCancha || des.cancha?.id;
+          des.idCancha ||
+          des.canchaId ||
+          des.cancha?.idCancha ||
+          des.cancha?.id;
         const isExcluded = state.designacionesFinalizadas.some((finalD) => {
           const finalCanchaId =
             finalD.idCancha ||
@@ -968,7 +978,11 @@ export const clonarDesignaciones = async (designaciones) => {
   }
 };
 
-export const actualizarMontoPercibidoStore = async (idDesignacion, idDesignado, nuevoMonto) => {
+export const actualizarMontoPercibidoStore = async (
+  idDesignacion,
+  idDesignado,
+  nuevoMonto,
+) => {
   try {
     await designacionService.actualizarMontoPercibido(idDesignado, nuevoMonto);
     if (state.arbitrosDesignadosMap[idDesignacion]) {
@@ -985,9 +999,15 @@ export const actualizarMontoPercibidoStore = async (idDesignacion, idDesignado, 
   }
 };
 
-export const actualizarMontoATodosStore = async (idDesignacion, montoPorArbitro) => {
+export const actualizarMontoATodosStore = async (
+  idDesignacion,
+  montoPorArbitro,
+) => {
   try {
-    await designacionService.actualizarMontoATodos(idDesignacion, montoPorArbitro);
+    await designacionService.actualizarMontoATodos(
+      idDesignacion,
+      montoPorArbitro,
+    );
     if (state.arbitrosDesignadosMap[idDesignacion]) {
       state.arbitrosDesignadosMap[idDesignacion].forEach((a) => {
         a.montoPercibido = montoPorArbitro;

@@ -161,13 +161,19 @@
             
             <div style="display: flex; gap: 4px">
               <template v-if="activeTab !== 'sinDesignar'">
-                <span v-if="arb.saturday && arb.saturday.length > 0" class="badge" style="font-size: 8px; background: #e1f5ee; color: #0f6e56; border-radius: 8px; padding: 1px 6px">Sábado</span>
-                <span v-if="arb.sunday && arb.sunday.length > 0" class="badge" style="font-size: 8px; background: #e0f2fe; color: #0369a1; border-radius: 8px; padding: 1px 6px">Domingo</span>
+                <span v-if="arb.saturday && arb.saturday.some(m => m.estadoDesignacion !== 3)" class="badge" style="font-size: 8px; background: #e1f5ee; color: #0f6e56; border-radius: 8px; padding: 1px 6px">Sábado</span>
+                <span v-if="arb.sunday && arb.sunday.some(m => m.estadoDesignacion !== 3)" class="badge" style="font-size: 8px; background: #e0f2fe; color: #0369a1; border-radius: 8px; padding: 1px 6px">Domingo</span>
+                <span v-if="hasCancelledMatches(arb) && !hasActiveMatches(arb)" class="badge" style="font-size: 8px; background: #fef2f2; color: #b91c1c; border-radius: 8px; padding: 1px 6px">No dirige</span>
               </template>
               <template v-else>
                 <span class="badge" style="font-size: 8px; background: #fef2f2; color: #991b1b; border-radius: 8px; padding: 1px 6px">Sin asignar</span>
               </template>
             </div>
+          </div>
+
+          <!-- Mensaje estado para cancelaciones -->
+          <div v-if="activeTab !== 'sinDesignar' && hasCancelledMatches(arb) && !hasActiveMatches(arb)" style="padding: 6px 8px; border-radius: 4px; font-size: 10px; margin-top: 2px; background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2;">
+            ❌ <strong>No dirige este fin de semana:</strong> Todas sus designaciones fueron canceladas.
           </div>
 
           <!-- Assignments Details (if assigned) -->
@@ -177,26 +183,28 @@
                 ⚽ Sábado:
               </div>
               <ul style="list-style: none; padding-left: 0; margin: 0; display: flex; flex-direction: column; gap: 2px">
-                <li v-for="match in arb.saturday" :key="match.id" style="color: var(--color-text-primary); display: flex; align-items: center; gap: 4px">
+                <li v-for="match in arb.saturday" :key="match.id" :style="match.estadoDesignacion === 3 ? { textDecoration: 'line-through', opacity: 0.6 } : {}" style="color: var(--color-text-primary); display: flex; align-items: center; gap: 4px">
                   <span>🏟️ {{ match.cancha }}</span>
                   <span style="color: var(--color-text-secondary)">·</span>
                   <span>⏰ {{ match.hora }}</span>
                   <span style="color: var(--color-text-secondary)">·</span>
                   <span>{{ match.cantidadPartidos }} part.</span>
+                  <span v-if="match.estadoDesignacion === 3" class="badge" style="font-size: 8px; background: #fee2e2; color: #991b1b; border-radius: 4px; padding: 1px 4px; text-decoration: none;">Cancelada</span>
                 </li>
               </ul>
             </div>
-            <div v-if="arb.sunday && arb.sunday.length > 0">
+            <div v-if="arb.sunday && arb.sunday.length > 0" style="margin-bottom: 6px">
               <div style="font-weight: 600; color: #185fa5; display: flex; align-items: center; gap: 4px; margin-bottom: 2px">
                 ⚽ Domingo:
               </div>
               <ul style="list-style: none; padding-left: 0; margin: 0; display: flex; flex-direction: column; gap: 2px">
-                <li v-for="match in arb.sunday" :key="match.id" style="color: var(--color-text-primary); display: flex; align-items: center; gap: 4px">
+                <li v-for="match in arb.sunday" :key="match.id" :style="match.estadoDesignacion === 3 ? { textDecoration: 'line-through', opacity: 0.6 } : {}" style="color: var(--color-text-primary); display: flex; align-items: center; gap: 4px">
                   <span>🏟️ {{ match.cancha }}</span>
                   <span style="color: var(--color-text-secondary)">·</span>
                   <span>⏰ {{ match.hora }}</span>
                   <span style="color: var(--color-text-secondary)">·</span>
                   <span>{{ match.cantidadPartidos }} part.</span>
+                  <span v-if="match.estadoDesignacion === 3" class="badge" style="font-size: 8px; background: #fee2e2; color: #991b1b; border-radius: 4px; padding: 1px 4px; text-decoration: none;">Cancelada</span>
                 </li>
               </ul>
             </div>
@@ -257,7 +265,6 @@ onMounted(async () => {
   }
 });
 
-// Agrupar designaciones de todos los estados
 const allDesignaciones = computed(() => {
   let list = [];
   if (state.modal?.data && Array.isArray(state.modal.data)) {
@@ -269,7 +276,7 @@ const allDesignaciones = computed(() => {
       ...state.designaciones,
       ...state.designacionesAConfirmar,
       ...state.designacionesAceptadas
-    ];
+    ].filter(d => d.editable !== false);
     
     lists.forEach(d => {
       const id = d.idDesignacion || d.id;
@@ -339,7 +346,8 @@ const arbitrosResumen = computed(() => {
         id: id,
         cancha: canchaNombre,
         hora: hora || "Sin hora",
-        cantidadPartidos: d.cantidadPartidos || 1
+        cantidadPartidos: d.cantidadPartidos || 1,
+        estadoDesignacion: d.estadoDesignacion !== undefined ? d.estadoDesignacion : d.estado
       };
 
       if (isSunday) {
@@ -359,15 +367,27 @@ const arbitrosResumen = computed(() => {
 
 // Listas filtradas
 const ambosDias = computed(() => {
-  return arbitrosResumen.value.filter(a => a.saturday.length > 0 && a.sunday.length > 0);
+  return arbitrosResumen.value.filter(a => {
+    const hasSat = a.saturday.some(m => m.estadoDesignacion !== 3);
+    const hasSun = a.sunday.some(m => m.estadoDesignacion !== 3);
+    return hasSat && hasSun;
+  });
 });
 
 const soloSabado = computed(() => {
-  return arbitrosResumen.value.filter(a => a.saturday.length > 0 && a.sunday.length === 0);
+  return arbitrosResumen.value.filter(a => {
+    const hasSat = a.saturday.some(m => m.estadoDesignacion !== 3);
+    const hasSun = a.sunday.some(m => m.estadoDesignacion !== 3);
+    return hasSat && !hasSun;
+  });
 });
 
 const soloDomingo = computed(() => {
-  return arbitrosResumen.value.filter(a => a.saturday.length === 0 && a.sunday.length > 0);
+  return arbitrosResumen.value.filter(a => {
+    const hasSat = a.saturday.some(m => m.estadoDesignacion !== 3);
+    const hasSun = a.sunday.some(m => m.estadoDesignacion !== 3);
+    return !hasSat && hasSun;
+  });
 });
 
 const sinDesignar = computed(() => {
@@ -379,18 +399,66 @@ const sinDesignar = computed(() => {
 
 const totalDesignados = computed(() => arbitrosResumen.value.length);
 
-const tabs = computed(() => [
-  { id: "todos", label: "Todos Desig.", count: totalDesignados.value },
-  { id: "ambos", label: "Ambos Días", count: ambosDias.value.length },
-  { id: "sabado", label: "Sólo Sábado", count: soloSabado.value.length },
-  { id: "domingo", label: "Sólo Domingo", count: soloDomingo.value.length },
-  { id: "sinDesignar", label: "Sin Designar", count: sinDesignar.value.length }
-]);
+const noDirigen = computed(() => {
+  return arbitrosResumen.value.filter(a => {
+    const hasCancelled = (a.saturday && a.saturday.some(m => m.estadoDesignacion === 3)) || 
+                         (a.sunday && a.sunday.some(m => m.estadoDesignacion === 3));
+    const hasActive = (a.saturday && a.saturday.some(m => m.estadoDesignacion !== 3)) || 
+                      (a.sunday && a.sunday.some(m => m.estadoDesignacion !== 3));
+    return hasCancelled && !hasActive;
+  });
+});
+
+const hasCancelledMatches = (arb) => {
+  return (arb.saturday && arb.saturday.some(m => m.estadoDesignacion === 3)) || 
+         (arb.sunday && arb.sunday.some(m => m.estadoDesignacion === 3));
+};
+
+const hasActiveMatches = (arb) => {
+  return (arb.saturday && arb.saturday.some(m => m.estadoDesignacion !== 3)) || 
+         (arb.sunday && arb.sunday.some(m => m.estadoDesignacion !== 3));
+};
+
+const getActiveCanchasNames = (arb) => {
+  const list = [];
+  if (arb.saturday) {
+    arb.saturday.forEach(m => {
+      if (m.estadoDesignacion !== 3) {
+        list.push(`Sáb: ${m.cancha}`);
+      }
+    });
+  }
+  if (arb.sunday) {
+    arb.sunday.forEach(m => {
+      if (m.estadoDesignacion !== 3) {
+        list.push(`Dom: ${m.cancha}`);
+      }
+    });
+  }
+  return list.join(", ") || "Ninguna";
+};
+
+const tabs = computed(() => {
+  const list = [
+    { id: "todos", label: "Todos Desig.", count: totalDesignados.value },
+    { id: "ambos", label: "Ambos Días", count: ambosDias.value.length },
+    { id: "sabado", label: "Sólo Sábado", count: soloSabado.value.length },
+    { id: "domingo", label: "Sólo Domingo", count: soloDomingo.value.length }
+  ];
+  
+  if (noDirigen.value.length > 0) {
+    list.push({ id: "noDirigen", label: "No Dirigen", count: noDirigen.value.length });
+  }
+  
+  list.push({ id: "sinDesignar", label: "Sin Designar", count: sinDesignar.value.length });
+  return list;
+});
 
 const currentList = computed(() => {
   if (activeTab.value === "ambos") return ambosDias.value;
   if (activeTab.value === "sabado") return soloSabado.value;
   if (activeTab.value === "domingo") return soloDomingo.value;
+  if (activeTab.value === "noDirigen") return noDirigen.value;
   if (activeTab.value === "sinDesignar") return sinDesignar.value;
   return arbitrosResumen.value;
 });

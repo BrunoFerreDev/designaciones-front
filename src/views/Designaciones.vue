@@ -8,10 +8,10 @@
       <div class="topbar-actions">
         <button
           v-if="
-            state.designaciones.length > 0 ||
-            state.designacionesIncompletas.length > 0 ||
-            state.designacionesFinalizadas.length > 0 ||
-            state.designacionesAceptadas.length > 0
+            filteredCompletas.length > 0 ||
+            filteredIncompletas.length > 0 ||
+            filteredFinalizadas.length > 0 ||
+            filteredAceptadas.length > 0
           "
           class="btn"
           @click="openModal('arbitrosPorDia')"
@@ -24,10 +24,10 @@
         </button>
         <button
           v-if="
-            state.designaciones.length > 0 ||
-            state.designacionesIncompletas.length > 0 ||
-            state.designacionesFinalizadas.length > 0 ||
-            state.designacionesAceptadas.length > 0
+            filteredCompletas.length > 0 ||
+            filteredIncompletas.length > 0 ||
+            filteredFinalizadas.length > 0 ||
+            filteredAceptadas.length > 0
           "
           class="btn"
           @click="openModal('comparativaWeekend')"
@@ -39,7 +39,7 @@
           Finde
         </button>
         <button
-          v-if="state.designaciones.length > 0"
+          v-if="filteredCompletas.length > 0"
           class="btn"
           @click="openModal('whatsappMessage')"
           style="border-color: #25d366; color: #25d366; background: transparent"
@@ -221,10 +221,10 @@
       </div>
 
       <!-- Designaciones Incompletas -->
-      <div v-if="state.designacionesIncompletas.length > 0">
+      <div v-if="filteredIncompletas.length > 0">
         <div class="alert alert-warning">
           <i class="ti ti-alert-triangle"></i>
-          {{ state.designacionesIncompletas.length }} designación(es) por
+          {{ filteredIncompletas.length }} designación(es) por
           completar - Asigna árbitros
         </div>
 
@@ -354,20 +354,20 @@
             margin-bottom: 1rem;
             color: var(--color-text-secondary);
           "
-          v-if="state.designaciones.length > 0"
+          v-if="filteredCompletas.length > 0"
         >
           ✅ Pendientes de Aceptar (Completadas)
         </div>
 
-        <div v-if="state.designaciones.length > 0" class="alert alert-success">
+        <div v-if="filteredCompletas.length > 0" class="alert alert-success">
           <i class="ti ti-check"></i>
-          {{ state.designaciones.length }} designación(es) completada(s).
+          {{ filteredCompletas.length }} designación(es) completada(s).
         </div>
 
         <div
           v-if="
-            state.designaciones.length === 0 &&
-            state.designacionesIncompletas.length === 0
+            filteredCompletas.length === 0 &&
+            filteredIncompletas.length === 0
           "
           class="empty-state"
         >
@@ -385,7 +385,7 @@
           </div>
         </div>
 
-        <div class="grid-2" v-if="state.designaciones.length > 0">
+        <div class="grid-2" v-if="filteredCompletas.length > 0">
           <!-- Columna Sábado -->
           <div>
             <div
@@ -530,7 +530,7 @@
         </div>
       </div>
       <!-- Designaciones Pendientes de Confirmar por Cancha (Envío al Backend) -->
-      <div v-if="state.designacionesAConfirmar.length > 0" class="mt-4 mb-4">
+      <div v-if="filteredAConfirmar.length > 0" class="mt-4 mb-4">
         <div
           style="
             font-size: 14px;
@@ -812,7 +812,7 @@
 
       <!-- Designaciones Aceptadas -->
       <div
-        v-if="state.designacionesAceptadas.length > 0"
+        v-if="filteredAceptadas.length > 0"
         class="mt-4"
         style="margin-bottom: 2rem"
       >
@@ -824,7 +824,7 @@
             color: var(--color-text-secondary);
           "
         >
-          🤝 Designaciones Aceptadas ({{ state.designacionesAceptadas.length }})
+          🤝 Designaciones Aceptadas ({{ filteredAceptadas.length }})
         </div>
 
         <div class="grid-2">
@@ -933,7 +933,7 @@
       </div>
 
       <!-- Designaciones Finalizadas -->
-      <div v-if="state.designacionesFinalizadas.length > 0" class="mt-4">
+      <div v-if="filteredFinalizadas.length > 0" class="mt-4">
         <div
           style="
             display: flex;
@@ -950,7 +950,7 @@
             "
           >
             🏁 Designaciones Finalizadas ({{
-              state.designacionesFinalizadas.length
+              filteredFinalizadas.length
             }})
           </div>
           <button
@@ -1117,10 +1117,10 @@ const filteredRefMatchList = computed(() => {
 
   const matches = [];
   const lists = [
-    ...state.designacionesIncompletas,
-    ...state.designaciones,
-    ...state.designacionesAceptadas,
-    ...state.designacionesAConfirmar,
+    ...filteredIncompletas.value,
+    ...filteredCompletas.value,
+    ...filteredAceptadas.value,
+    ...filteredAConfirmar.value,
   ];
 
   const visited = new Set();
@@ -1170,21 +1170,21 @@ const filteredRefMatchList = computed(() => {
         let statusClass = "badge-amber";
 
         if (
-          state.designaciones.some(
+          filteredCompletas.value.some(
             (item) => (item.id || item.idDesignacion) === id,
           )
         ) {
           statusLabel = "Completa";
           statusClass = "badge-green";
         } else if (
-          state.designacionesAceptadas.some(
+          filteredAceptadas.value.some(
             (item) => (item.id || item.idDesignacion) === id,
           )
         ) {
           statusLabel = "Aceptada";
           statusClass = "badge-blue";
         } else if (
-          state.designacionesAConfirmar.some(
+          filteredAConfirmar.value.some(
             (item) => (item.id || item.idDesignacion) === id,
           )
         ) {
@@ -1218,38 +1218,54 @@ const arbitrosDesignados = computed(() => {
   return res;
 });
 
+const filteredIncompletas = computed(() =>
+  state.designacionesIncompletas.filter((d) => d.editable !== false)
+);
+const filteredCompletas = computed(() =>
+  state.designaciones.filter((d) => d.editable !== false)
+);
+const filteredFinalizadas = computed(() =>
+  state.designacionesFinalizadas.filter((d) => d.editable !== false)
+);
+const filteredAceptadas = computed(() =>
+  state.designacionesAceptadas.filter((d) => d.editable !== false)
+);
+const filteredAConfirmar = computed(() =>
+  state.designacionesAConfirmar.filter((d) => d.editable !== false)
+);
+
 const getDayOfWeek = getDayOfWeekLocal;
 
 // Incomplete designations split
 const incSabado = computed(() =>
-  state.designacionesIncompletas.filter((d) => getDayOfWeek(d.fecha) !== 0),
+  filteredIncompletas.value.filter((d) => getDayOfWeek(d.fecha) !== 0),
 );
 const incDomingo = computed(() =>
-  state.designacionesIncompletas.filter((d) => getDayOfWeek(d.fecha) === 0),
+  filteredIncompletas.value.filter((d) => getDayOfWeek(d.fecha) === 0),
 );
 
 // Complete designations split
 const compSabado = computed(() =>
-  state.designaciones.filter((d) => getDayOfWeek(d.fecha) !== 0),
+  filteredCompletas.value.filter((d) => getDayOfWeek(d.fecha) !== 0),
 );
 const compDomingo = computed(() =>
-  state.designaciones.filter((d) => getDayOfWeek(d.fecha) === 0),
+  filteredCompletas.value.filter((d) => getDayOfWeek(d.fecha) === 0),
 );
 
 // Finished designations split
 const finSabado = computed(() =>
-  state.designacionesFinalizadas.filter((d) => getDayOfWeek(d.fecha) !== 0),
+  filteredFinalizadas.value.filter((d) => getDayOfWeek(d.fecha) !== 0),
 );
 const finDomingo = computed(() =>
-  state.designacionesFinalizadas.filter((d) => getDayOfWeek(d.fecha) === 0),
+  filteredFinalizadas.value.filter((d) => getDayOfWeek(d.fecha) === 0),
 );
 
 // Accepted designations split
 const aceptadasSabado = computed(() =>
-  state.designacionesAceptadas.filter((d) => getDayOfWeek(d.fecha) !== 0),
+  filteredAceptadas.value.filter((d) => getDayOfWeek(d.fecha) !== 0),
 );
 const aceptadasDomingo = computed(() =>
-  state.designacionesAceptadas.filter((d) => getDayOfWeek(d.fecha) === 0),
+  filteredAceptadas.value.filter((d) => getDayOfWeek(d.fecha) === 0),
 );
 
 const verArbitros = async (d) => {
@@ -1266,7 +1282,7 @@ const verArbitros = async (d) => {
 
 const agrupadasPorCancha = computed(() => {
   const groups = {};
-  state.designacionesAConfirmar.forEach((d) => {
+  filteredAConfirmar.value.forEach((d) => {
     const canchaId =
       d.idCancha || d.canchaId || d.cancha?.idCancha || d.cancha?.id;
     const canchaName =

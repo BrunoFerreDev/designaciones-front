@@ -21,7 +21,7 @@
             <span>🏟️</span>
             <span>{{ canchaName }} ({{ designacion.idDesignacion }})</span>
             <button
-              v-if="designacion.estadoDesignacion === 1"
+              v-if="designacion.estadoDesignacion === 1 && designacion.editable !== false"
               class="btn-icon text-slate-400 hover:text-slate-600 transition-colors ml-1 p-0.5"
               style="
                 border: none;
@@ -149,8 +149,9 @@
       <!-- Asignar / Reasignar Automáticamente (para incompletas y completas) -->
       <button
         v-if="
-          designacion.estadoDesignacion === 0 ||
-          designacion.estadoDesignacion === 1
+          (designacion.estadoDesignacion === 0 ||
+          designacion.estadoDesignacion === 1) &&
+          designacion.editable !== false
         "
         class="btn primary text-xs"
         style="padding: 6px 12px; gap: 6px"
@@ -178,9 +179,10 @@
       <!-- Editar Árbitros -->
       <button
         v-if="
-          designacion.estadoDesignacion === 0 ||
+          (designacion.estadoDesignacion === 0 ||
           designacion.estadoDesignacion === 1 ||
-          designacion.estadoDesignacion === 3
+          designacion.estadoDesignacion === 3) &&
+          designacion.editable !== false
         "
         class="btn text-xs"
         style="
@@ -204,8 +206,9 @@
       <!-- Editar / Reprogramar Designación -->
       <button
         v-if="
-          designacion.estadoDesignacion === 0 ||
-          designacion.estadoDesignacion === 3
+          (designacion.estadoDesignacion === 0 ||
+          designacion.estadoDesignacion === 3) &&
+          designacion.editable !== false
         "
         class="btn text-xs"
         style="
@@ -239,7 +242,9 @@
       <!-- Aceptar -->
       <button
         v-if="
-          designacion.estadoDesignacion === 0 && assignedCount >= minArbitrosReq
+          designacion.estadoDesignacion === 0 &&
+          assignedCount >= minArbitrosReq &&
+          designacion.editable !== false
         "
         class="btn text-xs"
         style="
@@ -257,7 +262,7 @@
 
       <!-- Finalizar (para Aceptadas) -->
       <button
-        v-if="designacion.estadoDesignacion === 1"
+        v-if="designacion.estadoDesignacion === 1 && designacion.editable !== false"
         class="btn text-xs"
         style="
           padding: 6px 12px;
@@ -275,9 +280,10 @@
       <!-- Compartir WhatsApp -->
       <button
         v-if="
-          (designacion.estadoDesignacion === 0 &&
+          ((designacion.estadoDesignacion === 0 &&
             assignedCount >= minArbitrosReq) ||
-          designacion.estadoDesignacion === 1
+          designacion.estadoDesignacion === 1) &&
+          designacion.editable !== false
         "
         class="btn text-xs"
         style="
@@ -299,7 +305,7 @@
 
       <!-- Cancelar (Cambiar a estado 3) -->
       <button
-        v-if="designacion.estadoDesignacion === 1"
+        v-if="designacion.estadoDesignacion === 1 && designacion.editable !== false"
         class="btn text-xs danger"
         style="padding: 6px 12px; gap: 6px"
         @click="handleCancelar"
@@ -311,7 +317,7 @@
 
       <!-- Actualizar Aranceles (para Finalizadas) -->
       <button
-        v-if="designacion.estadoDesignacion === 2"
+        v-if="designacion.estadoDesignacion === 2 && designacion.editable !== false"
         class="btn text-xs"
         style="
           padding: 6px 12px;
@@ -334,8 +340,9 @@
       <!-- Eliminar -->
       <button
         v-if="
-          designacion.estadoDesignacion === 0 ||
-          designacion.estadoDesignacion === 1
+          (designacion.estadoDesignacion === 0 ||
+          designacion.estadoDesignacion === 1) &&
+          designacion.editable !== false
         "
         class="btn danger text-xs"
         style="padding: 6px 12px"

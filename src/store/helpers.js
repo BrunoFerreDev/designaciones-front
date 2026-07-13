@@ -118,7 +118,11 @@ export const getLocalDateString = (fechaStr) => {
   const str = String(fechaStr);
   if (!str.includes("T") && !str.includes(" ")) {
     const datePart = str;
-    const separator = datePart.includes("-") ? "-" : datePart.includes("/") ? "/" : "";
+    const separator = datePart.includes("-")
+      ? "-"
+      : datePart.includes("/")
+        ? "/"
+        : "";
     if (separator) {
       const parts = datePart.split(separator).map(Number);
       if (parts.length === 3) {
@@ -133,7 +137,10 @@ export const getLocalDateString = (fechaStr) => {
     }
     return str;
   }
-  const hasTimezone = str.includes("Z") || str.includes("+") || (str.split("T")[1] && str.split("T")[1].includes("-"));
+  const hasTimezone =
+    str.includes("Z") ||
+    str.includes("+") ||
+    (str.split("T")[1] && str.split("T")[1].includes("-"));
   if (hasTimezone) {
     const date = new Date(str);
     if (!isNaN(date.getTime())) {
@@ -164,8 +171,6 @@ export const getDayOfWeekLocal = (fechaStr) => {
   }
   return -1;
 };
-
-
 
 export const isRefereeAssignedToDifferentCourtOnSameDay = (
   idArbitro,
