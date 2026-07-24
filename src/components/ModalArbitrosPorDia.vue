@@ -276,7 +276,7 @@ const allDesignaciones = computed(() => {
       ...state.designaciones,
       ...state.designacionesAConfirmar,
       ...state.designacionesAceptadas
-    ].filter(d => d.editable !== false);
+    ];
     
     lists.forEach(d => {
       const id = d.idDesignacion || d.id;

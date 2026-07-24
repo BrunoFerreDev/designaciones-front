@@ -41,9 +41,23 @@ const designarListaArbitrosADesignacion = (idDesignacion, idsArbitros) =>
   api
     .post(`/designaciones/${idDesignacion}/arbitros/bulk`, idsArbitros)
     .then((r) => r.data);
-const cancelarDesignacion = (idDesignacion) =>
+const asignarArbitroHistorico = (idDesignacion, idArbitro) =>
   api
-    .put(`/designaciones/${idDesignacion}/cambiar-cancelado`)
+    .post(`/designaciones/${idDesignacion}/asignar-arbitro/historico`, null, {
+      params: { idArbitro },
+    })
+    .then((r) => r.data);
+const cancelarDesignacion = (idDesignacion, detalle) =>
+  api
+    .put(`/designaciones/${idDesignacion}/cambiar-cancelado`, null, {
+      params: detalle ? { detalle } : undefined,
+    })
+    .then((r) => r.data);
+const getEstadisticasComparacion = (idsArbitros, mesInicio = 1, mesFin = 12) =>
+  api
+    .get("/designaciones/estadisticas/comparacion", {
+      params: { idsArbitros, mesInicio, mesFin },
+    })
     .then((r) => r.data);
 const buscarPorRango = (inicio, fin) =>
   api
@@ -73,7 +87,7 @@ const actualizarMontoATodos = (idDesignacion, montoPorArbitro) =>
       params: { idDesignacion, montoPorArbitro },
     })
     .then((r) => r.data);
-
+const ultimasDesignaciones = () => api.get("/designaciones/ultimas-designaciones").then((r) => r.data);
 export default {
   createDesignacion,
   getAll,
@@ -86,6 +100,7 @@ export default {
   asignarArbitrosAutomaticamente,
   getArbitrosDesignados,
   asignarArbitroManual,
+  asignarArbitroHistorico,
   quitarArbitroManual,
   finalizarDesignacion,
   cancelarDesignacion,
@@ -99,4 +114,6 @@ export default {
   reprogramarDesignacion,
   actualizarMontoPercibido,
   actualizarMontoATodos,
+  getEstadisticasComparacion,
+  ultimasDesignaciones,
 };
