@@ -25,6 +25,7 @@ export const loadDesignacionesIncompletas = async (page = 0, size = 30) => {
     state.designacionesIncompletas = sortDesignaciones(list);
 
     list.forEach(async (d) => {
+      d.estadoDesignacion = parseEstadoNumeric(d.estadoDesignacion !== undefined ? d.estadoDesignacion : d.estado);
       const id = d.idDesignacion || d.id;
       if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
         state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
@@ -38,14 +39,19 @@ export const loadDesignacionesIncompletas = async (page = 0, size = 30) => {
   }
 };
 
-export const loadDesignacionesAceptadas = async (page = 0, size = 30) => {
+export const loadDesignacionesCanceladas = async (page = 0, size = 30) => {
   try {
     const res = await designacionService.getByEstado(3, page, size);
     let list = Array.isArray(res) ? res : res.content || res;
 
     const limitDate = getMostRecentSaturday();
     list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
-    state.designacionesAceptadas = sortDesignaciones(list);
+    
+    list.forEach((d) => {
+      d.estadoDesignacion = parseEstadoNumeric(d.estadoDesignacion !== undefined ? d.estadoDesignacion : d.estado);
+    });
+
+    state.designacionesCanceladas = sortDesignaciones(list);
 
     list.forEach(async (d) => {
       const id = d.idDesignacion || d.id;
@@ -57,7 +63,7 @@ export const loadDesignacionesAceptadas = async (page = 0, size = 30) => {
       }
     });
   } catch (e) {
-    console.warn("Failed to load designaciones aceptadas", e);
+    console.warn("Failed to load designaciones canceladas", e);
   }
 };
 
@@ -67,6 +73,11 @@ export const loadDesignacionesCompletas = async (page = 0, size = 30) => {
     let list = Array.isArray(res) ? res : res.content || res;
     const limitDate = getMostRecentSaturday();
     list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
+
+    list.forEach((d) => {
+      d.estadoDesignacion = parseEstadoNumeric(d.estadoDesignacion !== undefined ? d.estadoDesignacion : d.estado);
+    });
+
     state.designaciones = sortDesignaciones(list);
 
     list.forEach(async (d) => {
@@ -89,6 +100,11 @@ export const loadDesignacionesFinalizadas = async (page = 0, size = 30) => {
     let list = Array.isArray(res) ? res : res.content || res;
     const limitDate = getMostRecentSaturday();
     list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
+
+    list.forEach((d) => {
+      d.estadoDesignacion = parseEstadoNumeric(d.estadoDesignacion !== undefined ? d.estadoDesignacion : d.estado);
+    });
+
     state.designacionesFinalizadas = sortDesignaciones(list);
 
     list.forEach(async (d) => {
@@ -125,26 +141,26 @@ const parseEstadoNumeric = (rawState) => {
   if (rawState === undefined || rawState === null) return 0;
   if (typeof rawState === "number") return rawState;
   const s = String(rawState).trim().toUpperCase();
-  if (s === "0" || s.includes("INCOMPLETA")) return 0;
+  if (s === "0" || s.includes("INCOMPLETA") || s.includes("PENDIENTE")) return 0;
   if (s === "1" || s.includes("COMPLETA")) return 1;
-  if (s === "2" || s.includes("FINALIZADA")) return 2;
-  if (s === "3" || s.includes("ACEPTADA") || s.includes("CANCELADA")) return 3;
+  if (s === "2" || s.includes("FINALIZADA") || s.includes("JORNADA")) return 2;
+  if (s === "3" || s === "4" || s.includes("CANCELADA")) return 3;
   const num = parseInt(s, 10);
   return isNaN(num) ? 0 : num;
 };
 
 export const ultimasDesignaciones = async () => {
+  state.loadingDesignaciones = true;
   try {
     const res = await designacionService.ultimasDesignaciones();
     const data = Array.isArray(res) ? res : res.content || res.data || res;
-    console.log("ULTIMAS DESIGNACIONES", data);
 
     if (Array.isArray(data) && data.length > 0) {
       state.ultimasDesignaciones = data;
 
       const incompletas = [];
       const completas = [];
-      const aceptadas = [];
+      const canceladas = [];
       const finalizadas = [];
 
       data.forEach((d) => {
@@ -163,7 +179,7 @@ export const ultimasDesignaciones = async () => {
         } else if (numericState === 2) {
           finalizadas.push(d);
         } else if (numericState === 3) {
-          aceptadas.push(d);
+          canceladas.push(d);
         } else {
           incompletas.push(d);
         }
@@ -178,7 +194,7 @@ export const ultimasDesignaciones = async () => {
 
       state.designacionesIncompletas = sortDesignaciones(incompletas);
       state.designaciones = sortDesignaciones(completas);
-      state.designacionesAceptadas = sortDesignaciones(aceptadas);
+      state.designacionesCanceladas = sortDesignaciones(canceladas);
       state.designacionesFinalizadas = sortDesignaciones(finalizadas);
     } else {
       await reloadAllDesignaciones();
@@ -186,19 +202,24 @@ export const ultimasDesignaciones = async () => {
   } catch (e) {
     console.warn("Failed to load ultimas designaciones, fallback to reloadAllDesignaciones", e);
     await reloadAllDesignaciones();
+  } finally {
+    state.loadingDesignaciones = false;
   }
 };
 
 export const reloadAllDesignaciones = async () => {
+  state.loadingDesignaciones = true;
   try {
     await Promise.all([
       loadDesignacionesIncompletas(),
       loadDesignacionesCompletas(),
-      loadDesignacionesAceptadas(),
+      loadDesignacionesCanceladas(),
       loadDesignacionesFinalizadas(),
     ]);
   } catch (e) {
     console.warn("Failed to reload all designaciones", e);
+  } finally {
+    state.loadingDesignaciones = false;
   }
 };
 

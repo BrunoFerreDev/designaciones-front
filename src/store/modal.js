@@ -69,6 +69,7 @@ export const openModal = (type, id = null, data = null) => {
         cantidadPartidos: des.cantidadPartidos || 1,
         etapaCampeonato:
           des.etapaCampeonato || des.etapaTorneo || "FECHA_NORMAL",
+        detalle: des.detalle || "",
       };
     } else {
       state.form = {};

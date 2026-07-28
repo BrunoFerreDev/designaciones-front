@@ -1,5 +1,5 @@
 import { state } from "./state";
-import { getArbitro } from "./helpers";
+import { getArbitro, addToast } from "./helpers";
 import { closeModal } from "./modal";
 import arbitroService from "../services/arbitroService";
 
@@ -17,8 +17,8 @@ export const saveArbitro = () => {
     talleShort,
   } = state.form;
   if (!nombre || !apellido) {
-    alert("Ingresá nombre y apellido.");
-    return;
+    addToast("Ingresá nombre y apellido.", "error");
+    return Promise.reject("Nombre y apellido obligatorios");
   }
   const dto = {
     nombre: nombre.trim(),
@@ -37,13 +37,14 @@ export const saveArbitro = () => {
   const isEdit = !!idArbitro;
 
   if (isEdit) {
-    arbitroService
+    return arbitroService
       .updateArbitro(idArbitro, dto)
       .then((updated) => {
         const a = getArbitro(idArbitro);
         if (a) {
           Object.assign(a, { ...dto, ...(updated || {}) });
         }
+        addToast("Árbitro actualizado con éxito.");
         closeModal();
         loadArbitros();
         loadArbitrosNoDisponibles();
@@ -54,10 +55,11 @@ export const saveArbitro = () => {
         if (a) {
           Object.assign(a, dto);
         }
+        addToast("Árbitro actualizado localmente.");
         closeModal();
       });
   } else {
-    arbitroService
+    return arbitroService
       .createArbitro(dto)
       .then((created) => {
         if (created && created.idArbitro) {
@@ -72,6 +74,7 @@ export const saveArbitro = () => {
             ...dto,
           });
         }
+        addToast("Árbitro creado con éxito.");
         closeModal();
         loadArbitros();
         loadArbitrosNoDisponibles();
@@ -84,20 +87,22 @@ export const saveArbitro = () => {
           estado: true,
           ...dto,
         });
+        addToast("Árbitro creado localmente.");
         closeModal();
       });
   }
 };
 
 export const deleteArbitro = (id) => {
-  if (!confirm("¿Eliminar este árbitro?")) return;
-  arbitroService
+  if (!confirm("¿Eliminar este árbitro?")) return Promise.reject("Eliminación cancelada");
+  return arbitroService
     .deleteArbitro(id)
     .then(() => {
       state.arbitros = state.arbitros.filter((a) => a.idArbitro !== id);
       state.arbitrosNoDisponibles = (state.arbitrosNoDisponibles || []).filter(
         (a) => a.idArbitro !== id,
       );
+      addToast("Árbitro eliminado con éxito.");
     })
     .catch((err) => {
       console.warn("deleteArbitro failed, using local fallback", err);
@@ -105,6 +110,7 @@ export const deleteArbitro = (id) => {
       state.arbitrosNoDisponibles = (state.arbitrosNoDisponibles || []).filter(
         (a) => a.idArbitro !== id,
       );
+      addToast("Árbitro eliminado localmente.");
     });
 };
 
@@ -138,12 +144,14 @@ export const updateArbitroDisponibilidad = (id, key) => {
     .updateDisponibilidad(id, dto)
     .then((res) => {
       Object.assign(a, res || { idArbitro: id, ...dto });
+      addToast("Disponibilidad de árbitro actualizada.");
       loadArbitros();
       loadArbitrosNoDisponibles();
     })
     .catch((err) => {
       console.warn("updateDisponibilidad failed, updating locally", err);
       a[key] = updatedValue;
+      addToast("Disponibilidad de árbitro actualizada localmente.");
     });
 };
 
@@ -157,13 +165,14 @@ export const marcarTodosNoDisponibles = () => {
       "¿Estás seguro de que deseas marcar a todos los árbitros como no disponibles?",
     )
   )
-    return;
-  arbitroService
+    return Promise.reject("Operación cancelada");
+  return arbitroService
     .updateDisponibilidadTotal()
     .then(() => {
       state.arbitros.forEach((a) => {
         a.estado = false;
       });
+      addToast("Todos los árbitros marcados como no disponibles.");
       loadArbitros();
       loadArbitrosNoDisponibles();
     })
@@ -172,22 +181,22 @@ export const marcarTodosNoDisponibles = () => {
       state.arbitros.forEach((a) => {
         a.estado = false;
       });
+      addToast("Todos los árbitros marcados como no disponibles localmente.");
     });
 };
 
 export const loadArbitros = async (page = 0, size = 100) => {
   try {
     const res = await arbitroService.getAll(page, size);
-    state.arbitros = Array.isArray(res) ? res : res.content || res;
+    const list = Array.isArray(res) ? res : res.content || res;
+    console.log(list);
+    
+    state.arbitros = list.filter((a) => a.disponibleSabado || a.disponibleDomingo);
+    state.arbitrosNoDisponibles = list.filter((a) => !a.disponibleSabado && !a.disponibleDomingo);
   } catch (e) {
     console.warn("Failed to load arbitros", e);
   }
 };
 export const loadArbitrosNoDisponibles = async (page = 0, size = 100) => {
-  try {
-    const res = await arbitroService.getNoDisponibles(page, size);
-    state.arbitrosNoDisponibles = Array.isArray(res) ? res : res.content || res;
-  } catch (e) {
-    console.warn("Failed to load arbitros no disponibles", e);
-  }
+  // No-op: los árbitros no disponibles ya se cargan y filtran en loadArbitros
 };

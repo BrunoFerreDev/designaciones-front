@@ -1,13 +1,13 @@
 import { state } from "./state";
-import { getCancha } from "./helpers";
+import { getCancha, addToast } from "./helpers";
 import { closeModal } from "./modal";
 import canchaService from "../services/canchaService";
 
 export const saveCancha = () => {
   const { nombreCancha, categoria, fueraDeJuego, estado } = state.form;
   if (!nombreCancha) {
-    alert("Completá el nombre de la cancha.");
-    return;
+    addToast("Completá el nombre de la cancha.", "error");
+    return Promise.reject("Nombre de la cancha obligatorio");
   }
   const dto = {
     nombreCancha: nombreCancha.trim(),
@@ -15,7 +15,7 @@ export const saveCancha = () => {
     fueraDeJuego: fueraDeJuego !== undefined ? fueraDeJuego : false,
     estado: estado !== undefined ? estado : true,
   };
-  canchaService
+  return canchaService
     .createCancha(dto)
     .then((created) => {
       if (created && (created.idCancha || created.id)) {
@@ -48,6 +48,7 @@ export const saveCancha = () => {
           ...dto,
         });
       }
+      addToast("Cancha agregada con éxito.");
       closeModal();
     })
     .catch((err) => {
@@ -64,6 +65,7 @@ export const saveCancha = () => {
         capacidad: 0,
         ...dto,
       });
+      addToast("Cancha agregada localmente.");
       closeModal();
     });
 };
@@ -80,6 +82,7 @@ export const saveEditCancha = (id) => {
       ? state.form.fueraDeJuego
       : c.fueraDeJuego;
   c.estado = state.form.estado !== undefined ? state.form.estado : c.estado;
+  addToast("Cancha actualizada con éxito.");
   closeModal();
 };
 
@@ -87,6 +90,7 @@ export const deleteCancha = (id) => {
   if (!confirm("¿Eliminar esta cancha?")) return;
   state.canchas = state.canchas.filter((c) => c.id !== id);
   state.designaciones = state.designaciones.filter((d) => d.canchaId !== id);
+  addToast("Cancha eliminada con éxito.");
 };
 
 export const loadCanchas = async (page = 0, size = 100) => {

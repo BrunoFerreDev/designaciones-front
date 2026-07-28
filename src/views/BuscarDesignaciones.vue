@@ -224,9 +224,9 @@
               >
                 <option value="" disabled>Seleccione un estado...</option>
                 <option value="0">Pendiente a completar</option>
-                <option value="1">Aceptada</option>
+                <option value="1">Completa</option>
                 <option value="2">Jornada finalizada</option>
-                <option value="3">Jornada cancelada</option>
+                <option value="3">Cancelada</option>
               </select>
             </div>
 

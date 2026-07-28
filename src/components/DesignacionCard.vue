@@ -7,9 +7,11 @@
           ? '4px solid #ff9800'
           : designacion.estadoDesignacion === 1
             ? '4px solid #1d9e75'
-            : designacion.estadoDesignacion === 3
-              ? '4px solid #f43f5e'
-              : '4px solid #185fa5',
+            : designacion.estadoDesignacion === 2
+              ? '4px solid #185fa5'
+              : designacion.estadoDesignacion === 3
+                ? '4px solid #f43f5e'
+                : '4px solid #ff9800',
     }"
   >
     <div>
@@ -19,7 +21,7 @@
             class="card-title text-base font-semibold flex items-center gap-1.5 text-slate-800"
           >
             <span>🏟️</span>
-            <span>{{ canchaName }} ({{ designacion.idDesignacion }})</span>
+            <span>{{ canchaName }} ({{ designacion.idDesignacion || designacion.id }})</span>
             <button
               v-if="designacion.estadoDesignacion === 1 && designacion.editable !== false"
               class="btn-icon text-slate-400 hover:text-slate-600 transition-colors ml-1 p-0.5"
@@ -55,7 +57,7 @@
           <span
             v-if="designacion.estadoDesignacion === 0"
             class="badge badge-amber"
-            >Incompleta</span
+            >Pendiente a completar</span
           >
           <span
             v-else-if="designacion.estadoDesignacion === 1"
@@ -63,11 +65,15 @@
             >✓ Completa</span
           >
           <span
+            v-else-if="designacion.estadoDesignacion === 2"
+            class="badge badge-blue"
+            >Jornada finalizada</span
+          >
+          <span
             v-else-if="designacion.estadoDesignacion === 3"
             class="badge badge-red"
             >Cancelada</span
           >
-          <span v-else class="badge badge-blue">Finalizada</span>
         </div>
       </div>
 
@@ -101,7 +107,7 @@
 
       <!-- Lista de Árbitros Asignados -->
       <div
-        v-if="arbitros && arbitros.length > 0"
+        v-if="shouldShowArbitrosList && sortedArbitros && sortedArbitros.length > 0"
         class="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-100 animate-fade-in"
       >
         <div
@@ -111,7 +117,7 @@
         </div>
         <div class="flex flex-col gap-1.5">
           <div
-            v-for="arb in arbitros"
+            v-for="arb in sortedArbitros"
             :key="arb.idDesignados || arb.id"
             class="text-xs p-2 bg-white border border-slate-100 rounded-md flex items-center justify-between gap-3"
           >
@@ -134,7 +140,7 @@
       </div>
       <div
         v-else-if="
-          showEmptyArbitrosState || (arbitros && arbitros.length === 0)
+          shouldShowArbitrosList && (showEmptyArbitrosState || (sortedArbitros && sortedArbitros.length === 0))
         "
         class="mt-3 p-3.5 bg-slate-50 rounded-lg border border-dashed border-slate-200 text-center text-xs text-slate-400"
       >
@@ -158,7 +164,8 @@
         @click="handleAsignarAutom"
         :disabled="loadingAction"
       >
-        <i class="ti ti-sparkles"></i>
+        <i v-if="loadingAction" class="ti ti-loader spin"></i>
+        <i v-else class="ti ti-sparkles"></i>
         <span>{{
           assignedCount > 0 ? "Reasignar árbitros" : "Asignar autom."
         }}</span>
@@ -171,6 +178,7 @@
         :class="{ primary: !arbitros }"
         style="padding: 6px 12px; gap: 6px"
         @click="$emit('ver-arbitros', designacion)"
+        :disabled="loadingAction"
       >
         <i class="ti ti-users"></i>
         <span>{{ arbitros ? "Ocultar árbitros" : "Ver árbitros" }}</span>
@@ -180,8 +188,7 @@
       <button
         v-if="
           (designacion.estadoDesignacion === 0 ||
-          designacion.estadoDesignacion === 1 ||
-          designacion.estadoDesignacion === 3) &&
+          designacion.estadoDesignacion === 1) &&
           designacion.editable !== false
         "
         class="btn text-xs"
@@ -198,6 +205,7 @@
             designacion,
           )
         "
+        :disabled="loadingAction"
       >
         <i class="ti ti-edit"></i>
         <span>Editar árbitros</span>
@@ -226,8 +234,14 @@
                 designacion,
               )
         "
+        :disabled="loadingAction"
       >
         <i
+          v-if="loadingAction"
+          class="ti ti-loader spin"
+        ></i>
+        <i
+          v-else
           :class="
             designacion.estadoDesignacion === 3
               ? 'ti ti-calendar-time'
@@ -256,11 +270,12 @@
         @click="handleAceptar"
         :disabled="loadingAction"
       >
-        <i class="ti ti-check"></i>
+        <i v-if="loadingAction" class="ti ti-loader spin"></i>
+        <i v-else class="ti ti-check"></i>
         <span>Aceptar</span>
       </button>
 
-      <!-- Finalizar (para Aceptadas) -->
+      <!-- Finalizar (para Completas) -->
       <button
         v-if="designacion.estadoDesignacion === 1 && designacion.editable !== false"
         class="btn text-xs"
@@ -273,7 +288,8 @@
         @click="handleFinalizar"
         :disabled="loadingAction"
       >
-        <i class="ti ti-flag"></i>
+        <i v-if="loadingAction" class="ti ti-loader spin"></i>
+        <i v-else class="ti ti-flag"></i>
         <span>Finalizar</span>
       </button>
 
@@ -298,6 +314,7 @@
             designacion.idDesignacion || designacion.id,
           )
         "
+        :disabled="loadingAction"
       >
         <i class="ti ti-brand-whatsapp"></i>
         <span>Compartir</span>
@@ -311,7 +328,8 @@
         @click="handleCancelar"
         :disabled="loadingAction"
       >
-        <i class="ti ti-ban"></i>
+        <i v-if="loadingAction" class="ti ti-loader spin"></i>
+        <i v-else class="ti ti-ban"></i>
         <span>Cancelar Jornada</span>
       </button>
 
@@ -332,6 +350,7 @@
             designacion,
           )
         "
+        :disabled="loadingAction"
       >
         <i class="ti ti-coin"></i>
         <span>Actualizar Aranceles</span>
@@ -349,7 +368,8 @@
         @click="handleDelete"
         :disabled="loadingAction"
       >
-        <i class="ti ti-trash"></i>
+        <i v-if="loadingAction" class="ti ti-loader spin"></i>
+        <i v-else class="ti ti-trash"></i>
       </button>
     </div>
   </div>
@@ -427,13 +447,43 @@ const minArbitrosReq = computed(() => {
   return minArbitros(props.designacion.cantidadPartidos);
 });
 
+const ORDER_CAT = {
+  AVANZADO: 1,
+  INTERMEDIO: 2,
+  PRINCIPAL_1: 3,
+  PRINCIPAL_2: 4,
+  PRINCIPAL_3: 5,
+  PRINCIPAL_4: 6,
+  ASISTENTE: 7,
+  INCIAL: 8,
+  INICIAL: 8
+};
+
+const sortedArbitros = computed(() => {
+  const list = props.arbitros || props.designacion.arbitrosDesignados || props.designacion.arbitros || [];
+  return [...list].sort((a, b) => {
+    const nameA = `${a.arbitro?.nombre || a.nombre || ""} ${a.arbitro?.apellido || a.apellido || ""}`.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const nameB = `${b.arbitro?.nombre || b.nombre || ""} ${b.arbitro?.apellido || b.apellido || ""}`.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (nameA === "hector mendoza" && nameB === "hector mendoza") return 0;
+    if (nameA === "hector mendoza") return 1;
+    if (nameB === "hector mendoza") return -1;
+
+    const catA = String(a.arbitro?.categoria || a.categoria || "").trim().toUpperCase();
+    const catB = String(b.arbitro?.categoria || b.categoria || "").trim().toUpperCase();
+
+    const valA = ORDER_CAT[catA] !== undefined ? ORDER_CAT[catA] : 99;
+    const valB = ORDER_CAT[catB] !== undefined ? ORDER_CAT[catB] : 99;
+
+    return valA - valB;
+  });
+});
+
+const shouldShowArbitrosList = computed(() => {
+  return !props.showVerArbitrosBtn || !!props.arbitros;
+});
+
 const assignedCount = computed(() => {
-  if (props.arbitros) return props.arbitros.length;
-  return (
-    props.designacion.arbitrosAsignados ||
-    props.designacion.arbitros?.length ||
-    0
-  );
+  return sortedArbitros.value.length;
 });
 
 const handleAsignarAutom = async () => {
@@ -462,31 +512,14 @@ const handleAceptar = async () => {
   }
 };
 
-const handleFinalizar = async () => {
-  loadingAction.value = true;
-  try {
-    const id = props.designacion.idDesignacion || props.designacion.id;
-    await finalizarDesignacionManual(id);
-    emit("action-complete", id);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    loadingAction.value = false;
-  }
+const handleFinalizar = () => {
+  const id = props.designacion.idDesignacion || props.designacion.id;
+  openModal("editDesignacion", id, { ...props.designacion, action: "finalizar" });
 };
 
-const handleCancelar = async () => {
-  if (!confirm("¿Estás seguro de que deseas cancelar esta jornada?")) return;
-  loadingAction.value = true;
-  try {
-    const id = props.designacion.idDesignacion || props.designacion.id;
-    await cancelarDesignacionManual(id);
-    emit("action-complete", id);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    loadingAction.value = false;
-  }
+const handleCancelar = () => {
+  const id = props.designacion.idDesignacion || props.designacion.id;
+  openModal("editDesignacion", id, { ...props.designacion, action: "cancelar" });
 };
 
 const handleReprogramar = async () => {

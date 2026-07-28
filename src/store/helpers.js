@@ -190,7 +190,7 @@ export const isRefereeAssignedToDifferentCourtOnSameDay = (
     ...state.designaciones,
     ...state.designacionesFinalizadas,
     ...state.designacionesAConfirmar,
-    ...(state.designacionesAceptadas || []),
+    ...(state.designacionesCanceladas || []),
   ];
 
   for (const otherD of allLists) {
@@ -205,10 +205,10 @@ export const isRefereeAssignedToDifferentCourtOnSameDay = (
         );
         if (isAssigned) {
           const otherCanchaId =
-            otherD.idCancha ||
-            otherD.canchaId ||
-            otherD.cancha?.idCancha ||
-            otherD.cancha?.id;
+              otherD.idCancha ||
+              otherD.canchaId ||
+              otherD.cancha?.idCancha ||
+              otherD.cancha?.id;
           if (String(otherCanchaId) !== String(targetCanchaId)) {
             return true;
           }
@@ -217,4 +217,18 @@ export const isRefereeAssignedToDifferentCourtOnSameDay = (
     }
   }
   return false;
+};
+
+export const addToast = (message, type = "success") => {
+  const id = Date.now() + Math.random();
+  if (!state.toasts) state.toasts = [];
+  state.toasts.push({ id, message, type });
+  setTimeout(() => {
+    removeToast(id);
+  }, 4000);
+};
+
+export const removeToast = (id) => {
+  if (!state.toasts) return;
+  state.toasts = state.toasts.filter((t) => t.id !== id);
 };

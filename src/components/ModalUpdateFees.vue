@@ -512,8 +512,8 @@ const designacion = computed(() => {
     state.designacionesAConfirmar.find(
       (d) => (d.idDesignacion || d.id) === id,
     ) ||
-    (state.designacionesAceptadas &&
-      state.designacionesAceptadas.find(
+    (state.designacionesCanceladas &&
+      state.designacionesCanceladas.find(
         (d) => (d.idDesignacion || d.id) === id,
       ));
   if (found) return found;

@@ -147,18 +147,23 @@
                     :style="{
                       color:
                         d.estadoDesignacion == 0
-                          ? 'red'
+                          ? '#ea580c'
                           : d.estadoDesignacion == 1
-                            ? 'green'
-                            : 'blue',
+                            ? '#16a34a'
+                            : d.estadoDesignacion == 2
+                              ? '#2563eb'
+                              : '#dc2626',
                     }"
+                    style="font-weight: 600;"
                   >
                     {{
                       d.estadoDesignacion == 0
-                        ? "Incompleta"
+                        ? "Pendiente a completar"
                         : d.estadoDesignacion == 1
                           ? "Completa"
-                          : "Finalizada"
+                          : d.estadoDesignacion == 2
+                            ? "Jornada finalizada"
+                            : "Cancelada"
                     }}
                   </span>
                 </td>

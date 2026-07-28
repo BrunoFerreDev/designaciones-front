@@ -5,18 +5,19 @@ import {
   sortDesignaciones,
   getDayOfWeekLocal,
   isRefereeAssignedToDifferentCourtOnSameDay,
+  addToast,
 } from "../helpers";
 import { closeModal } from "../modal";
 import { loadArbitros } from "../arbitros";
 import designacionService from "../../services/designacionService";
-import { ultimasDesignaciones, loadArbitrosDesignados } from "./loader";
+import { reloadAllDesignaciones } from "./loader";
 
 export const saveDesignacion = () => {
   const { canchaId, fecha, cantidadPartidos, etapaCampeonato } = state.form;
   const c = getCancha(canchaId);
   if (!c || !fecha || !cantidadPartidos) {
-    alert("Completá cancha, fecha y cantidad de partidos.");
-    return;
+    addToast("Completá cancha, fecha y cantidad de partidos.", "error");
+    return Promise.reject("Campos obligatorios vacíos");
   }
 
   let formattedFecha = fecha;
@@ -31,9 +32,10 @@ export const saveDesignacion = () => {
     etapaCampeonato: etapaCampeonato || "FECHA_NORMAL",
   };
 
-  designacionService
+  return designacionService
     .createDesignacion(dto)
     .then(() => {
+      addToast("Designación creada con éxito.");
       reloadAllDesignaciones();
       closeModal();
     })
@@ -48,17 +50,18 @@ export const saveDesignacion = () => {
       state.designacionesIncompletas = sortDesignaciones(
         state.designacionesIncompletas
       );
+      addToast("Designación creada localmente.");
       closeModal();
     });
 };
 
 export const updateDesignacion = () => {
-  const { idDesignacion, canchaId, fecha, cantidadPartidos, etapaCampeonato } =
+  const { idDesignacion, canchaId, fecha, cantidadPartidos, etapaCampeonato, detalle, editable, estadoDesignacion } =
     state.form;
   const c = getCancha(canchaId);
   if (!canchaId || !fecha || !cantidadPartidos) {
-    alert("Completá cancha, fecha y cantidad de partidos.");
-    return;
+    addToast("Completá cancha, fecha y cantidad de partidos.", "error");
+    return Promise.reject("Campos obligatorios vacíos");
   }
 
   let formattedFecha = fecha;
@@ -71,11 +74,18 @@ export const updateDesignacion = () => {
     fecha: formattedFecha,
     cantidadPartidos,
     etapaCampeonato: etapaCampeonato || "FECHA_NORMAL",
+    detalle: detalle || "",
+    editable: editable !== undefined ? editable : true,
   };
 
-  designacionService
+  if (estadoDesignacion !== undefined) {
+    dto.estadoDesignacion = estadoDesignacion;
+  }
+
+  return designacionService
     .actualizarDesignacion(idDesignacion, dto)
     .then(() => {
+      addToast("Designación actualizada con éxito.");
       reloadAllDesignaciones();
       closeModal();
     })
@@ -94,6 +104,9 @@ export const updateDesignacion = () => {
             fecha: formattedFecha,
             cantidadPartidos: cantidadPartidos,
             etapaCampeonato: etapaCampeonato || "FECHA_NORMAL",
+            detalle: detalle || "",
+            editable: editable !== undefined ? editable : true,
+            estadoDesignacion: estadoDesignacion !== undefined ? estadoDesignacion : list[idx].estadoDesignacion,
           };
           return true;
         }
@@ -118,15 +131,17 @@ export const updateDesignacion = () => {
       state.designacionesAConfirmar = sortDesignaciones(
         state.designacionesAConfirmar
       );
+      addToast("Designación actualizada localmente.");
       closeModal();
     });
 };
 
 export const deleteDesignacion = (id) => {
-  if (!confirm("¿Eliminar esta designación?")) return;
-  designacionService
+  if (!confirm("¿Eliminar esta designación?")) return Promise.reject("Eliminación cancelada");
+  return designacionService
     .deleteDesignacion(id)
     .then(() => {
+      addToast("Designación eliminada con éxito.");
       reloadAllDesignaciones();
     })
     .catch((err) => {
@@ -143,6 +158,7 @@ export const deleteDesignacion = (id) => {
       state.designacionesAConfirmar = state.designacionesAConfirmar.filter(
         (d) => (d.idDesignacion || d.id) !== id
       );
+      addToast("Designación eliminada localmente.");
     });
 };
 
@@ -182,13 +198,13 @@ export const updateDesignacionStateLocal = (idDesignacion) => {
   const count = assigned.length;
 
   if (count >= req) {
-    des.estadoDesignacion = 0; // Pendiente a completar
+    des.estadoDesignacion = 1; // 1: Completa
     if (fromList === "incompleta") {
       state.designacionesIncompletas.splice(idx, 1);
       state.designaciones.push(des);
     }
   } else {
-    des.estadoDesignacion = 0; // Pendiente a completar
+    des.estadoDesignacion = 0; // 0: Pendiente a completar
     if (fromList === "completa") {
       state.designaciones.splice(idx, 1);
       state.designacionesIncompletas.push(des);
@@ -369,7 +385,7 @@ export const asignarArbitroADesignacionManual = async (
         ...state.designaciones,
         ...state.designacionesAConfirmar,
         ...state.designacionesFinalizadas,
-        ...(state.designacionesAceptadas || []),
+        ...(state.designacionesCanceladas || []),
       ].find((d) => (d.idDesignacion || d.id) === idDesignacion) ||
       (state.modal?.data &&
       (state.modal.data.idDesignacion || state.modal.data.id) === idDesignacion
@@ -409,7 +425,7 @@ export const asignarArbitroADesignacionManual = async (
         ...state.designaciones,
         ...state.designacionesFinalizadas,
         ...state.designacionesAConfirmar,
-        ...(state.designacionesAceptadas || []),
+        ...(state.designacionesCanceladas || []),
       ];
       for (const otherD of allLists) {
         const otherId = otherD.idDesignacion || otherD.id;
@@ -510,7 +526,7 @@ export const asignarArbitroADesignacionManual = async (
     return true;
   } catch (error) {
     console.error("Error al asignar árbitro manualmente en frontend:", error);
-    alert(error.message || "Hubo un error al intentar asignar el árbitro.");
+    addToast(error.message || "Hubo un error al intentar asignar el árbitro.", "error");
     throw error;
   }
 };
@@ -519,21 +535,10 @@ export const cancelarDesignacionManual = async (idDesignacion) => {
   try {
     const res = await designacionService.cancelarDesignacion(idDesignacion);
     await reloadAllDesignaciones();
+    addToast("Jornada cancelada con éxito.");
     return res;
   } catch (error) {
-    console.error("Error al cancelar designación", error);
-    alert("Hubo un error al intentar cancelar la designación.");
-    throw error;
-  }
-};
-
-export const aceptarDesignacionManual = async (idDesignacion) => {
-  try {
-    await designacionService.aceptarDesignacion(idDesignacion);
-    await reloadAllDesignaciones();
-    return { success: true };
-  } catch (error) {
-    console.warn("Aceptar backend failed, using local fallback", error);
+    console.warn("Cancelar backend failed, using local fallback", error);
     let des = null;
     let idx = state.designaciones.findIndex(
       (d) => (d.idDesignacion || d.id) === idDesignacion
@@ -552,18 +557,45 @@ export const aceptarDesignacionManual = async (idDesignacion) => {
     }
 
     if (des) {
-      des.estadoDesignacion = 3; // Aceptada
-      state.designacionesAceptadas.push(des);
+      des.estadoDesignacion = 3; // Cancelada
+      state.designacionesCanceladas.push(des);
+    }
+
+    state.designaciones = sortDesignaciones(state.designaciones);
+    state.designacionesIncompletas = sortDesignaciones(state.designacionesIncompletas);
+    state.designacionesCanceladas = sortDesignaciones(state.designacionesCanceladas);
+    addToast("Jornada cancelada localmente.");
+    return { success: true };
+  }
+};
+
+export const aceptarDesignacionManual = async (idDesignacion) => {
+  try {
+    await designacionService.aceptarDesignacion(idDesignacion);
+    await reloadAllDesignaciones();
+    addToast("Designación aceptada con éxito.");
+    return { success: true };
+  } catch (error) {
+    console.warn("Aceptar backend failed, using local fallback", error);
+    let des = null;
+    let idx = state.designacionesIncompletas.findIndex(
+      (d) => (d.idDesignacion || d.id) === idDesignacion
+    );
+    if (idx !== -1) {
+      des = state.designacionesIncompletas[idx];
+      state.designacionesIncompletas.splice(idx, 1);
+    }
+
+    if (des) {
+      des.estadoDesignacion = 1; // Completa
+      state.designaciones.push(des);
     }
 
     state.designacionesIncompletas = sortDesignaciones(
       state.designacionesIncompletas
     );
     state.designaciones = sortDesignaciones(state.designaciones);
-    state.designacionesAceptadas = sortDesignaciones(
-      state.designacionesAceptadas
-    );
-
+    addToast("Designación completada localmente.");
     return { success: true };
   }
 };
@@ -572,16 +604,17 @@ export const finalizarDesignacionManual = async (idDesignacion) => {
   try {
     await designacionService.finalizarDesignacion(idDesignacion);
     await reloadAllDesignaciones();
+    addToast("Jornada finalizada con éxito.");
     return { success: true };
   } catch (error) {
     console.warn("Finalizar backend failed, using local fallback", error);
     let des = null;
-    let idx = state.designacionesAceptadas.findIndex(
+    let idx = state.designaciones.findIndex(
       (d) => (d.idDesignacion || d.id) === idDesignacion
     );
     if (idx !== -1) {
-      des = state.designacionesAceptadas[idx];
-      state.designacionesAceptadas.splice(idx, 1);
+      des = state.designaciones[idx];
+      state.designaciones.splice(idx, 1);
     }
 
     if (des) {
@@ -589,13 +622,11 @@ export const finalizarDesignacionManual = async (idDesignacion) => {
       state.designacionesFinalizadas.push(des);
     }
 
-    state.designacionesAceptadas = sortDesignaciones(
-      state.designacionesAceptadas
-    );
+    state.designaciones = sortDesignaciones(state.designaciones);
     state.designacionesFinalizadas = sortDesignaciones(
       state.designacionesFinalizadas
     );
-
+    addToast("Jornada finalizada localmente.");
     return { success: true };
   }
 };
@@ -604,10 +635,11 @@ export const reprogramarDesignacionManual = async (idDesignacion) => {
   try {
     await designacionService.reprogramarDesignacion(idDesignacion);
     await reloadAllDesignaciones();
+    addToast("Designación reprogramada con éxito.");
     return { success: true };
   } catch (error) {
     console.error("Error al reprogramar designación", error);
-    alert("Hubo un error al intentar reprogramar la designación.");
+    addToast("Hubo un error al intentar reprogramar la designación.", "error");
     throw error;
   }
 };
@@ -652,7 +684,7 @@ export const confirmarEnvioDesignacion = async (idDesignacion) => {
     state.designacionesAConfirmar
   );
 
-  alert(`¡Designación confirmada y enviada con éxito al backend!`);
+  addToast("Designación confirmada y enviada con éxito al backend!");
 };
 
 export const confirmarEnvioCancha = async (canchaId) => {
@@ -718,9 +750,7 @@ export const confirmarEnvioCancha = async (canchaId) => {
     state.designacionesAConfirmar
   );
 
-  alert(
-    `¡Designaciones de la cancha "${canchaNombre}" enviadas y confirmadas con éxito al backend!`
-  );
+  addToast(`¡Designaciones de la cancha "${canchaNombre}" enviadas y confirmadas con éxito!`);
 };
 
 export const deshacerFinalizacionLocal = (idDesignacion) => {
@@ -734,7 +764,7 @@ export const deshacerFinalizacionLocal = (idDesignacion) => {
     const req = minArbitros(des.cantidadPartidos);
     const assigned = state.arbitrosDesignadosMap[idDesignacion] || [];
     if (assigned.length >= req) {
-      des.estadoDesignacion = 0;
+      des.estadoDesignacion = 1;
       state.designaciones.push(des);
     } else {
       des.estadoDesignacion = 0;
@@ -790,9 +820,10 @@ export const clonarDesignaciones = async (designaciones) => {
   try {
     await Promise.all(promises);
     await reloadAllDesignaciones();
+    addToast("Designaciones clonadas con éxito.");
   } catch (error) {
     console.error("Error al clonar designaciones", error);
-    alert("Hubo un error al clonar algunas designaciones.");
+    addToast("Hubo un error al clonar algunas designaciones.", "error");
     await reloadAllDesignaciones();
     throw error;
   }

@@ -97,14 +97,29 @@
     </div>
 
     <div class="modal-footer">
-      <button class="btn" @click="closeModal">Cancelar</button>
-      <button class="btn primary" @click="saveArbitro">
-        {{ state.form.idArbitro ? "Guardar cambios" : "Agregar árbitro" }}
+      <button class="btn" @click="closeModal" :disabled="isSaving">Cancelar</button>
+      <button class="btn primary" @click="handleSave" :disabled="isSaving">
+        <i v-if="isSaving" class="ti ti-loader spin"></i>
+        <span>{{ state.form.idArbitro ? "Guardar cambios" : "Agregar árbitro" }}</span>
       </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { state, closeModal, saveArbitro, ROLES_ARB } from "../store";
+import { ref } from "vue";
+import { state, closeModal, saveArbitro } from "../store";
+
+const isSaving = ref(false);
+
+const handleSave = async () => {
+  isSaving.value = true;
+  try {
+    await saveArbitro();
+  } catch (err) {
+    console.error(err);
+  } finally {
+    isSaving.value = false;
+  }
+};
 </script>

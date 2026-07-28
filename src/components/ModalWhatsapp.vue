@@ -250,7 +250,33 @@ const generateMessage = () => {
 
       // Árbitros designados
       if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
-        d.arbitrosDesignados.forEach((arb) => {
+        const ORDER_CAT = {
+          AVANZADO: 1,
+          INTERMEDIO: 2,
+          PRINCIPAL_1: 3,
+          PRINCIPAL_2: 4,
+          PRINCIPAL_3: 5,
+          PRINCIPAL_4: 6,
+          ASISTENTE: 7,
+          INCIAL: 8,
+          INICIAL: 8
+        };
+        const sortedArbs = [...d.arbitrosDesignados].sort((a, b) => {
+          const nameA = `${a.arbitro?.nombre || ""} ${a.arbitro?.apellido || ""}`.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          const nameB = `${b.arbitro?.nombre || ""} ${b.arbitro?.apellido || ""}`.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          if (nameA === "hector mendoza" && nameB === "hector mendoza") return 0;
+          if (nameA === "hector mendoza") return 1;
+          if (nameB === "hector mendoza") return -1;
+
+          const catA = String(a.arbitro?.categoria || a.categoria || "").trim().toUpperCase();
+          const catB = String(b.arbitro?.categoria || b.categoria || "").trim().toUpperCase();
+
+          const valA = ORDER_CAT[catA] !== undefined ? ORDER_CAT[catA] : 99;
+          const valB = ORDER_CAT[catB] !== undefined ? ORDER_CAT[catB] : 99;
+
+          return valA - valB;
+        });
+        sortedArbs.forEach((arb) => {
           const nombreCompleto = `${arb.arbitro?.nombre || ""} ${
             arb.arbitro?.apellido || ""
           }`.trim()

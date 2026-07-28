@@ -37,27 +37,38 @@
         >
           <i class="ti ti-brand-whatsapp" style="font-size: 16px"></i>Compartir WhatsApp
         </button>
-        <button class="btn primary" @click="openModal('addDesignacion')">
+        <button
+          v-if="hasAnyDesignaciones && !state.loadingDesignaciones"
+          class="btn primary"
+          @click="openModal('addDesignacion')"
+        >
           <i class="ti ti-plus"></i>Nueva designación
         </button>
       </div>
     </div>
 
     <div class="content animate-fade-in">
-      <!-- Buscador de Árbitros en Tiempo Real -->
-      <DesignacionesSearch
-        :incompletas="filteredIncompletas"
-        :completas="filteredCompletas"
-        :aceptadas="filteredAceptadas"
-        :aConfirmar="filteredAConfirmar"
-      />
+      <!-- Loading State -->
+      <div v-if="state.loadingDesignaciones" style="text-align: center; padding: 4rem 0;" class="animate-fade-in">
+        <i class="ti ti-loader spin" style="font-size: 32px; color: var(--color-primary); margin-bottom: 12px;"></i>
+        <div style="font-size: 14px; font-weight: 500; color: var(--color-text-secondary);">Cargando designaciones...</div>
+      </div>
 
-      <!-- Designaciones Incompletas -->
-      <div v-if="filteredIncompletas.length > 0">
-        <div class="alert alert-warning">
-          <i class="ti ti-alert-triangle"></i>
-          {{ filteredIncompletas.length }} designación(es) por completar - Asigna árbitros
-        </div>
+      <template v-else>
+        <!-- Buscador de Árbitros en Tiempo Real -->
+        <DesignacionesSearch
+          :incompletas="filteredIncompletas"
+          :completas="filteredCompletas"
+          :aceptadas="filteredCanceladas"
+          :aConfirmar="filteredAConfirmar"
+        />
+
+        <!-- Designaciones Incompletas -->
+        <div v-if="filteredIncompletas.length > 0">
+          <div class="alert alert-warning">
+            <i class="ti ti-alert-triangle"></i>
+            {{ filteredIncompletas.length }} designación(es) por completar - Asigna árbitros
+          </div>
 
         <div style="margin-bottom: 2rem">
           <div
@@ -143,8 +154,8 @@
       <!-- Designaciones Pendientes de Confirmar por Cancha -->
       <DesignacionesAConfirmarList :filtered-a-confirmar="filteredAConfirmar" />
 
-      <!-- Designaciones Aceptadas -->
-      <div v-if="filteredAceptadas.length > 0" class="mt-4" style="margin-bottom: 2rem">
+      <!-- Designaciones Canceladas -->
+      <div v-if="filteredCanceladas.length > 0" class="mt-4" style="margin-bottom: 2rem">
         <div
           style="
             font-size: 14px;
@@ -153,17 +164,17 @@
             color: var(--color-text-secondary);
           "
         >
-          🤝 Designaciones Aceptadas ({{ filteredAceptadas.length }})
+          🚫 Designaciones Canceladas ({{ filteredCanceladas.length }})
         </div>
         <DesignacionesDiaGrid
-          key-prefix="acept"
-          :sabado-list="aceptadasSabado"
-          :domingo-list="aceptadasDomingo"
+          key-prefix="cancel"
+          :sabado-list="canceladasSabado"
+          :domingo-list="canceladasDomingo"
           :arbitros-designados="arbitrosDesignados"
-          empty-text-sabado="Sin designaciones aceptadas para el sábado"
-          empty-text-domingo="Sin designaciones aceptadas para el domingo"
-          :badge-sabado-style="{ background: '#e0f2fe', color: '#0369a1' }"
-          :badge-domingo-style="{ background: '#e0f2fe', color: '#0369a1' }"
+          empty-text-sabado="Sin designaciones canceladas para el sábado"
+          empty-text-domingo="Sin designaciones canceladas para el domingo"
+          :badge-sabado-style="{ background: '#fee2e2', color: '#b91c1c' }"
+          :badge-domingo-style="{ background: '#fee2e2', color: '#b91c1c' }"
           @ver-arbitros="verArbitros"
           @action-complete="onActionComplete"
         />
@@ -222,8 +233,9 @@
           />
         </div>
       </div>
-    </div>
+    </template>
   </div>
+</div>
 </template>
 
 <script setup>
@@ -263,7 +275,7 @@ const arbitrosDesignados = computed(() => {
 const filteredIncompletas = computed(() => state.designacionesIncompletas);
 const filteredCompletas = computed(() => state.designaciones);
 const filteredFinalizadas = computed(() => state.designacionesFinalizadas);
-const filteredAceptadas = computed(() => state.designacionesAceptadas);
+const filteredCanceladas = computed(() => state.designacionesCanceladas);
 const filteredAConfirmar = computed(() => state.designacionesAConfirmar);
 
 const hasAnyDesignaciones = computed(
@@ -271,7 +283,7 @@ const hasAnyDesignaciones = computed(
     filteredCompletas.value.length > 0 ||
     filteredIncompletas.value.length > 0 ||
     filteredFinalizadas.value.length > 0 ||
-    filteredAceptadas.value.length > 0
+    filteredCanceladas.value.length > 0
 );
 
 const getDayOfWeek = getDayOfWeekLocal;
@@ -300,12 +312,12 @@ const finDomingo = computed(() =>
   filteredFinalizadas.value.filter((d) => getDayOfWeek(d.fecha) === 0)
 );
 
-// Accepted designations split
-const aceptadasSabado = computed(() =>
-  filteredAceptadas.value.filter((d) => getDayOfWeek(d.fecha) !== 0)
+// Cancelled designations split
+const canceladasSabado = computed(() =>
+  filteredCanceladas.value.filter((d) => getDayOfWeek(d.fecha) !== 0)
 );
-const aceptadasDomingo = computed(() =>
-  filteredAceptadas.value.filter((d) => getDayOfWeek(d.fecha) === 0)
+const canceladasDomingo = computed(() =>
+  filteredCanceladas.value.filter((d) => getDayOfWeek(d.fecha) === 0)
 );
 
 const verArbitros = async (d) => {

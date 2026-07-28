@@ -24,9 +24,17 @@ const actualizarMontoATodos = (idDesignacion, montoPorArbitro) =>
     })
     .then((r) => r.data);
 
+const actualizarCantidadPartidos = (idDesignacion, idDesignado, cantidad) =>
+  api
+    .put("/designados/actualizar-cantidad-partidos", null, {
+      params: { idDesignacion, idDesignado, cantidad },
+    })
+    .then((r) => r.data);
+
 export default {
   getByDesignacion,
   eliminarDesignado,
   actualizarMontoPercibido,
   actualizarMontoATodos,
+  actualizarCantidadPartidos,
 };

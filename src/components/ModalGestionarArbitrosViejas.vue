@@ -153,7 +153,7 @@
         "
       >
         <div
-          v-for="arb in assignedReferees"
+          v-for="arb in sortedAssignedReferees"
           :key="arb.idDesignados || arb.id"
           class="card"
           style="
@@ -384,6 +384,34 @@ const isComplete = computed(() => {
 });
 
 const assignedReferees = ref([]);
+const ORDER_CAT = {
+  AVANZADO: 1,
+  INTERMEDIO: 2,
+  PRINCIPAL_1: 3,
+  PRINCIPAL_2: 4,
+  PRINCIPAL_3: 5,
+  PRINCIPAL_4: 6,
+  ASISTENTE: 7,
+  INCIAL: 8,
+  INICIAL: 8
+};
+const sortedAssignedReferees = computed(() => {
+  return [...assignedReferees.value].sort((a, b) => {
+    const nameA = `${a.arbitro?.nombre || a.nombre || ""} ${a.arbitro?.apellido || a.apellido || ""}`.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const nameB = `${b.arbitro?.nombre || b.nombre || ""} ${b.arbitro?.apellido || b.apellido || ""}`.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (nameA === "hector mendoza" && nameB === "hector mendoza") return 0;
+    if (nameA === "hector mendoza") return 1;
+    if (nameB === "hector mendoza") return -1;
+
+    const catA = String(a.arbitro?.categoria || a.categoria || "").trim().toUpperCase();
+    const catB = String(b.arbitro?.categoria || b.categoria || "").trim().toUpperCase();
+
+    const valA = ORDER_CAT[catA] !== undefined ? ORDER_CAT[catA] : 99;
+    const valB = ORDER_CAT[catB] !== undefined ? ORDER_CAT[catB] : 99;
+
+    return valA - valB;
+  });
+});
 const availableReferees = ref([]);
 const selectedRefereeId = ref(null);
 

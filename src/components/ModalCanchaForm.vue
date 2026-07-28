@@ -39,17 +39,37 @@
     </div>
 
     <div class="modal-footer">
-      <button class="btn" @click="closeModal">Cancelar</button>
+      <button class="btn" @click="closeModal" :disabled="isSaving">Cancelar</button>
       <button
         class="btn primary"
-        @click="state.modal.id ? saveEditCancha(state.modal.id) : saveCancha()"
+        @click="handleSave"
+        :disabled="isSaving"
       >
-        {{ state.modal.id ? "Guardar cambios" : "Agregar cancha" }}
+        <i v-if="isSaving" class="ti ti-loader spin"></i>
+        <span>{{ state.modal.id ? "Guardar cambios" : "Agregar cancha" }}</span>
       </button>
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref } from "vue";
 import { state, closeModal, saveCancha, saveEditCancha } from "../store";
+
+const isSaving = ref(false);
+
+const handleSave = async () => {
+  isSaving.value = true;
+  try {
+    if (state.modal.id) {
+      await saveEditCancha(state.modal.id);
+    } else {
+      await saveCancha();
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    isSaving.value = false;
+  }
+};
 </script>

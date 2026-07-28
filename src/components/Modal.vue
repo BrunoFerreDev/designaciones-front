@@ -66,7 +66,8 @@ const modalStyle = computed(() => {
     "manageRefereesViejas",
     "arbitrosPorDia",
     "comparativaWeekend",
-    "updateFees"
+    "updateFees",
+    "editDesignacion"
   ];
   if (largeModals.includes(type)) {
     return {
