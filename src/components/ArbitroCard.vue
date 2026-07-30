@@ -98,6 +98,7 @@
       class="arb-list-actions mt-3 flex items-center justify-end gap-2 flex-wrap"
     >
       <button
+        v-if="arbitro.estadoSistema"
         class="btn"
         @click="openModal('editArbitro', arbitro.idArbitro)"
         style="
@@ -115,8 +116,8 @@
 
       <!-- Disponibilidad Sábado -->
       <button
+        v-if="arbitro.estadoSistema"
         class="btn"
-        :disabled="arbitro.estadoSistema === false"
         @click="
           updateArbitroDisponibilidad(arbitro.idArbitro, 'disponibleSabado')
         "
@@ -146,8 +147,8 @@
 
       <!-- Disponibilidad Domingo -->
       <button
+        v-if="arbitro.estadoSistema"
         class="btn"
-        :disabled="arbitro.estadoSistema === false"
         @click="
           updateArbitroDisponibilidad(arbitro.idArbitro, 'disponibleDomingo')
         "
@@ -156,8 +157,6 @@
           borderColor: arbitro.disponibleDomingo ? '#e9d5ff' : '#e2e8f0',
           background: arbitro.disponibleDomingo ? '#faf5ff' : '#f8fafc',
           color: arbitro.disponibleDomingo ? '#7e22ce' : '#64748b',
-          opacity: arbitro.estadoSistema === false ? 0.5 : 1,
-          cursor: arbitro.estadoSistema === false ? 'not-allowed' : 'pointer',
         }"
         :title="
           arbitro.estadoSistema === false
@@ -192,6 +191,7 @@
       </button> -->
 
       <button
+        v-if="arbitro.estadoSistema"
         class="btn danger"
         @click="deleteArbitro(arbitro.idArbitro)"
         style="padding: 6px 10px"
