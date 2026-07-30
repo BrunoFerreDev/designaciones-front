@@ -125,40 +125,44 @@ export const updateArbitroDisponibilidad = (id, key) => {
     return Promise.reject("Árbitro fuera del sistema");
   }
 
-  const updatedValue = !a[key];
+  const previousValue = a[key];
+  const updatedValue = !previousValue;
+
+  // Optimistic UI: actualizar estado reactivo inmediatamente
+  a[key] = updatedValue;
+
+  // Actualizar arreglos de filtro de disponibilidad si cambió sábado/domingo
+  const isNowAvailable = a.disponibleSabado || a.disponibleDomingo;
+  if (isNowAvailable) {
+    if (!state.arbitros.some((arb) => arb.idArbitro === id)) {
+      state.arbitros.push(a);
+    }
+    state.arbitrosNoDisponibles = (state.arbitrosNoDisponibles || []).filter((arb) => arb.idArbitro !== id);
+  } else {
+    if (!state.arbitrosNoDisponibles.some((arb) => arb.idArbitro === id)) {
+      state.arbitrosNoDisponibles.push(a);
+    }
+    state.arbitros = state.arbitros.filter((arb) => arb.idArbitro !== id);
+  }
+
   const dto = {
-    estado:
-      key === "estado"
-        ? updatedValue
-        : a.estado !== undefined
-          ? a.estado
-          : true,
-    disponibleSabado:
-      key === "disponibleSabado"
-        ? updatedValue
-        : a.disponibleSabado !== undefined
-          ? a.disponibleSabado
-          : true,
-    disponibleDomingo:
-      key === "disponibleDomingo"
-        ? updatedValue
-        : a.disponibleDomingo !== undefined
-          ? a.disponibleDomingo
-          : true,
+    estado: key === "estado" ? updatedValue : a.estado !== undefined ? a.estado : true,
+    disponibleSabado: key === "disponibleSabado" ? updatedValue : a.disponibleSabado !== undefined ? a.disponibleSabado : true,
+    disponibleDomingo: key === "disponibleDomingo" ? updatedValue : a.disponibleDomingo !== undefined ? a.disponibleDomingo : true,
   };
 
   return arbitroService
-    .updateDisponibilidad(id, dto)
+    .updateDisponibilidad(id, dto, { loaderType: "silent" })
     .then((res) => {
-      Object.assign(a, res || { idArbitro: id, ...dto });
+      if (res) Object.assign(a, res);
       addToast("Disponibilidad de árbitro actualizada.");
-      loadArbitros();
-      loadArbitrosNoDisponibles();
     })
     .catch((err) => {
-      console.warn("updateDisponibilidad failed, updating locally", err);
-      a[key] = updatedValue;
-      addToast("Disponibilidad de árbitro actualizada localmente.");
+      console.warn("updateDisponibilidad failed, reverting optimistic UI", err);
+      // Revertir en caso de falla de red
+      a[key] = previousValue;
+      loadArbitros(0, 100, { loaderType: "silent" });
+      addToast("Error al guardar en servidor, cambio revertido.", "error");
     });
 };
 
@@ -174,14 +178,13 @@ export const marcarTodosNoDisponibles = () => {
   )
     return Promise.reject("Operación cancelada");
   return arbitroService
-    .updateDisponibilidadTotal()
+    .updateDisponibilidadTotal({ loaderType: "topbar" })
     .then(() => {
       state.arbitros.forEach((a) => {
         a.estado = false;
       });
       addToast("Todos los árbitros marcados como no disponibles.");
-      loadArbitros();
-      loadArbitrosNoDisponibles();
+      loadArbitros(0, 100, { loaderType: "topbar" });
     })
     .catch((err) => {
       console.warn("updateDisponibilidadTotal failed, updating locally", err);
@@ -199,6 +202,9 @@ export const toggleEstadoSistema = (id) => {
   const currentVal = a.estadoSistema !== false;
   const updatedValue = !currentVal;
 
+  // Optimistic UI
+  a.estadoSistema = updatedValue;
+
   const dto = {
     nombre: a.nombre,
     apellido: a.apellido,
@@ -214,24 +220,22 @@ export const toggleEstadoSistema = (id) => {
   };
 
   return arbitroService
-    .updateArbitro(id, dto)
+    .updateArbitro(id, dto, { loaderType: "silent" })
     .then((updated) => {
       Object.assign(a, { ...dto, ...(updated || {}) });
       addToast("Estado en sistema actualizado.");
-      loadArbitros();
     })
     .catch((err) => {
-      console.warn("updateArbitro failed, updating locally", err);
-      a.estadoSistema = updatedValue;
-      addToast("Estado en sistema actualizado localmente.");
+      console.warn("updateArbitro failed, reverting optimistic update", err);
+      a.estadoSistema = currentVal;
+      addToast("Error al actualizar estado en sistema.", "error");
     });
 };
 
-export const loadArbitros = async (page = 0, size = 100) => {
+export const loadArbitros = async (page = 0, size = 100, config = { loaderType: "topbar" }) => {
   try {
-    const res = await arbitroService.getAll(page, size);
+    const res = await arbitroService.getAll(page, size, config);
     const list = Array.isArray(res) ? res : res.content || res;
-    console.log(list);
     
     state.arbitros = list.filter((a) => a.disponibleSabado || a.disponibleDomingo);
     state.arbitrosNoDisponibles = list.filter((a) => !a.disponibleSabado && !a.disponibleDomingo);

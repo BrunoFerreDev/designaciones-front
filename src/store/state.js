@@ -31,6 +31,7 @@ export const state = reactive({
   toasts: [],
   loadingDesignaciones: false,
   loading: false,
+  loadingTopBar: false,
   modal: null,
   nextCanchaId: 4,
   nextArbId: 9,

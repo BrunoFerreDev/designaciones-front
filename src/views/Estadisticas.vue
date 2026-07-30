@@ -62,20 +62,10 @@
         <div><strong>Error de Carga:</strong> {{ errorMsg }}</div>
       </div>
 
-      <!-- Cargando -->
-      <div v-if="cargando" class="empty-state">
-        <div
-          class="spinner animate-spin"
-          style="
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #1d9e75;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            margin: 0 auto 12px;
-          "
-        ></div>
-        Cargando estadísticas...
+      <!-- Cargando con Skeleton UI -->
+      <div v-if="cargando" class="animate-fade-in" style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <CardSkeleton :count="4" />
+        <TableSkeleton :rows="5" :columns="4" />
       </div>
 
       <div v-else>
@@ -118,6 +108,8 @@ import StatsFiltros from "../components/StatsFiltros.vue";
 import StatsResumenGlobal from "../components/StatsResumenGlobal.vue";
 import StatsDetalleArbitro from "../components/StatsDetalleArbitro.vue";
 import StatsComparacion from "../components/StatsComparacion.vue";
+import CardSkeleton from "../components/loaders/CardSkeleton.vue";
+import TableSkeleton from "../components/loaders/TableSkeleton.vue";
 
 // Pestaña Activa
 const activeTab = ref("global");

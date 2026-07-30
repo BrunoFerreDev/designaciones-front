@@ -43,6 +43,9 @@
             </div>
         </div>
 
+        <!-- Top Slim Progress Bar for background requests -->
+        <TopProgressBar />
+
         <!-- Global API Loader Overlay -->
         <GlobalLoader v-if="state.loading" />
     </div>
@@ -62,6 +65,7 @@ import {
 import Sidebar from "./components/Sidebar.vue";
 import Modal from "./components/Modal.vue";
 import GlobalLoader from "./components/GlobalLoader.vue";
+import TopProgressBar from "./components/loaders/TopProgressBar.vue";
 
 const isSidebarOpen = ref(false);
 const route = useRoute();

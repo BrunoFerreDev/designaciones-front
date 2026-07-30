@@ -1,4 +1,4 @@
-import api from "./api";
+import api, { getDeduplicated } from "./api";
 
 const sortReferees = (data) => {
   if (!data) return data;
@@ -34,37 +34,45 @@ const sortReferees = (data) => {
   return data;
 };
 
-const getAll = (page = 0, size = 50) =>
-  api.get("/arbitros", { params: { page, size } }).then((r) => sortReferees(r.data));
-const getDisponibles = (page = 0, size = 50) =>
-  api
-    .get("/arbitros/traer-disponibles", { params: { page, size } })
+const getAll = (page = 0, size = 50, config = {}) =>
+  getDeduplicated("/arbitros", { params: { page, size }, ...config }).then((r) => sortReferees(r.data));
+
+const getDisponibles = (page = 0, size = 50, config = {}) =>
+  getDeduplicated("/arbitros/traer-disponibles", { params: { page, size }, ...config })
     .then((r) => sortReferees(r.data));
-const getNoDisponibles = (page = 0, size = 50) =>
-  api
-    .get("/arbitros/no-disponibles", { params: { page, size } })
+
+const getNoDisponibles = (page = 0, size = 50, config = {}) =>
+  getDeduplicated("/arbitros/no-disponibles", { params: { page, size }, ...config })
     .then((r) => sortReferees(r.data));
-const createArbitro = (dto) => api.post("/arbitros", dto).then((r) => r.data);
-const updateArbitro = (id, dto) =>
-  api.put(`/arbitros/${id}`, dto).then((r) => r.data);
-const updateDisponibilidad = (id, dto) =>
-  api.put(`/arbitros/${id}/disponibilidad`, dto).then((r) => r.data);
-const updateDisponibilidadTotal = () =>
-  api.put("/arbitros/modificar-disponibilidad-total").then((r) => r.data);
-const deleteArbitro = (id) => api.delete(`/arbitros/${id}`).then((r) => r.data);
-const getSuspencionesByArbitro = (idArbitro, page = 0, size = 10) =>
-  api
-    .get(`/arbitros/${idArbitro}/suspenciones`, { params: { page, size } })
+
+const createArbitro = (dto, config = {}) => api.post("/arbitros", dto, config).then((r) => r.data);
+
+const updateArbitro = (id, dto, config = {}) =>
+  api.put(`/arbitros/${id}`, dto, config).then((r) => r.data);
+
+const updateDisponibilidad = (id, dto, config = { loaderType: "silent" }) =>
+  api.put(`/arbitros/${id}/disponibilidad`, dto, config).then((r) => r.data);
+
+const updateDisponibilidadTotal = (config = {}) =>
+  api.put("/arbitros/modificar-disponibilidad-total", {}, config).then((r) => r.data);
+
+const deleteArbitro = (id, config = {}) => api.delete(`/arbitros/${id}`, config).then((r) => r.data);
+
+const getSuspencionesByArbitro = (idArbitro, page = 0, size = 10, config = {}) =>
+  getDeduplicated(`/arbitros/${idArbitro}/suspenciones`, { params: { page, size }, ...config })
     .then((r) => r.data);
-const createSuspencionByArbitro = (idArbitro, dto) =>
-  api.post(`/arbitros/${idArbitro}/suspenciones`, dto).then((r) => r.data);
-const getSuspenciones = (page = 0, size = 10) =>
-  api.get("/arbitros/suspenciones", { params: { page, size } }).then((r) => r.data);
-const deleteSuspencion = (idSuspencion) =>
-  api.delete(`/arbitros/suspenciones/${idSuspencion}`).then((r) => r.data);
-const getDesignacionesByArbitro = (idArbitro, page = 0, size = 10) =>
-  api
-    .get("/arbitros/designaciones", { params: { idArbitro, page, size } })
+
+const createSuspencionByArbitro = (idArbitro, dto, config = {}) =>
+  api.post(`/arbitros/${idArbitro}/suspenciones`, dto, config).then((r) => r.data);
+
+const getSuspenciones = (page = 0, size = 10, config = {}) =>
+  getDeduplicated("/arbitros/suspenciones", { params: { page, size }, ...config }).then((r) => r.data);
+
+const deleteSuspencion = (idSuspencion, config = {}) =>
+  api.delete(`/arbitros/suspenciones/${idSuspencion}`, config).then((r) => r.data);
+
+const getDesignacionesByArbitro = (idArbitro, page = 0, size = 10, config = {}) =>
+  getDeduplicated("/arbitros/designaciones", { params: { idArbitro, page, size }, ...config })
     .then((r) => r.data);
 
 export default {

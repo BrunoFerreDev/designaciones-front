@@ -1,15 +1,16 @@
-import api from "./api";
+import api, { getDeduplicated } from "./api";
 
 /**
  * Obtener estadísticas globales de designaciones en un rango de fechas.
  * @param {string} inicio - Fecha inicio (YYYY-MM-DD)
  * @param {string} fin - Fecha fin (YYYY-MM-DD)
+ * @param {object} config - Configuración Axios adicional
  */
-const getEstadisticas = (inicio, fin) => {
+const getEstadisticas = (inicio, fin, config = {}) => {
   const params = {};
   if (inicio) params.inicio = inicio;
   if (fin) params.fin = fin;
-  return api.get("/designaciones/estadisticas", { params }).then((r) => r.data);
+  return getDeduplicated("/designaciones/estadisticas", { params, loaderType: "topbar", ...config }).then((r) => r.data);
 };
 
 /**
@@ -17,13 +18,13 @@ const getEstadisticas = (inicio, fin) => {
  * @param {number|string} idArbitro - Identificador del árbitro
  * @param {string} inicio - Fecha inicio (YYYY-MM-DD)
  * @param {string} fin - Fecha fin (YYYY-MM-DD)
+ * @param {object} config - Configuración Axios adicional
  */
-const getEstadisticasArbitro = async (idArbitro, inicio, fin) => {
+const getEstadisticasArbitro = async (idArbitro, inicio, fin, config = {}) => {
   const params = {};
   if (inicio) params.inicio = inicio;
   if (fin) params.fin = fin;
-  return await api
-    .get(`/designaciones/estadisticas/arbitro/${idArbitro}`, { params })
+  return await getDeduplicated(`/designaciones/estadisticas/arbitro/${idArbitro}`, { params, loaderType: "topbar", ...config })
     .then((r) => r.data);
 };
 
@@ -32,12 +33,13 @@ const getEstadisticasArbitro = async (idArbitro, inicio, fin) => {
  * @param {Array<number|string>} idsArbitros - IDs de los árbitros a comparar
  * @param {number} [mesInicio] - Mes de inicio (1-12)
  * @param {number} [mesFin] - Mes de fin (1-12)
+ * @param {object} config - Configuración Axios adicional
  */
-const getComparacionArbitros = (idsArbitros, mesInicio, mesFin) => {
+const getComparacionArbitros = (idsArbitros, mesInicio, mesFin, config = {}) => {
   const params = { idsArbitros: idsArbitros.join(",") };
   if (mesInicio !== undefined && mesInicio !== null) params.mesInicio = mesInicio;
   if (mesFin !== undefined && mesFin !== null) params.mesFin = mesFin;
-  return api.get("/designaciones/estadisticas/comparacion", { params }).then((r) => r.data);
+  return getDeduplicated("/designaciones/estadisticas/comparacion", { params, loaderType: "topbar", ...config }).then((r) => r.data);
 };
 
 export default {

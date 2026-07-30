@@ -396,6 +396,7 @@ import {
   loadArbitros,
 } from "../store";
 import ArbitroCard from "../components/ArbitroCard.vue";
+import CardSkeleton from "../components/loaders/CardSkeleton.vue";
 
 onMounted(() => {
   loadArbitros();

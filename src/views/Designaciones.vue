@@ -48,10 +48,9 @@
     </div>
 
     <div class="content animate-fade-in">
-      <!-- Loading State -->
-      <div v-if="state.loadingDesignaciones" style="text-align: center; padding: 4rem 0;" class="animate-fade-in">
-        <i class="ti ti-loader spin" style="font-size: 32px; color: var(--color-primary); margin-bottom: 12px;"></i>
-        <div style="font-size: 14px; font-weight: 500; color: var(--color-text-secondary);">Cargando designaciones...</div>
+      <!-- Loading State con Skeleton UI -->
+      <div v-if="state.loadingDesignaciones" class="animate-fade-in" style="padding: 1rem 0;">
+        <CardSkeleton :count="4" />
       </div>
 
       <template v-else>
@@ -252,6 +251,7 @@ import {
 import DesignacionesSearch from "../components/DesignacionesSearch.vue";
 import DesignacionesDiaGrid from "../components/DesignacionesDiaGrid.vue";
 import DesignacionesAConfirmarList from "../components/DesignacionesAConfirmarList.vue";
+import CardSkeleton from "../components/loaders/CardSkeleton.vue";
 
 onMounted(() => {
   ultimasDesignaciones();

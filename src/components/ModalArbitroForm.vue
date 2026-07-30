@@ -106,10 +106,9 @@
 
     <div class="modal-footer">
       <button class="btn" @click="closeModal" :disabled="isSaving">Cancelar</button>
-      <button class="btn primary" @click="handleSave" :disabled="isSaving">
-        <i v-if="isSaving" class="ti ti-loader spin"></i>
-        <span>{{ state.form.idArbitro ? "Guardar cambios" : "Agregar árbitro" }}</span>
-      </button>
+      <LoadingButton variant="primary" :loading="isSaving" @click="handleSave">
+        {{ state.form.idArbitro ? "Guardar cambios" : "Agregar árbitro" }}
+      </LoadingButton>
     </div>
   </div>
 </template>
@@ -117,6 +116,7 @@
 <script setup>
 import { ref } from "vue";
 import { state, closeModal, saveArbitro } from "../store";
+import LoadingButton from "./loaders/LoadingButton.vue";
 
 const isSaving = ref(false);
 
