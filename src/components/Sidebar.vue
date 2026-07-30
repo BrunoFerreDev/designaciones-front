@@ -1,5 +1,5 @@
 <template>
-  <div class="sidebar">
+  <div :class="['sidebar', { 'open': isOpen }]">
     <div class="sidebar-logo">
       <div class="logo-icon">⚽</div>
       <div>
@@ -15,6 +15,7 @@
         :to="nav.path"
         class="nav-item"
         active-class="active"
+        @click="$emit('close')"
       >
         <i :class="['ti', nav.icon]" aria-hidden="true"></i>
         <span>{{ nav.label }}</span>
@@ -33,6 +34,15 @@
 <script setup>
 import { logoutUser } from '../store';
 
+const props = defineProps({
+  isOpen: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+const emit = defineEmits(["close"]);
+
 const navItems = [
   { id: "arbitros", path: "/arbitros", icon: "ti-users", label: "Árbitros" },
   { id: "canchas", path: "/canchas", icon: "ti-map-pin", label: "Canchas" },
@@ -44,7 +54,9 @@ const navItems = [
 ];
 
 const handleLogout = async () => {
+  emit("close");
   await logoutUser();
 };
 </script>
+
 
