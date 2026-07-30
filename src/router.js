@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { state } from './store/state';
-import Dashboard from './views/Dashboard.vue';
 import Canchas from './views/Canchas.vue';
 import Arbitros from './views/Arbitros.vue';
 import Suspensiones from './views/Suspensiones.vue';
@@ -18,9 +17,7 @@ const routes = [
   },
   {
     path: '/',
-    name: 'dashboard',
-    component: Dashboard,
-    meta: { requiresAuth: true }
+    redirect: '/arbitros'
   },
   {
     path: '/estadisticas',
@@ -64,7 +61,7 @@ const routes = [
     component: DesignacionesViejas,
     meta: { requiresAuth: true }
   },
-  // Redireccionar cualquier otra ruta al dashboard
+  // Redireccionar cualquier otra ruta al landing/arbitros
   {
     path: '/:pathMatch(.*)*',
     redirect: '/'
@@ -80,7 +77,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !state.isAuthenticated) {
     next('/login');
   } else if (to.name === 'login' && state.isAuthenticated) {
-    next('/');
+    next('/arbitros');
   } else {
     next();
   }

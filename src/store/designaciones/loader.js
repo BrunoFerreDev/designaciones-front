@@ -122,12 +122,12 @@ export const loadDesignacionesFinalizadas = async (page = 0, size = 30) => {
 };
 
 
-export const loadArbitrosDesignados = async (idDesignacion) => {
-  if (state.arbitrosDesignadosMap[idDesignacion]) {
+export const loadArbitrosDesignados = async (idDesignacion, force = false, apiConfig = {}) => {
+  if (!force && state.arbitrosDesignadosMap[idDesignacion]) {
     return state.arbitrosDesignadosMap[idDesignacion];
   }
   try {
-    const res = await designacionService.getDesignados(idDesignacion);
+    const res = await designacionService.getDesignados(idDesignacion, apiConfig);
     const data = Array.isArray(res) ? res : res.data || res;
     state.arbitrosDesignadosMap[idDesignacion] = data;
     return data;

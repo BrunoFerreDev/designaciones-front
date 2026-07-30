@@ -34,7 +34,12 @@
 </template>
 
 <script setup>
-import { state, openModal } from "../store";
+import { onMounted } from "vue";
+import { state, openModal, loadCanchas } from "../store";
 import CanchaCard from "../components/CanchaCard.vue";
+
+onMounted(() => {
+  loadCanchas();
+});
 </script>
 

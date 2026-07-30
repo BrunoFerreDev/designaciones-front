@@ -8,8 +8,8 @@ const getCompletas = (page = 0, size = 50) =>
   api
     .get("/designaciones/completas", { params: { page, size } })
     .then((r) => r.data);
-const getDesignados = (idDesignacion) =>
-  api.get("/designados", { params: { idDesignacion } }).then((r) => {
+const getDesignados = (idDesignacion, config = {}) =>
+  api.get("/designados", { params: { idDesignacion }, ...config }).then((r) => {
     console.log(r.data);
     return r.data;
   });

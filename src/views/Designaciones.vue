@@ -320,15 +320,18 @@ const canceladasDomingo = computed(() =>
   filteredCanceladas.value.filter((d) => getDayOfWeek(d.fecha) === 0)
 );
 
-const verArbitros = async (d) => {
+const verArbitros = async (d, resolve) => {
   const idDesignacion = d.idDesignacion || d.id;
   if (visibleArbitros.value[idDesignacion]) {
     visibleArbitros.value[idDesignacion] = false;
+    if (typeof resolve === "function") resolve();
   } else {
-    if (!state.arbitrosDesignadosMap[idDesignacion]) {
-      await loadArbitrosDesignados(idDesignacion);
+    try {
+      await loadArbitrosDesignados(idDesignacion, true, { showLoader: false });
+    } finally {
+      visibleArbitros.value[idDesignacion] = true;
+      if (typeof resolve === "function") resolve();
     }
-    visibleArbitros.value[idDesignacion] = true;
   }
 };
 

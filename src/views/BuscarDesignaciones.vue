@@ -365,8 +365,10 @@
             v-for="d in resultados"
             :key="d.idDesignacion || d.id"
             :designacion="d"
-            :arbitros="arbitrosDesignados[d.idDesignacion || d.id]"
+            :arbitros="visibleArbitros[d.idDesignacion || d.id] ? arbitrosDesignados[d.idDesignacion || d.id] : null"
+            show-ver-arbitros-btn
             show-empty-arbitros-state
+            @ver-arbitros="verArbitros"
             @action-complete="ejecutarBusqueda(true, false)"
           />
         </div>
@@ -421,7 +423,6 @@ import {
   loadArbitrosDesignados,
   openModal,
   loadArbitros,
-  loadArbitrosNoDisponibles,
   loadCanchas,
 } from "../store";
 import designacionService from "../services/designacionService";
@@ -456,6 +457,7 @@ const pageSize = ref(10);
 // Mapas para almacenar árbitros por designación
 const arbitrosDesignados = ref({});
 const resultadosCargados = ref({});
+const visibleArbitros = ref({});
 
 // Obtener etiqueta legible de categoría de árbitro
 const getCategoryLabel = (cat) => {
@@ -527,18 +529,8 @@ onMounted(() => {
   fechaInicio.value = hoyStr;
   fechaFin.value = hoyStr;
 
-  if (!state.arbitros || state.arbitros.length === 0) {
-    loadArbitros();
-  }
-  if (
-    !state.arbitrosNoDisponibles ||
-    state.arbitrosNoDisponibles.length === 0
-  ) {
-    loadArbitrosNoDisponibles();
-  }
-  if (!state.canchas || state.canchas.length === 0) {
-    loadCanchas();
-  }
+  loadArbitros();
+  loadCanchas();
 });
 
 // Ejecución de la búsqueda
@@ -546,6 +538,9 @@ const ejecutarBusqueda = async (silent = false, resetPage = false) => {
   if (resetPage) {
     currentPage.value = 0;
   }
+  visibleArbitros.value = {};
+  arbitrosDesignados.value = {};
+  resultadosCargados.value = {};
   if (!silent) {
     loading.value = true;
     errorMessage.value = "";
@@ -653,14 +648,11 @@ const ejecutarBusqueda = async (silent = false, resetPage = false) => {
     resultados.value = data || [];
     realizoBusqueda.value = true;
 
-    // Cargar detalles de árbitros para los resultados de forma proactiva
+    // Mapear detalles de árbitros si ya vienen en el payload
     for (const d of resultados.value) {
       const id = d.idDesignacion || d.id;
       if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
         arbitrosDesignados.value[id] = d.arbitrosDesignados;
-      } else {
-        const arbs = await loadArbitrosDesignados(id);
-        arbitrosDesignados.value[id] = arbs || [];
       }
       resultadosCargados.value[id] = true;
     }
@@ -670,6 +662,22 @@ const ejecutarBusqueda = async (silent = false, resetPage = false) => {
       "Ocurrió un error al comunicarse con el servidor. Por favor intenta de nuevo.";
   } finally {
     loading.value = false;
+  }
+};
+
+const verArbitros = async (d, resolve) => {
+  const idDesignacion = d.idDesignacion || d.id;
+  if (visibleArbitros.value[idDesignacion]) {
+    visibleArbitros.value[idDesignacion] = false;
+    if (typeof resolve === "function") resolve();
+  } else {
+    try {
+      const arbs = await loadArbitrosDesignados(idDesignacion, true, { showLoader: false });
+      arbitrosDesignados.value[idDesignacion] = arbs || [];
+    } finally {
+      visibleArbitros.value[idDesignacion] = true;
+      if (typeof resolve === "function") resolve();
+    }
   }
 };
 

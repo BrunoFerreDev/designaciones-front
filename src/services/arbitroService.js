@@ -62,6 +62,10 @@ const getSuspenciones = (page = 0, size = 10) =>
   api.get("/arbitros/suspenciones", { params: { page, size } }).then((r) => r.data);
 const deleteSuspencion = (idSuspencion) =>
   api.delete(`/arbitros/suspenciones/${idSuspencion}`).then((r) => r.data);
+const getDesignacionesByArbitro = (idArbitro, page = 0, size = 10) =>
+  api
+    .get("/arbitros/designaciones", { params: { idArbitro, page, size } })
+    .then((r) => r.data);
 
 export default {
   getAll,
@@ -76,4 +80,5 @@ export default {
   createSuspencionByArbitro,
   getSuspenciones,
   deleteSuspencion,
+  getDesignacionesByArbitro,
 };

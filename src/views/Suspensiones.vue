@@ -44,12 +44,14 @@
 
 <script setup>
 import { computed, onMounted } from "vue";
-import { state, loadSuspensiones, getArbitro } from "../store";
+import { state, loadSuspensiones, loadArbitros, loadCanchas, getArbitro } from "../store";
 import SuspensionForm from "../components/SuspensionForm.vue";
 import SuspensionHistory from "../components/SuspensionHistory.vue";
 
 onMounted(() => {
   loadSuspensiones();
+  loadArbitros();
+  loadCanchas();
 });
 
 const getArbitroId = (arbitroProp) => {

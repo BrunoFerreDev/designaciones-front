@@ -21,7 +21,9 @@
           <span
             class="arb-name font-semibold text-sm"
             :class="
-              arbitro.estado ? 'text-slate-800' : 'text-slate-500 line-through'
+              (!arbitro.disponibleSabado && !arbitro.disponibleDomingo)
+                ? 'text-slate-500 line-through'
+                : 'text-slate-800'
             "
           >
             {{ arbitro.nombre }} {{ arbitro.apellido }}

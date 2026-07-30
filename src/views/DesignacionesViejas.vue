@@ -175,9 +175,11 @@
             v-for="d in designacionesExistentes"
             :key="d.idDesignacion || d.id"
             :designacion="d"
-            :arbitros="arbitrosDesignados[d.idDesignacion || d.id]"
+            :arbitros="visibleArbitros[d.idDesignacion || d.id] ? arbitrosDesignados[d.idDesignacion || d.id] : null"
+            show-ver-arbitros-btn
             show-empty-arbitros-state
             :tipo="0"
+            @ver-arbitros="verArbitros"
             @action-complete="fetchDesignacionesPorFecha(true)"
           />
         </div>
@@ -201,15 +203,11 @@ const registering = ref(false);
 const loadingList = ref(false);
 const designacionesExistentes = ref([]);
 const arbitrosDesignados = ref({});
+const visibleArbitros = ref({});
 
 // Al montar, cargar datos principales del store
 onMounted(async () => {
-  if (state.canchas.length === 0) {
-    await loadCanchas();
-  }
-  if (state.arbitros.length === 0) {
-    await loadArbitros();
-  }
+  await Promise.all([loadCanchas(), loadArbitros()]);
   initializeConfigs();
 });
 
@@ -297,6 +295,9 @@ const fetchDesignacionesPorFecha = async (silent = false) => {
     return;
   }
 
+  visibleArbitros.value = {};
+  arbitrosDesignados.value = {};
+
   if (!silent) {
     loadingList.value = true;
   }
@@ -305,14 +306,11 @@ const fetchDesignacionesPorFecha = async (silent = false) => {
     const res = await designacionService.buscarPorFecha(fecha.value);
     designacionesExistentes.value = res || [];
 
-    // Cargar árbitros asignados de cada designación
+    // Cargar árbitros asignados de cada designación si ya vienen en el payload
     for (const d of designacionesExistentes.value) {
       const id = d.idDesignacion || d.id;
       if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
         arbitrosDesignados.value[id] = d.arbitrosDesignados;
-      } else {
-        const arbs = await loadArbitrosDesignados(id);
-        arbitrosDesignados.value[id] = arbs || [];
       }
     }
   } catch (e) {
@@ -331,6 +329,22 @@ const formatFechaLocal = (fechaStr) => {
     return `${dd}/${mm}/${yyyy}`;
   }
   return fechaStr;
+};
+
+const verArbitros = async (d, resolve) => {
+  const idDesignacion = d.idDesignacion || d.id;
+  if (visibleArbitros.value[idDesignacion]) {
+    visibleArbitros.value[idDesignacion] = false;
+    if (typeof resolve === "function") resolve();
+  } else {
+    try {
+      const arbs = await loadArbitrosDesignados(idDesignacion, true, { showLoader: false });
+      arbitrosDesignados.value[idDesignacion] = arbs || [];
+    } finally {
+      visibleArbitros.value[idDesignacion] = true;
+      if (typeof resolve === "function") resolve();
+    }
+  }
 };
 
 // Recargar al cerrar modal de árbitros

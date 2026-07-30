@@ -3,8 +3,8 @@ import { getCancha, addToast } from "./helpers";
 import { closeModal } from "./modal";
 import canchaService from "../services/canchaService";
 
-export const saveCancha = () => {
-  const { nombreCancha, categoria, fueraDeJuego, estado } = state.form;
+export const saveCancha = async () => {
+  const { nombreCancha, categoria, fueraDeJuego, estado, necesitaViaje } = state.form;
   if (!nombreCancha) {
     addToast("Completá el nombre de la cancha.", "error");
     return Promise.reject("Nombre de la cancha obligatorio");
@@ -14,6 +14,7 @@ export const saveCancha = () => {
     categoria: categoria || "ELITE",
     fueraDeJuego: fueraDeJuego !== undefined ? fueraDeJuego : false,
     estado: estado !== undefined ? estado : true,
+    necesitaViaje: necesitaViaje !== undefined ? necesitaViaje : false,
   };
   return canchaService
     .createCancha(dto)
@@ -28,6 +29,10 @@ export const saveCancha = () => {
               ? created.fueraDeJuego
               : dto.fueraDeJuego,
           estado: created.estado !== undefined ? created.estado : dto.estado,
+          necesitaViaje:
+            created.necesitaViaje !== undefined
+              ? created.necesitaViaje
+              : dto.necesitaViaje,
           partidos: created.partidos || 0,
           ciudad: created.ciudad || "",
           capacidad: created.capacidad || 0,
@@ -42,6 +47,7 @@ export const saveCancha = () => {
           categoria: dto.categoria,
           fueraDeJuego: dto.fueraDeJuego,
           estado: dto.estado,
+          necesitaViaje: dto.necesitaViaje,
           partidos: 0,
           ciudad: "",
           capacidad: 0,
@@ -60,6 +66,7 @@ export const saveCancha = () => {
         categoria: dto.categoria,
         fueraDeJuego: dto.fueraDeJuego,
         estado: dto.estado,
+        necesitaViaje: dto.necesitaViaje,
         partidos: 0,
         ciudad: "",
         capacidad: 0,
@@ -70,27 +77,71 @@ export const saveCancha = () => {
     });
 };
 
-export const saveEditCancha = (id) => {
+export const saveEditCancha = async (id) => {
   const c = getCancha(id);
-  if (!c) return;
+  if (!c) return Promise.reject("Cancha no encontrada");
   const nombreCancha = state.form.nombreCancha || state.form.nombre;
-  c.nombreCancha = nombreCancha?.trim() || c.nombreCancha || c.nombre;
-  c.nombre = c.nombreCancha;
-  c.categoria = state.form.categoria || c.categoria;
-  c.fueraDeJuego =
-    state.form.fueraDeJuego !== undefined
-      ? state.form.fueraDeJuego
-      : c.fueraDeJuego;
-  c.estado = state.form.estado !== undefined ? state.form.estado : c.estado;
-  addToast("Cancha actualizada con éxito.");
-  closeModal();
+  const dto = {
+    nombreCancha: nombreCancha?.trim() || c.nombreCancha || c.nombre,
+    categoria: state.form.categoria || c.categoria || "ELITE",
+    fueraDeJuego:
+      state.form.fueraDeJuego !== undefined
+        ? state.form.fueraDeJuego
+        : c.fueraDeJuego,
+    estado: state.form.estado !== undefined ? state.form.estado : c.estado,
+    necesitaViaje:
+      state.form.necesitaViaje !== undefined
+        ? state.form.necesitaViaje
+        : c.necesitaViaje,
+  };
+  return canchaService
+    .updateCancha(id, dto)
+    .then((updated) => {
+      c.nombreCancha = updated.nombreCancha || dto.nombreCancha;
+      c.nombre = c.nombreCancha;
+      c.categoria = updated.categoria || dto.categoria;
+      c.fueraDeJuego =
+        updated.fueraDeJuego !== undefined
+          ? updated.fueraDeJuego
+          : dto.fueraDeJuego;
+      c.estado = updated.estado !== undefined ? updated.estado : dto.estado;
+      c.necesitaViaje =
+        updated.necesitaViaje !== undefined
+          ? updated.necesitaViaje
+          : dto.necesitaViaje;
+      addToast("Cancha actualizada con éxito.");
+      closeModal();
+    })
+    .catch((err) => {
+      console.warn("updateCancha failed, using local fallback", err);
+      c.nombreCancha = dto.nombreCancha;
+      c.nombre = c.nombreCancha;
+      c.categoria = dto.categoria;
+      c.fueraDeJuego = dto.fueraDeJuego;
+      c.estado = dto.estado;
+      c.necesitaViaje = dto.necesitaViaje;
+      addToast("Cancha actualizada localmente.");
+      closeModal();
+    });
 };
 
 export const deleteCancha = (id) => {
-  if (!confirm("¿Eliminar esta cancha?")) return;
-  state.canchas = state.canchas.filter((c) => c.id !== id);
-  state.designaciones = state.designaciones.filter((d) => d.canchaId !== id);
-  addToast("Cancha eliminada con éxito.");
+  const c = getCancha(id);
+  if (!c) return;
+  const accion = c.estado ? "desactivar" : "activar";
+  if (!confirm(`¿Estás seguro de que querés ${accion} esta cancha?`)) return;
+
+  return canchaService
+    .toggleEstado(id)
+    .then((res) => {
+      c.estado = res && res.estado !== undefined ? res.estado : !c.estado;
+      addToast(`Cancha ${c.estado ? "activada" : "desactivada"} con éxito.`);
+    })
+    .catch((err) => {
+      console.warn("toggleEstado failed, fallback local toggle", err);
+      c.estado = !c.estado;
+      addToast(`Cancha ${c.estado ? "activada" : "desactivada"} localmente.`);
+    });
 };
 
 export const loadCanchas = async (page = 0, size = 100) => {
@@ -105,8 +156,10 @@ export const loadCanchas = async (page = 0, size = 100) => {
       capacidad: c.capacidad || 0,
       categoria: c.categoria || "",
       fueraDeJuego: c.fueraDeJuego || false,
+      necesitaViaje: c.necesitaViaje || false,
       ...c,
     }));
+    return state.canchas.sort((a, b) => b.necesitaViaje - a.necesitaViaje);
   } catch (e) {
     console.warn("Failed to load canchas", e);
   }

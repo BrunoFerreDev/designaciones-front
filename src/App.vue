@@ -21,6 +21,9 @@
                 <i class="ti ti-x toast-close"></i>
             </div>
         </div>
+
+        <!-- Global API Loader Overlay -->
+        <GlobalLoader v-if="state.loading" />
     </div>
 </template>
 
@@ -28,15 +31,11 @@
 import {
     state,
     closeModal,
-    loadArbitros,
-    loadArbitrosNoDisponibles,
-    loadCanchas,
-    loadSuspensiones,
     removeToast,
 } from "./store";
 import Sidebar from "./components/Sidebar.vue";
 import Modal from "./components/Modal.vue";
-import { onMounted, watch } from "vue";
+import GlobalLoader from "./components/GlobalLoader.vue";
 
 const getToastIcon = (type) => {
     switch (type) {
@@ -51,27 +50,7 @@ const getToastIcon = (type) => {
     }
 };
 
-const loadData = () => {
-    if (state.isAuthenticated) {
-        loadArbitros();
-        loadArbitrosNoDisponibles();
-        loadCanchas();
-        loadSuspensiones();
-    }
-};
 
-onMounted(() => {
-    loadData();
-});
-
-watch(
-    () => state.isAuthenticated,
-    (newVal) => {
-        if (newVal) {
-            loadData();
-        }
-    },
-);
 </script>
 
 <style>

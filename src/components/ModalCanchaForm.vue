@@ -31,6 +31,14 @@
     </div>
 
     <div class="form-group">
+      <label class="form-label">¿Necesita viaje?</label>
+      <label class="checkbox-label">
+        <input v-model="state.form.necesitaViaje" type="checkbox" />
+        Necesita viaje (Requiere traslado especial)
+      </label>
+    </div>
+
+    <div class="form-group">
       <label class="form-label">Estado</label>
       <label class="checkbox-label">
         <input v-model="state.form.estado" type="checkbox" />

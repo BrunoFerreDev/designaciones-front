@@ -1,10 +1,24 @@
 <template>
-  <div class="card transition-all duration-200 hover:shadow-md hover:border-slate-300">
+  <div 
+    class="card transition-all duration-200 hover:shadow-md hover:border-slate-300"
+    :class="{ 'opacity-65 bg-slate-50 border-dashed border-slate-300': !cancha.estado }"
+  >
     <div class="card-header">
       <div>
         <div class="card-title flex items-center gap-2">
           <span class="text-lg">🏟️</span>
-          <span class="font-semibold text-slate-800">{{ cancha.nombre }}</span>
+          <span 
+            class="font-semibold text-slate-800"
+            :class="{ 'line-through text-slate-400': !cancha.estado }"
+          >
+            {{ cancha.nombre }}
+          </span>
+          <span 
+            v-if="!cancha.estado" 
+            class="text-[10px] bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded font-medium uppercase tracking-wider"
+          >
+            Inactiva
+          </span>
         </div>
       </div>
       <div class="flex gap-2">
@@ -17,12 +31,16 @@
           <i class="ti ti-edit text-blue-600"></i>
         </button>
         <button
-          class="btn danger"
+          class="btn"
+          :class="cancha.estado ? 'danger' : 'success'"
           @click="deleteCancha(cancha.id)"
           style="padding: 5px 9px"
-          title="Eliminar cancha"
+          :title="cancha.estado ? 'Desactivar cancha' : 'Activar cancha'"
         >
-          <i class="ti ti-trash text-red-600"></i>
+          <i 
+            class="ti" 
+            :class="cancha.estado ? 'ti-trash text-red-600' : 'ti-circle-check text-emerald-600'"
+          ></i>
         </button>
       </div>
     </div>
@@ -36,6 +54,12 @@
         :class="cancha.fueraDeJuego ? 'text-amber-800 bg-amber-50' : 'text-blue-800 bg-blue-50'"
       >
         Fuera de juego: {{ cancha.fueraDeJuego ? "Sí" : "No" }}
+      </span>
+      <span
+        class="text-xs font-semibold px-2 py-1 rounded-md"
+        :class="cancha.necesitaViaje ? 'text-purple-800 bg-purple-50' : 'text-slate-500 bg-slate-100'"
+      >
+        🚗 Viaje: {{ cancha.necesitaViaje ? "Sí" : "No" }}
       </span>
     </div>
 

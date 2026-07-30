@@ -11,6 +11,7 @@ export const openModal = (type, id = null, data = null) => {
       categoria: cancha.categoria || "ELITE",
       fueraDeJuego: cancha.fueraDeJuego || false,
       estado: cancha.estado !== undefined ? cancha.estado : true,
+      necesitaViaje: cancha.necesitaViaje || false,
       ...cancha,
     };
   } else if (type === "addCancha") {
@@ -19,6 +20,7 @@ export const openModal = (type, id = null, data = null) => {
       categoria: "ELITE",
       fueraDeJuego: false,
       estado: true,
+      necesitaViaje: false,
     };
   } else if (type === "editArbitro" && id) {
     state.form = { ...getArbitro(id) };

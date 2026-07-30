@@ -34,9 +34,8 @@
 import { logoutUser } from '../store';
 
 const navItems = [
-  { id: "dashboard", path: "/", icon: "ti-dashboard", label: "Resumen" },
-  { id: "canchas", path: "/canchas", icon: "ti-map-pin", label: "Canchas" },
   { id: "arbitros", path: "/arbitros", icon: "ti-users", label: "Árbitros" },
+  { id: "canchas", path: "/canchas", icon: "ti-map-pin", label: "Canchas" },
   { id: "suspensiones", path: "/suspensiones", icon: "ti-ban", label: "Suspensiones" },
   { id: "designaciones", path: "/designaciones", icon: "ti-clipboard-list", label: "Designaciones" },
   { id: "buscar", path: "/buscar", icon: "ti-search", label: "Buscador" },

@@ -24,7 +24,7 @@
           <label class="form-label">Cancha (🏟️)</label>
           <select v-model.number="state.form.canchaId" class="form-input" :disabled="isSaving">
             <option value="" disabled>Seleccionar cancha...</option>
-            <option v-for="c in state.canchas" :key="c.id" :value="c.id">
+            <option v-for="c in selectableCanchas" :key="c.id" :value="c.id">
               {{ c.nombre || c.nombreCancha }} ({{ c.ciudad || 'Sin ciudad' }})
             </option>
           </select>
@@ -185,6 +185,10 @@ const isSaving = ref(false);
 const loadingReferees = ref(false);
 const assignedReferees = ref([]);
 const montoGeneral = ref(0);
+
+const selectableCanchas = computed(() => {
+  return state.canchas.filter((c) => c.estado !== false || c.id === state.form.canchaId);
+});
 
 const actionContext = computed(() => state.modal?.data?.action || "edit");
 

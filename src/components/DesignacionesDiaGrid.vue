@@ -64,7 +64,7 @@
           :designacion="d"
           :arbitros="arbitrosDesignados[d.idDesignacion || d.id]"
           show-ver-arbitros-btn
-          @ver-arbitros="$emit('ver-arbitros', $event)"
+          @ver-arbitros="(d, resolve) => $emit('ver-arbitros', d, resolve)"
           @action-complete="$emit('action-complete', $event)"
         />
       </div>
@@ -134,7 +134,7 @@
           :designacion="d"
           :arbitros="arbitrosDesignados[d.idDesignacion || d.id]"
           show-ver-arbitros-btn
-          @ver-arbitros="$emit('ver-arbitros', $event)"
+          @ver-arbitros="(d, resolve) => $emit('ver-arbitros', d, resolve)"
           @action-complete="$emit('action-complete', $event)"
         />
       </div>

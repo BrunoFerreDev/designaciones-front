@@ -59,7 +59,8 @@
               <strong>{{ selectedCanchaObj.nombre }}</strong>
               <div style="font-size: 11px; margin-top: 2px">
                 Categoría: {{ selectedCanchaObj.categoria }} · Fuera de juego:
-                {{ selectedCanchaObj.fueraDeJuego ? "Sí" : "No" }} · Estado:
+                {{ selectedCanchaObj.fueraDeJuego ? "Sí" : "No" }} · Viaje:
+                {{ selectedCanchaObj.necesitaViaje ? "Sí" : "No" }} · Estado:
                 {{ selectedCanchaObj.estado }}
               </div>
             </div>
@@ -430,7 +431,9 @@ const selectedIds = ref([]);
 const cloning = ref(false);
 const lastWeekend = ref({ saturday: "", sunday: "" });
 
-const cancelHabilitadas = computed(() => state.canchas);
+const cancelHabilitadas = computed(() =>
+  state.canchas.filter((c) => c.estado !== false || c.id === state.form.canchaId)
+);
 
 const selectedCanchaObj = computed(() =>
   state.form.canchaId ? getCancha(state.form.canchaId) : null,

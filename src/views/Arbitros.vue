@@ -263,8 +263,13 @@ import {
   disponiblesSabadoCount,
   disponiblesDomingoCount,
   marcarTodosNoDisponibles,
+  loadArbitros,
 } from "../store";
 import ArbitroCard from "../components/ArbitroCard.vue";
+
+onMounted(() => {
+  loadArbitros();
+});
 
 // Filtros locales
 const searchQuery = ref("");

@@ -17,7 +17,7 @@ export const loginUser = async (whatsapp, contrasenia) => {
       state.user = { username: response.username };
       state.isAuthenticated = true;
 
-      router.push("/");
+      router.push("/arbitros");
       return { success: true };
     } else {
       return {

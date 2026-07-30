@@ -177,10 +177,11 @@
         class="btn text-xs"
         :class="{ primary: !arbitros }"
         style="padding: 6px 12px; gap: 6px"
-        @click="$emit('ver-arbitros', designacion)"
-        :disabled="loadingAction"
+        @click="handleVerArbitros"
+        :disabled="loadingAction || loadingArbitros"
       >
-        <i class="ti ti-users"></i>
+        <i v-if="loadingArbitros" class="ti ti-loader spin"></i>
+        <i v-else class="ti ti-users"></i>
         <span>{{ arbitros ? "Ocultar árbitros" : "Ver árbitros" }}</span>
       </button>
 
@@ -416,6 +417,20 @@ const props = defineProps({
 const emit = defineEmits(["ver-arbitros", "action-complete", "deleted"]);
 
 const loadingAction = ref(false);
+const loadingArbitros = ref(false);
+
+const handleVerArbitros = async () => {
+  if (props.arbitros) {
+    emit("ver-arbitros", props.designacion);
+    return;
+  }
+  loadingArbitros.value = true;
+  await new Promise((resolve) => {
+    emit("ver-arbitros", props.designacion, resolve);
+    setTimeout(resolve, 5000);
+  });
+  loadingArbitros.value = false;
+};
 
 const canchaObj = computed(() => {
   const canchaId =

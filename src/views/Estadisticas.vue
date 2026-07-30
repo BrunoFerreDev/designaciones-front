@@ -112,7 +112,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { state, loadArbitros, loadArbitrosNoDisponibles } from "../store";
+import { state, loadArbitros } from "../store";
 import estadisticasService from "../services/estadisticasService";
 import StatsFiltros from "../components/StatsFiltros.vue";
 import StatsResumenGlobal from "../components/StatsResumenGlobal.vue";
@@ -230,13 +230,7 @@ const arbitrosRapidos = computed(() => {
 });
 
 onMounted(() => {
-  if (state.arbitros.length === 0) {
-    loadArbitros();
-  }
-  if (state.arbitrosNoDisponibles.length === 0) {
-    loadArbitrosNoDisponibles();
-  }
-
+  loadArbitros();
   inicializarFechas();
   cargarDatos();
 });

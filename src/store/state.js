@@ -30,6 +30,7 @@ export const state = reactive({
   designacionesArbitros: [],
   toasts: [],
   loadingDesignaciones: false,
+  loading: false,
   modal: null,
   nextCanchaId: 4,
   nextArbId: 9,
