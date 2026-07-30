@@ -41,6 +41,11 @@
             <span>{{ error }}</span>
           </div>
 
+          <div v-if="infoMessage" class="info-alert">
+            <span class="material-symbols-outlined info-icon">info</span>
+            <span>{{ infoMessage }}</span>
+          </div>
+
           <div class="input-group">
             <label for="whatsapp" class="input-label">Número de WhatsApp</label>
             <div class="input-wrapper">
@@ -89,7 +94,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
 import { loginUser } from '../store';
 
 const form = reactive({
@@ -99,7 +104,16 @@ const form = reactive({
 
 const isLoading = ref(false);
 const error = ref('');
+const infoMessage = ref('');
 const showPassword = ref(false);
+
+onMounted(() => {
+  const msg = localStorage.getItem("session_timeout_message");
+  if (msg) {
+    infoMessage.value = msg;
+    localStorage.removeItem("session_timeout_message");
+  }
+});
 
 const handleLogin = async () => {
   error.value = '';
@@ -469,6 +483,24 @@ const handleLogin = async () => {
 
 .error-icon {
   color: #ef4444;
+}
+
+/* Info Alert */
+.info-alert {
+  background-color: #fffbeb; /* amber-50 */
+  border-left: 4px solid #f59e0b; /* amber-500 */
+  color: #b45309; /* amber-700 */
+  font-size: 0.875rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0 0.75rem 0.75rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.info-icon {
+  color: #f59e0b;
 }
 
 @keyframes shake {

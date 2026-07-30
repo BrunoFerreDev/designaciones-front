@@ -12,6 +12,7 @@ export const loginUser = async (whatsapp, contrasenia) => {
         "user",
         JSON.stringify({ username: response.username }),
       );
+      localStorage.setItem("session_start_time", Date.now().toString());
 
       state.token = response.jwt;
       state.user = { username: response.username };
@@ -43,6 +44,7 @@ export const logoutUser = async () => {
   } finally {
     localStorage.removeItem("jwt_token");
     localStorage.removeItem("user");
+    localStorage.removeItem("session_start_time");
 
     state.token = null;
     state.user = null;

@@ -49,12 +49,13 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import {
     state,
     closeModal,
     removeToast,
+    logoutUser,
 } from "./store";
 import Sidebar from "./components/Sidebar.vue";
 import Modal from "./components/Modal.vue";
@@ -83,7 +84,43 @@ const getToastIcon = (type) => {
     }
 };
 
+let sessionInterval = null;
 
+onMounted(() => {
+    // Inicializar session_start_time si el usuario ya está autenticado pero falta el timestamp
+    if (state.isAuthenticated && !localStorage.getItem("session_start_time")) {
+        localStorage.setItem("session_start_time", Date.now().toString());
+    }
+
+    // Monitorear expiración de sesión cada 10 segundos
+    sessionInterval = setInterval(() => {
+        if (state.isAuthenticated) {
+            const startTimeStr = localStorage.getItem("session_start_time");
+            if (startTimeStr) {
+                const startTime = parseInt(startTimeStr, 10);
+                const elapsed = Date.now() - startTime;
+                const timeoutLimit = 1.5 * 60 * 60 * 1000; // 1.5 horas en milisegundos
+
+                if (elapsed >= timeoutLimit) {
+                    // Guardar mensaje de advertencia para mostrar en la pantalla de login
+                    localStorage.setItem(
+                        "session_timeout_message",
+                        "Tu sesión ha expirado automáticamente después de 1.5 horas por seguridad."
+                    );
+                    logoutUser();
+                }
+            } else {
+                localStorage.setItem("session_start_time", Date.now().toString());
+            }
+        }
+    }, 10000);
+});
+
+onUnmounted(() => {
+    if (sessionInterval) {
+        clearInterval(sessionInterval);
+    }
+});
 </script>
 
 <style>
