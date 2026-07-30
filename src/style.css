@@ -671,12 +671,27 @@ select.form-input {
   cursor: pointer;
   color: var(--color-text-secondary);
   transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .tab-btn.active {
   background: var(--color-background-primary);
   color: var(--color-text-primary);
   font-weight: 500;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 640px) {
+  .tab-row {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .tab-btn {
+    flex: 1 1 calc(50% - 4px);
+    font-size: 12px;
+    padding: 8px 6px;
+  }
 }
 
 .partido-add-row {
