@@ -502,7 +502,7 @@ const loadAvailable = async () => {
   try {
     await loadArbitros();
     availableReferees.value = state.arbitros.filter(
-      (a) => a && a.disponibleSabado || a.disponibleDomingo ,
+      (a) => a && (a.disponibleSabado || a.disponibleDomingo) && a.estadoSistema !== false,
     );
   } catch (error) {
     console.error("Error cargando árbitros disponibles:", error);

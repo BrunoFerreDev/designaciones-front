@@ -140,7 +140,26 @@
         </div>
       </div>
 
-      <div class="grid-2">
+      <!-- Pestañas de Navegación -->
+      <div class="tab-row" style="margin-bottom: 1.5rem;">
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'disponibilidad' }"
+          @click="activeTab = 'disponibilidad'"
+        >
+          <i class="ti ti-calendar-time" style="margin-right: 6px;"></i>Por disponibilidad
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'todos' }"
+          @click="activeTab = 'todos'"
+        >
+          <i class="ti ti-users" style="margin-right: 6px;"></i>Todos los árbitros
+        </button>
+      </div>
+
+      <!-- Vista 1: Por Disponibilidad -->
+      <div v-if="activeTab === 'disponibilidad'" class="grid-2">
         <!-- Columna: Disponibles -->
         <div class="card">
           <div
@@ -249,6 +268,117 @@
           </div>
         </div>
       </div>
+
+      <!-- Vista 2: Todos los Árbitros (diferenciados por estadoSistema) -->
+      <div v-else-if="activeTab === 'todos'" class="grid-2">
+        <!-- Columna: Habilitados en el Sistema -->
+        <div class="card">
+          <div
+            class="card-header"
+            style="
+              border-bottom: 0.5px solid var(--color-border-tertiary);
+              padding-bottom: 12px;
+              margin-bottom: 16px;
+            "
+          >
+            <div>
+              <div
+                class="card-title"
+                style="display: flex; align-items: center; gap: 8px"
+              >
+                <i
+                  class="ti ti-circle-check"
+                  style="color: #0f6e56; font-size: 18px"
+                ></i>
+                Habilitados en el Sistema
+              </div>
+              <div class="card-sub">
+                Árbitros activos dentro del sistema de designaciones
+              </div>
+            </div>
+            <span class="badge badge-green">{{ todosEnSistema.length }}</span>
+          </div>
+
+          <div
+            v-if="todosEnSistema.length === 0"
+            class="empty-state"
+            style="padding: 2.5rem 1rem"
+          >
+            <i
+              class="ti ti-mood-empty"
+              style="
+                font-size: 32px;
+                display: block;
+                margin-bottom: 10px;
+                color: var(--color-text-secondary);
+              "
+            ></i>
+            Ningún árbitro habilitado coincide con los filtros
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <ArbitroCard
+              v-for="a in todosEnSistema"
+              :key="a.idArbitro"
+              :arbitro="a"
+            />
+          </div>
+        </div>
+
+        <!-- Columna: Fuera de Sistema -->
+        <div class="card">
+          <div
+            class="card-header"
+            style="
+              border-bottom: 0.5px solid var(--color-border-tertiary);
+              padding-bottom: 12px;
+              margin-bottom: 16px;
+            "
+          >
+            <div>
+              <div
+                class="card-title"
+                style="display: flex; align-items: center; gap: 8px"
+              >
+                <i
+                  class="ti ti-circle-x"
+                  style="color: #993c1d; font-size: 18px"
+                ></i>
+                Inactivos / Fuera del Sistema
+              </div>
+              <div class="card-sub">
+                Árbitros excluidos temporal o permanentemente del sistema
+              </div>
+            </div>
+            <span class="badge badge-red">{{ todosFueraSistema.length }}</span>
+          </div>
+
+          <div
+            v-if="todosFueraSistema.length === 0"
+            class="empty-state"
+            style="padding: 2.5rem 1rem"
+          >
+            <i
+              class="ti ti-mood-smile"
+              style="
+                font-size: 32px;
+                display: block;
+                margin-bottom: 10px;
+                color: var(--color-text-secondary);
+              "
+            ></i>
+            Ningún árbitro inactivo coincide con los filtros
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <ArbitroCard
+              v-for="a in todosFueraSistema"
+              :key="a.idArbitro"
+              :arbitro="a"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -272,6 +402,7 @@ onMounted(() => {
 });
 
 // Filtros locales
+const activeTab = ref("disponibilidad");
 const searchQuery = ref("");
 const filterCategory = ref("");
 const sortDirection = ref("asc");
@@ -315,7 +446,7 @@ const toggleSortDirection = () => {
   sortDirection.value = sortDirection.value === "asc" ? "desc" : "asc";
 };
 
-// Lista filtrada de árbitros
+// Lista filtrada de árbitros (disponibles)
 const filteredArbitros = computed(() => {
   const filtered = state.arbitros.filter((a) => {
     // Buscar coincidencia en nombre o apellido
@@ -328,7 +459,10 @@ const filteredArbitros = computed(() => {
     const coincideCategoria =
       !filterCategory.value || a.categoria === filterCategory.value;
 
-    return coincideBusqueda && coincideCategoria;
+    // Solo los activos en el sistema
+    const coincideEstadoSistema = a.estadoSistema !== false;
+
+    return coincideBusqueda && coincideCategoria && coincideEstadoSistema;
   });
   return sortRefereesByDirection(filtered);
 });
@@ -348,10 +482,51 @@ const noDisponibles = computed(() => {
     const coincideCategoria =
       !filterCategory.value || a.categoria === filterCategory.value;
 
+    // Solo los activos en el sistema
+    const coincideEstadoSistema = a.estadoSistema !== false;
+
+    return coincideBusqueda && coincideCategoria && coincideEstadoSistema;
+  });
+  return sortRefereesByDirection(filtered);
+});
+
+// Lista de todos los árbitros sin importar disponibilidad
+const filteredTodos = computed(() => {
+  const allList = [
+    ...state.arbitros,
+    ...(state.arbitrosNoDisponibles || []),
+  ];
+  // Eliminar duplicados por idArbitro por si acaso
+  const uniqueList = [];
+  const seenIds = new Set();
+  for (const a of allList) {
+    if (a && a.idArbitro && !seenIds.has(a.idArbitro)) {
+      seenIds.add(a.idArbitro);
+      uniqueList.push(a);
+    }
+  }
+
+  const filtered = uniqueList.filter((a) => {
+    const nombreCompleto =
+      `${a.nombre || ""} ${a.apellido || ""}`.toLowerCase();
+    const query = searchQuery.value.toLowerCase().trim();
+    const coincideBusqueda = !query || nombreCompleto.includes(query);
+
+    const coincideCategoria =
+      !filterCategory.value || a.categoria === filterCategory.value;
+
     return coincideBusqueda && coincideCategoria;
   });
   return sortRefereesByDirection(filtered);
 });
+
+const todosEnSistema = computed(() =>
+  filteredTodos.value.filter((a) => a.estadoSistema !== false)
+);
+
+const todosFueraSistema = computed(() =>
+  filteredTodos.value.filter((a) => a.estadoSistema === false)
+);
 
 // Cantidad real disponible / no disponible en toda la base de datos (para las estadísticas principales)
 const activeDispCount = computed(

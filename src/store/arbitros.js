@@ -15,6 +15,7 @@ export const saveArbitro = () => {
     categoria,
     talleCamiseta,
     talleShort,
+    estadoSistema,
   } = state.form;
   if (!nombre || !apellido) {
     addToast("Ingresá nombre y apellido.", "error");
@@ -32,6 +33,7 @@ export const saveArbitro = () => {
     categoria: categoria || "INCIAL",
     talleCamiseta: talleCamiseta || "M",
     talleShort: talleShort || "M",
+    estadoSistema: estadoSistema !== undefined ? estadoSistema : true,
   };
 
   const isEdit = !!idArbitro;
@@ -118,6 +120,11 @@ export const updateArbitroDisponibilidad = (id, key) => {
   const a = getArbitro(id);
   if (!a) return Promise.reject("Árbitro no encontrado");
 
+  if (a.estadoSistema === false) {
+    addToast("No se puede modificar la disponibilidad de un árbitro fuera del sistema.", "error");
+    return Promise.reject("Árbitro fuera del sistema");
+  }
+
   const updatedValue = !a[key];
   const dto = {
     estado:
@@ -182,6 +189,41 @@ export const marcarTodosNoDisponibles = () => {
         a.estado = false;
       });
       addToast("Todos los árbitros marcados como no disponibles localmente.");
+    });
+};
+
+export const toggleEstadoSistema = (id) => {
+  const a = getArbitro(id);
+  if (!a) return Promise.reject("Árbitro no encontrado");
+
+  const currentVal = a.estadoSistema !== false;
+  const updatedValue = !currentVal;
+
+  const dto = {
+    nombre: a.nombre,
+    apellido: a.apellido,
+    rol: a.rol || "Árbitro Principal",
+    whatsapp: a.whatsapp || "",
+    estado: a.estado !== undefined ? a.estado : true,
+    disponibleSabado: a.disponibleSabado !== undefined ? a.disponibleSabado : true,
+    disponibleDomingo: a.disponibleDomingo !== undefined ? a.disponibleDomingo : true,
+    categoria: a.categoria || "INCIAL",
+    talleCamiseta: a.talleCamiseta || "M",
+    talleShort: a.talleShort || "M",
+    estadoSistema: updatedValue,
+  };
+
+  return arbitroService
+    .updateArbitro(id, dto)
+    .then((updated) => {
+      Object.assign(a, { ...dto, ...(updated || {}) });
+      addToast("Estado en sistema actualizado.");
+      loadArbitros();
+    })
+    .catch((err) => {
+      console.warn("updateArbitro failed, updating locally", err);
+      a.estadoSistema = updatedValue;
+      addToast("Estado en sistema actualizado localmente.");
     });
 };
 

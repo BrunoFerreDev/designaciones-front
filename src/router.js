@@ -8,12 +8,19 @@ import BuscarDesignaciones from './views/BuscarDesignaciones.vue';
 import DesignacionesViejas from './views/DesignacionesViejas.vue';
 import Estadisticas from './views/Estadisticas.vue';
 import Login from './views/Login.vue';
+import Notifications from './views/Notifications.vue';
 
 const routes = [
   {
     path: '/login',
     name: 'login',
     component: Login
+  },
+  {
+    path: '/notificaciones',
+    name: 'notificaciones',
+    component: Notifications,
+    meta: { requiresAuth: true }
   },
   {
     path: '/',

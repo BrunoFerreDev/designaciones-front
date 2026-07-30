@@ -445,7 +445,7 @@ const loadAvailable = async () => {
     if (!state.arbitros || state.arbitros.length === 0) {
       await loadArbitros();
     }
-    availableReferees.value = state.arbitros;
+    availableReferees.value = state.arbitros.filter((a) => a && a.estadoSistema !== false);
   } catch (error) {
     console.error("Error cargando árbitros disponibles:", error);
   } finally {

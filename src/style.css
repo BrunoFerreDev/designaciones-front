@@ -103,6 +103,122 @@ body {
   font-size: 16px;
 }
 
+.badge-notification {
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 12px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  line-height: 1;
+  animation: badgeBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes badgeBounce {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* SIDEBAR TEMPORARY NOTIFICATIONS */
+.sidebar-temp-notifications {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0.5rem 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sidebar-temp-notif-card {
+  background: #ffffff;
+  border-left: 3px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+  animation: sidebarTempNotifSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.sidebar-temp-notif-card:hover {
+  box-shadow: 0 6px 8px -1px rgba(0, 0, 0, 0.08), 0 3px 6px -1px rgba(0, 0, 0, 0.04);
+}
+
+.sidebar-temp-notif-card.notif-success {
+  border-left-color: #10b981;
+}
+.sidebar-temp-notif-card.notif-info {
+  border-left-color: #3b82f6;
+}
+.sidebar-temp-notif-card.notif-warning {
+  border-left-color: #f59e0b;
+}
+.sidebar-temp-notif-card.notif-error {
+  border-left-color: #ef4444;
+}
+
+.sidebar-temp-notif-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 3px;
+}
+
+.sidebar-temp-notif-header i {
+  font-size: 13px;
+}
+
+.sidebar-temp-notif-card.notif-success .sidebar-temp-notif-header i {
+  color: #10b981;
+}
+.sidebar-temp-notif-card.notif-info .sidebar-temp-notif-header i {
+  color: #3b82f6;
+}
+.sidebar-temp-notif-card.notif-warning .sidebar-temp-notif-header i {
+  color: #f59e0b;
+}
+.sidebar-temp-notif-card.notif-error .sidebar-temp-notif-header i {
+  color: #ef4444;
+}
+
+.sidebar-temp-notif-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-temp-notif-body {
+  margin: 0;
+  word-break: break-word;
+  color: var(--color-text-secondary);
+}
+
+@keyframes sidebarTempNotifSlideIn {
+  from {
+    transform: translateY(15px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 /* TOPBAR */
 .topbar {
   padding: 0.75rem 1rem;

@@ -19,7 +19,33 @@
       >
         <i :class="['ti', nav.icon]" aria-hidden="true"></i>
         <span>{{ nav.label }}</span>
+        <span
+          v-if="nav.id === 'notificaciones' && unreadNotificationsCount > 0"
+          class="badge-notification"
+        >
+          {{ unreadNotificationsCount }}
+        </span>
       </router-link>
+    </div>
+
+    <!-- Temporary Notification Alert Box -->
+    <div
+      v-if="state.sidebarNotifications && state.sidebarNotifications.length > 0"
+      class="sidebar-temp-notifications"
+    >
+      <div
+        v-for="notif in state.sidebarNotifications"
+        :key="notif.id"
+        :class="['sidebar-temp-notif-card', `notif-${notif.type}`]"
+      >
+        <div class="sidebar-temp-notif-header">
+          <i :class="['ti', getNotifIcon(notif.type)]"></i>
+          <span class="sidebar-temp-notif-title">Notificación</span>
+        </div>
+        <div class="sidebar-temp-notif-body">
+          {{ notif.message }}
+        </div>
+      </div>
     </div>
 
     <div class="mt-auto pt-4 border-t border-gray-200">
@@ -32,7 +58,7 @@
 </template>
 
 <script setup>
-import { logoutUser } from '../store';
+import { logoutUser, unreadNotificationsCount, state } from '../store';
 
 const props = defineProps({
   isOpen: {
@@ -48,6 +74,7 @@ const navItems = [
   { id: "canchas", path: "/canchas", icon: "ti-map-pin", label: "Canchas" },
   { id: "suspensiones", path: "/suspensiones", icon: "ti-ban", label: "Suspensiones" },
   { id: "designaciones", path: "/designaciones", icon: "ti-clipboard-list", label: "Designaciones" },
+  { id: "notificaciones", path: "/notificaciones", icon: "ti-bell", label: "Notificaciones" },
   { id: "buscar", path: "/buscar", icon: "ti-search", label: "Buscador" },
   { id: "estadisticas", path: "/estadisticas", icon: "ti-chart-bar", label: "Estadísticas" },
   { id: "historico", path: "/designaciones-viejas", icon: "ti-history", label: "Historial" },
@@ -56,6 +83,20 @@ const navItems = [
 const handleLogout = async () => {
   emit("close");
   await logoutUser();
+};
+
+const getNotifIcon = (type) => {
+  switch (type) {
+    case "success":
+      return "ti-circle-check";
+    case "warning":
+      return "ti-alert-triangle";
+    case "error":
+      return "ti-circle-x";
+    case "info":
+    default:
+      return "ti-info-circle";
+  }
 };
 </script>
 

@@ -33,6 +33,7 @@ export const openModal = (type, id = null, data = null) => {
       estado: true,
       disponibleSabado: true,
       disponibleDomingo: true,
+      estadoSistema: true,
       nombre: "",
       apellido: "",
       whatsapp: "",

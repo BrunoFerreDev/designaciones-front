@@ -43,4 +43,6 @@ export const state = reactive({
   isAuthenticated: !!localStorage.getItem("jwt_token"),
   user: JSON.parse(localStorage.getItem("user")) || null,
   token: localStorage.getItem("jwt_token") || null,
+  notifications: JSON.parse(localStorage.getItem("notifications") || "[]"),
+  sidebarNotifications: [],
 });

@@ -13,7 +13,7 @@ import designacionService from "../../services/designacionService";
 import { reloadAllDesignaciones } from "./loader";
 
 export const saveDesignacion = () => {
-  const { canchaId, fecha, cantidadPartidos, etapaCampeonato } = state.form;
+  const { canchaId, fecha, cantidadPartidos, etapaCampeonato, detalle, editable, estadoDesignacion } = state.form;
   const c = getCancha(canchaId);
   if (!c || !fecha || !cantidadPartidos) {
     addToast("Completá cancha, fecha y cantidad de partidos.", "error");
@@ -30,6 +30,9 @@ export const saveDesignacion = () => {
     fecha: formattedFecha,
     cantidadPartidos,
     etapaCampeonato: etapaCampeonato || "FECHA_NORMAL",
+    detalle: detalle || "",
+    editable: editable !== undefined ? editable : true,
+    estadoDesignacion: estadoDesignacion !== undefined ? estadoDesignacion : 0,
   };
 
   return designacionService
@@ -812,6 +815,9 @@ export const clonarDesignaciones = async (designaciones) => {
       fecha: newFecha,
       cantidadPartidos: d.cantidadPartidos,
       etapaCampeonato: d.etapaCampeonato || "FECHA_NORMAL",
+      detalle: d.detalle || "",
+      editable: d.editable !== undefined ? d.editable : true,
+      estadoDesignacion: d.estadoDesignacion !== undefined ? d.estadoDesignacion : 0,
     };
 
     return designacionService.createDesignacion(dto);

@@ -266,6 +266,9 @@ const registrarDesignaciones = async () => {
           fecha: formattedFecha,
           cantidadPartidos: config.cantidadPartidos || 1,
           etapaCampeonato: config.etapaCampeonato || "FECHA_NORMAL",
+          detalle: "",
+          editable: true,
+          estadoDesignacion: 0,
         };
 
         promises.push(designacionService.createDesignacion(dto));

@@ -76,21 +76,29 @@
 
     <div class="form-group">
       <label class="form-label">Estado</label>
-      <label class="checkbox-label">
-        <input v-model="state.form.estado" type="checkbox" />
+      <label class="checkbox-label" :style="{ opacity: state.form.estadoSistema === false ? 0.6 : 1, cursor: state.form.estadoSistema === false ? 'not-allowed' : 'pointer' }">
+        <input v-model="state.form.estado" type="checkbox" :disabled="state.form.estadoSistema === false" />
         Activo (Disponible para designación)
+      </label>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Estado en el Sistema</label>
+      <label class="checkbox-label" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+        <input v-model="state.form.estadoSistema" type="checkbox" />
+        Habilitado en el sistema (aparece en listados activos)
       </label>
     </div>
 
     <div class="form-group">
       <label class="form-label">Disponibilidad por Día</label>
       <div style="display: flex; gap: 20px; align-items: center; margin-top: 6px;">
-        <label class="checkbox-label" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-          <input v-model="state.form.disponibleSabado" type="checkbox" />
+        <label class="checkbox-label" style="display: flex; align-items: center; gap: 6px;" :style="{ opacity: state.form.estadoSistema === false ? 0.6 : 1, cursor: state.form.estadoSistema === false ? 'not-allowed' : 'pointer' }">
+          <input v-model="state.form.disponibleSabado" type="checkbox" :disabled="state.form.estadoSistema === false" />
           Sábado
         </label>
-        <label class="checkbox-label" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-          <input v-model="state.form.disponibleDomingo" type="checkbox" />
+        <label class="checkbox-label" style="display: flex; align-items: center; gap: 6px;" :style="{ opacity: state.form.estadoSistema === false ? 0.6 : 1, cursor: state.form.estadoSistema === false ? 'not-allowed' : 'pointer' }">
+          <input v-model="state.form.disponibleDomingo" type="checkbox" :disabled="state.form.estadoSistema === false" />
           Domingo
         </label>
       </div>

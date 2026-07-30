@@ -9,18 +9,26 @@ export const getArbitro = (id) =>
 
 export const disponiblesCount = computed(
   () =>
-    state.arbitros.filter((a) => a.disponibleSabado || a.disponibleDomingo)
-      .length,
+    state.arbitros.filter(
+      (a) => (a.disponibleSabado || a.disponibleDomingo) && a.estadoSistema !== false
+    ).length,
 );
 export const noDisponiblesCount = computed(
-  () => (state.arbitrosNoDisponibles || []).length,
+  () =>
+    (state.arbitrosNoDisponibles || []).filter((a) => a.estadoSistema !== false)
+      .length,
 );
 export const disponiblesSabadoCount = computed(
-  () => state.arbitros.filter((a) => a.disponibleSabado).length,
+  () =>
+    state.arbitros.filter((a) => a.disponibleSabado && a.estadoSistema !== false)
+      .length,
 );
 
 export const disponiblesDomingoCount = computed(
-  () => state.arbitros.filter((a) => a.disponibleDomingo).length,
+  () =>
+    state.arbitros.filter(
+      (a) => a.disponibleDomingo && a.estadoSistema !== false
+    ).length,
 );
 
 export const calcStatus = (partidos) => {

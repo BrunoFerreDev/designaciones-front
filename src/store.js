@@ -6,3 +6,4 @@ export * from "./store/arbitros";
 export * from "./store/suspensiones";
 export * from "./store/designaciones";
 export * from "./store/auth";
+export * from "./store/notifications";

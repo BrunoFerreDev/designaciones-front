@@ -97,6 +97,28 @@
     <div
       class="arb-list-actions mt-3 flex items-center justify-end gap-2 flex-wrap"
     >
+      <!-- Habilitar/Deshabilitar Sistema -->
+      <button
+        class="btn"
+        @click="toggleEstadoSistema(arbitro.idArbitro)"
+        style="padding: 6px 10px; font-size: 12px"
+        :style="{
+          borderColor: arbitro.estadoSistema !== false ? '#bbf7d0' : '#fecaca',
+          background: arbitro.estadoSistema !== false ? '#f0fdf4' : '#fef2f2',
+          color: arbitro.estadoSistema !== false ? '#15803d' : '#b91c1c',
+        }"
+        :title="arbitro.estadoSistema !== false ? 'Desactivar del sistema' : 'Activar en sistema'"
+      >
+        <i
+          :class="
+            arbitro.estadoSistema !== false
+              ? 'ti ti-circle-check text-emerald-600'
+              : 'ti ti-circle-x text-rose-600'
+          "
+        ></i>
+        <span>{{ arbitro.estadoSistema !== false ? "En Sistema" : "Fuera de Sist." }}</span>
+      </button>
+
       <button
         class="btn"
         @click="openModal('editArbitro', arbitro.idArbitro)"
@@ -116,6 +138,7 @@
       <!-- Disponibilidad Sábado -->
       <button
         class="btn"
+        :disabled="arbitro.estadoSistema === false"
         @click="
           updateArbitroDisponibilidad(arbitro.idArbitro, 'disponibleSabado')
         "
@@ -124,8 +147,10 @@
           borderColor: arbitro.disponibleSabado ? '#bcd1e6' : '#e2e8f0',
           background: arbitro.disponibleSabado ? '#f0f7ff' : '#f8fafc',
           color: arbitro.disponibleSabado ? '#185fa5' : '#64748b',
+          opacity: arbitro.estadoSistema === false ? 0.5 : 1,
+          cursor: arbitro.estadoSistema === false ? 'not-allowed' : 'pointer',
         }"
-        title="Disponibilidad Sábado"
+        :title="arbitro.estadoSistema === false ? 'Árbitro fuera del sistema' : 'Disponibilidad Sábado'"
       >
         <i
           :class="
@@ -140,6 +165,7 @@
       <!-- Disponibilidad Domingo -->
       <button
         class="btn"
+        :disabled="arbitro.estadoSistema === false"
         @click="
           updateArbitroDisponibilidad(arbitro.idArbitro, 'disponibleDomingo')
         "
@@ -148,8 +174,10 @@
           borderColor: arbitro.disponibleDomingo ? '#e9d5ff' : '#e2e8f0',
           background: arbitro.disponibleDomingo ? '#faf5ff' : '#f8fafc',
           color: arbitro.disponibleDomingo ? '#7e22ce' : '#64748b',
+          opacity: arbitro.estadoSistema === false ? 0.5 : 1,
+          cursor: arbitro.estadoSistema === false ? 'not-allowed' : 'pointer',
         }"
-        title="Disponibilidad Domingo"
+        :title="arbitro.estadoSistema === false ? 'Árbitro fuera del sistema' : 'Disponibilidad Domingo'"
       >
         <i
           :class="
@@ -195,6 +223,7 @@ import {
   openModal,
   updateArbitroDisponibilidad,
   deleteArbitro,
+  toggleEstadoSistema,
 } from "../store";
 
 const props = defineProps({

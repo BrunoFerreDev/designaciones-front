@@ -56,6 +56,8 @@ import {
     closeModal,
     removeToast,
     logoutUser,
+    connectNotifications,
+    disconnectNotifications,
 } from "./store";
 import Sidebar from "./components/Sidebar.vue";
 import Modal from "./components/Modal.vue";
@@ -92,6 +94,10 @@ onMounted(() => {
         localStorage.setItem("session_start_time", Date.now().toString());
     }
 
+    if (state.isAuthenticated) {
+        connectNotifications();
+    }
+
     // Monitorear expiración de sesión cada 10 segundos
     sessionInterval = setInterval(() => {
         if (state.isAuthenticated) {
@@ -120,6 +126,7 @@ onUnmounted(() => {
     if (sessionInterval) {
         clearInterval(sessionInterval);
     }
+    disconnectNotifications();
 });
 </script>
 
