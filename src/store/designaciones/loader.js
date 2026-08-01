@@ -1,5 +1,5 @@
 import { state } from "../state";
-import { sortDesignaciones, updateRefereesLastDesignationId } from "../helpers";
+import { sortDesignaciones } from "../helpers";
 import designacionService from "../../services/designacionService";
 
 export const clearCache = () => {
@@ -42,18 +42,8 @@ const processAndCacheDesignaciones = async (list) => {
       }
     } else {
       if (!isMutable) {
-        // Check if there are referees in state with ultimaDesignacion === id
-        const matched = [...state.arbitros, ...(state.arbitrosNoDisponibles || [])]
-          .filter((a) => a && Number(a.ultimaDesignacion) === Number(id))
-          .map((a) => ({
-            idDesignados: `local-${a.idArbitro}-${id}`,
-            arbitro: a,
-            partidosDirigidos: a.designaciones || 0
-          }));
-        
-        if (matched.length > 0) {
-          state.arbitrosDesignadosMap[id] = matched;
-          d.arbitrosDesignados = matched;
+        if (state.arbitrosDesignadosMap[id] && state.arbitrosDesignadosMap[id].length > 0) {
+          d.arbitrosDesignados = state.arbitrosDesignadosMap[id];
         } else {
           const refs = await loadArbitrosDesignados(id);
           state.arbitrosDesignadosMap[id] = refs;
@@ -62,7 +52,6 @@ const processAndCacheDesignaciones = async (list) => {
       }
     }
   }
-  updateRefereesLastDesignationId();
 };
 
 export const loadDesignacionesIncompletas = async (page = 0, size = 30, config = {}) => {
@@ -80,7 +69,6 @@ export const loadDesignacionesIncompletas = async (page = 0, size = 30, config =
           state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
         }
       });
-      updateRefereesLastDesignationId();
       return;
     } catch (e) {
       console.warn("Failed to load cached designaciones incompletas", e);
@@ -118,7 +106,6 @@ export const loadDesignacionesCanceladas = async (page = 0, size = 30, config = 
           state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
         }
       });
-      updateRefereesLastDesignationId();
       return;
     } catch (e) {
       console.warn("Failed to load cached designaciones canceladas", e);
@@ -156,7 +143,6 @@ export const loadDesignacionesCompletas = async (page = 0, size = 30, config = {
           state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
         }
       });
-      updateRefereesLastDesignationId();
       return;
     } catch (e) {
       console.warn("Failed to load cached designaciones completas", e);
@@ -193,7 +179,6 @@ export const loadDesignacionesFinalizadas = async (page = 0, size = 30, config =
           state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
         }
       });
-      updateRefereesLastDesignationId();
       return;
     } catch (e) {
       console.warn("Failed to load cached designaciones finalizadas", e);
@@ -280,7 +265,6 @@ export const ultimasDesignaciones = async (config = {}) => {
       state.designaciones = sortDesignaciones(completas);
       state.designacionesCanceladas = sortDesignaciones(canceladas);
       state.designacionesFinalizadas = sortDesignaciones(finalizadas);
-      updateRefereesLastDesignationId();
       return;
     } catch (e) {
       console.warn("Failed to load cached ultimas designaciones", e);
@@ -336,17 +320,8 @@ export const ultimasDesignaciones = async (config = {}) => {
           }
         } else {
           if (!isMutable) {
-            const matched = [...state.arbitros, ...(state.arbitrosNoDisponibles || [])]
-              .filter((a) => a && Number(a.ultimaDesignacion) === Number(id))
-              .map((a) => ({
-                idDesignados: `local-${a.idArbitro}-${id}`,
-                arbitro: a,
-                partidosDirigidos: a.designaciones || 0
-              }));
-            
-            if (matched.length > 0) {
-              state.arbitrosDesignadosMap[id] = matched;
-              d.arbitrosDesignados = matched;
+            if (state.arbitrosDesignadosMap[id] && state.arbitrosDesignadosMap[id].length > 0) {
+              d.arbitrosDesignados = state.arbitrosDesignadosMap[id];
             } else {
               const refs = await loadArbitrosDesignados(id);
               state.arbitrosDesignadosMap[id] = refs;
@@ -362,7 +337,6 @@ export const ultimasDesignaciones = async (config = {}) => {
       state.designaciones = sortDesignaciones(completas);
       state.designacionesCanceladas = sortDesignaciones(canceladas);
       state.designacionesFinalizadas = sortDesignaciones(finalizadas);
-      updateRefereesLastDesignationId();
     } else {
       await reloadAllDesignaciones(config);
     }

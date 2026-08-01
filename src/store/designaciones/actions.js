@@ -376,11 +376,6 @@ export const quitarArbitroDeDesignacionManual = async (
         (asg) => (asg.arbitro?.idArbitro || asg.idArbitro) !== idArbitro
       );
     }
-    const arb = state.arbitros.find((a) => a.idArbitro === idArbitro) ||
-                (state.arbitrosNoDisponibles || []).find((a) => a.idArbitro === idArbitro);
-    if (arb && arb.ultimaDesignacion === idDesignacion) {
-      arb.ultimaDesignacion = null;
-    }
     updateDesignacionStateLocal(idDesignacion);
     await loadArbitrosDesignados(idDesignacion, true);
     await refetchAll();
@@ -540,8 +535,6 @@ export const asignarArbitroADesignacionManual = async (
       arbitro: arb,
       partidosDirigidos: arb.designaciones || 0,
     });
-
-    arb.ultimaDesignacion = idDesignacion;
 
     updateDesignacionStateLocal(idDesignacion);
     await loadArbitrosDesignados(idDesignacion, true);

@@ -249,7 +249,9 @@ const generateMessage = () => {
       }\n`
 
       // Árbitros designados
-      if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
+      const id = d.idDesignacion || d.id;
+      const assigned = state.arbitrosDesignadosMap[id] || d.arbitrosDesignados || d.arbitros || [];
+      if (assigned && assigned.length > 0) {
         const ORDER_CAT = {
           AVANZADO: 1,
           INTERMEDIO: 2,
@@ -261,7 +263,7 @@ const generateMessage = () => {
           INCIAL: 8,
           INICIAL: 8
         };
-        const sortedArbs = [...d.arbitrosDesignados].sort((a, b) => {
+        const sortedArbs = [...assigned].sort((a, b) => {
           const nameA = `${a.arbitro?.nombre || ""} ${a.arbitro?.apellido || ""}`.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
           const nameB = `${b.arbitro?.nombre || ""} ${b.arbitro?.apellido || ""}`.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
           if (nameA === "hector mendoza" && nameB === "hector mendoza") return 0;

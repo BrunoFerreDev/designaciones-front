@@ -1,5 +1,5 @@
 import { state } from "./state";
-import { getArbitro, addToast, updateRefereesLastDesignationId } from "./helpers";
+import { getArbitro, addToast } from "./helpers";
 import { closeModal } from "./modal";
 import arbitroService from "../services/arbitroService";
 import { clearCache, reloadAllDesignaciones } from "./designaciones/loader";
@@ -252,7 +252,6 @@ export const loadArbitros = async (page = 0, size = 100, config = { loaderType: 
       const list = JSON.parse(cached);
       state.arbitros = list.filter((a) => a.disponibleSabado || a.disponibleDomingo);
       state.arbitrosNoDisponibles = list.filter((a) => !a.disponibleSabado && !a.disponibleDomingo);
-      updateRefereesLastDesignationId();
       return;
     } catch (e) {
       console.warn("Failed to load cached arbitros", e);
@@ -268,7 +267,6 @@ export const loadArbitros = async (page = 0, size = 100, config = { loaderType: 
 
     state.arbitros = list.filter((a) => a.disponibleSabado || a.disponibleDomingo);
     state.arbitrosNoDisponibles = list.filter((a) => !a.disponibleSabado && !a.disponibleDomingo);
-    updateRefereesLastDesignationId();
   } catch (e) {
     console.warn("Failed to load arbitros", e);
   }

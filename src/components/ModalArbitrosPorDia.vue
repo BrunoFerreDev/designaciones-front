@@ -432,7 +432,7 @@
               </template>
               <template v-else>
                 <span
-                  v-if="arb.tieneSuspencion"
+                  v-if="hasSuspension(arb)"
                   class="badge badge-red"
                   style="
                     font-size: 8px;
@@ -458,7 +458,7 @@
 
           <!-- Mensaje de suspensión activa -->
           <div
-            v-if="activeTab === 'sinDesignar' && arb.tieneSuspencion"
+            v-if="activeTab === 'sinDesignar' && hasSuspension(arb)"
             style="
               padding: 6px 8px;
               border-radius: 4px;
@@ -957,6 +957,32 @@ const currentList = computed(() => {
     return 0;
   });
 });
+
+const hasSuspension = (arb) => {
+  const arbId = arb.idArbitro || arb.id;
+  if (!arbId) return false;
+  
+  return state.suspensiones.some((s) => {
+    let targetArbId = null;
+    if (s.arbitro) {
+      targetArbId = typeof s.arbitro === "object" ? (s.arbitro.idArbitro || s.arbitro.id) : Number(s.arbitro);
+    }
+    if (Number(targetArbId) !== Number(arbId)) return false;
+    
+    if (s.tipoSuspencion !== 2) return false;
+    try {
+      if (s.fechaFin) {
+        return new Date(s.fechaFin) > new Date();
+      }
+      const start = new Date(s.fechaIncidente);
+      const duration = parseInt(s.cantidadDias || 0);
+      const end = new Date(start.getTime() + duration * 24 * 60 * 60 * 1000);
+      return end > new Date();
+    } catch (e) {
+      return false;
+    }
+  });
+};
 </script>
 
 <style scoped>
