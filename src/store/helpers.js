@@ -240,3 +240,39 @@ export const removeToast = (id) => {
   if (!state.toasts) return;
   state.toasts = state.toasts.filter((t) => t.id !== id);
 };
+
+export const updateRefereesLastDesignationId = () => {
+  const allDesignaciones = [
+    ...state.designaciones,
+    ...state.designacionesIncompletas,
+    ...state.designacionesFinalizadas,
+    ...state.designacionesAConfirmar,
+    ...(state.designacionesCanceladas || []),
+  ];
+
+  const sortedDes = [...allDesignaciones].sort((a, b) => {
+    const dateA = a.fecha ? new Date(a.fecha.replace(" ", "T")) : new Date(0);
+    const dateB = b.fecha ? new Date(b.fecha.replace(" ", "T")) : new Date(0);
+    return dateB - dateA;
+  });
+
+  const allArbitros = [...state.arbitros, ...(state.arbitrosNoDisponibles || [])];
+
+  allArbitros.forEach((arb) => {
+    const lastDes = sortedDes.find((d) => {
+      const id = d.idDesignacion || d.id;
+      const assigned = state.arbitrosDesignadosMap[id] || d.arbitrosDesignados || d.arbitros || [];
+      return assigned.some((asg) => {
+        const arbId = asg.arbitro?.idArbitro || asg.idArbitro || asg.id;
+        return Number(arbId) === Number(arb.idArbitro);
+      });
+    });
+
+    if (lastDes) {
+      arb.ultimaDesignacion = lastDes.idDesignacion || lastDes.id;
+    } else {
+      arb.ultimaDesignacion = null;
+    }
+  });
+};
+

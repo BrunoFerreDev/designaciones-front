@@ -327,7 +327,7 @@ const verArbitros = async (d, resolve) => {
     if (typeof resolve === "function") resolve();
   } else {
     try {
-      await loadArbitrosDesignados(idDesignacion, true, { showLoader: false });
+      await loadArbitrosDesignados(idDesignacion, false, { showLoader: false });
     } finally {
       visibleArbitros.value[idDesignacion] = true;
       if (typeof resolve === "function") resolve();

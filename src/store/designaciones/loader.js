@@ -1,6 +1,16 @@
 import { state } from "../state";
-import { sortDesignaciones } from "../helpers";
+import { sortDesignaciones, updateRefereesLastDesignationId } from "../helpers";
 import designacionService from "../../services/designacionService";
+
+export const clearCache = () => {
+  for (let i = sessionStorage.length - 1; i >= 0; i--) {
+    const key = sessionStorage.key(i);
+    if (key && key.startsWith("cached_")) {
+      sessionStorage.removeItem(key);
+    }
+  }
+  state.arbitrosDesignadosMap = {};
+};
 
 export const getMostRecentSaturday = () => {
   const referenceDate = new Date();
@@ -15,31 +25,106 @@ export const getMostRecentSaturday = () => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
-export const loadDesignacionesIncompletas = async (page = 0, size = 30) => {
+const processAndCacheDesignaciones = async (list) => {
+  for (const d of list) {
+    d.estadoDesignacion = parseEstadoNumeric(d.estadoDesignacion !== undefined ? d.estadoDesignacion : d.estado);
+    const id = d.idDesignacion || d.id;
+    const isMutable = d.estadoDesignacion === 0 || d.estadoDesignacion === 1;
+    if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
+      state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
+      if (isMutable) {
+        delete d.arbitrosDesignados;
+      }
+    } else if (d.arbitros && d.arbitros.length > 0) {
+      state.arbitrosDesignadosMap[id] = d.arbitros;
+      if (!isMutable) {
+        d.arbitrosDesignados = d.arbitros;
+      }
+    } else {
+      if (!isMutable) {
+        // Check if there are referees in state with ultimaDesignacion === id
+        const matched = [...state.arbitros, ...(state.arbitrosNoDisponibles || [])]
+          .filter((a) => a && Number(a.ultimaDesignacion) === Number(id))
+          .map((a) => ({
+            idDesignados: `local-${a.idArbitro}-${id}`,
+            arbitro: a,
+            partidosDirigidos: a.designaciones || 0
+          }));
+        
+        if (matched.length > 0) {
+          state.arbitrosDesignadosMap[id] = matched;
+          d.arbitrosDesignados = matched;
+        } else {
+          const refs = await loadArbitrosDesignados(id);
+          state.arbitrosDesignadosMap[id] = refs;
+          d.arbitrosDesignados = refs;
+        }
+      }
+    }
+  }
+  updateRefereesLastDesignationId();
+};
+
+export const loadDesignacionesIncompletas = async (page = 0, size = 30, config = {}) => {
+  const force = config.force === true;
+  const cacheKey = `cached_designaciones_incompletas_${page}_${size}`;
+  const cached = sessionStorage.getItem(cacheKey);
+
+  if (!force && cached) {
+    try {
+      const list = JSON.parse(cached);
+      state.designacionesIncompletas = sortDesignaciones(list);
+      list.forEach((d) => {
+        const id = d.idDesignacion || d.id;
+        if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
+          state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
+        }
+      });
+      updateRefereesLastDesignationId();
+      return;
+    } catch (e) {
+      console.warn("Failed to load cached designaciones incompletas", e);
+    }
+  }
+
   try {
     const res0 = await designacionService.getByEstado(0, page, size);
     let list = Array.isArray(res0) ? res0 : res0.content || res0;
 
     const limitDate = getMostRecentSaturday();
     list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
-    state.designacionesIncompletas = sortDesignaciones(list);
+    
+    await processAndCacheDesignaciones(list);
 
-    list.forEach(async (d) => {
-      d.estadoDesignacion = parseEstadoNumeric(d.estadoDesignacion !== undefined ? d.estadoDesignacion : d.estado);
-      const id = d.idDesignacion || d.id;
-      if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
-        state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
-      } else {
-        const refs = await loadArbitrosDesignados(id);
-        state.arbitrosDesignadosMap[id] = refs;
-      }
-    });
+    sessionStorage.setItem(cacheKey, JSON.stringify(list));
+    state.designacionesIncompletas = sortDesignaciones(list);
   } catch (e) {
     console.warn("Failed to load designaciones incompletas", e);
   }
 };
 
-export const loadDesignacionesCanceladas = async (page = 0, size = 30) => {
+export const loadDesignacionesCanceladas = async (page = 0, size = 30, config = {}) => {
+  const force = config.force === true;
+  const cacheKey = `cached_designaciones_canceladas_${page}_${size}`;
+  const cached = sessionStorage.getItem(cacheKey);
+
+  if (!force && cached) {
+    try {
+      const list = JSON.parse(cached);
+      state.designacionesCanceladas = sortDesignaciones(list);
+      list.forEach((d) => {
+        const id = d.idDesignacion || d.id;
+        if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
+          state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
+        }
+      });
+      updateRefereesLastDesignationId();
+      return;
+    } catch (e) {
+      console.warn("Failed to load cached designaciones canceladas", e);
+    }
+  }
+
   try {
     const res = await designacionService.getByEstado(3, page, size);
     let list = Array.isArray(res) ? res : res.content || res;
@@ -47,80 +132,88 @@ export const loadDesignacionesCanceladas = async (page = 0, size = 30) => {
     const limitDate = getMostRecentSaturday();
     list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
     
-    list.forEach((d) => {
-      d.estadoDesignacion = parseEstadoNumeric(d.estadoDesignacion !== undefined ? d.estadoDesignacion : d.estado);
-    });
+    await processAndCacheDesignaciones(list);
 
+    sessionStorage.setItem(cacheKey, JSON.stringify(list));
     state.designacionesCanceladas = sortDesignaciones(list);
-
-    list.forEach(async (d) => {
-      const id = d.idDesignacion || d.id;
-      if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
-        state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
-      } else {
-        const refs = await loadArbitrosDesignados(id);
-        state.arbitrosDesignadosMap[id] = refs;
-      }
-    });
   } catch (e) {
     console.warn("Failed to load designaciones canceladas", e);
   }
 };
 
-export const loadDesignacionesCompletas = async (page = 0, size = 30) => {
+export const loadDesignacionesCompletas = async (page = 0, size = 30, config = {}) => {
+  const force = config.force === true;
+  const cacheKey = `cached_designaciones_completas_${page}_${size}`;
+  const cached = sessionStorage.getItem(cacheKey);
+
+  if (!force && cached) {
+    try {
+      const list = JSON.parse(cached);
+      state.designaciones = sortDesignaciones(list);
+      list.forEach((d) => {
+        const id = d.idDesignacion || d.id;
+        if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
+          state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
+        }
+      });
+      updateRefereesLastDesignationId();
+      return;
+    } catch (e) {
+      console.warn("Failed to load cached designaciones completas", e);
+    }
+  }
+
   try {
     const res = await designacionService.getByEstado(1, page, size);
     let list = Array.isArray(res) ? res : res.content || res;
     const limitDate = getMostRecentSaturday();
     list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
 
-    list.forEach((d) => {
-      d.estadoDesignacion = parseEstadoNumeric(d.estadoDesignacion !== undefined ? d.estadoDesignacion : d.estado);
-    });
+    await processAndCacheDesignaciones(list);
 
+    sessionStorage.setItem(cacheKey, JSON.stringify(list));
     state.designaciones = sortDesignaciones(list);
-
-    list.forEach(async (d) => {
-      const id = d.idDesignacion || d.id;
-      if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
-        state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
-      } else {
-        const refs = await loadArbitrosDesignados(id);
-        state.arbitrosDesignadosMap[id] = refs;
-      }
-    });
   } catch (e) {
     console.warn("Failed to load designaciones completas", e);
   }
 };
 
-export const loadDesignacionesFinalizadas = async (page = 0, size = 30) => {
+export const loadDesignacionesFinalizadas = async (page = 0, size = 30, config = {}) => {
+  const force = config.force === true;
+  const cacheKey = `cached_designaciones_finalizadas_${page}_${size}`;
+  const cached = sessionStorage.getItem(cacheKey);
+
+  if (!force && cached) {
+    try {
+      const list = JSON.parse(cached);
+      state.designacionesFinalizadas = sortDesignaciones(list);
+      list.forEach((d) => {
+        const id = d.idDesignacion || d.id;
+        if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
+          state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
+        }
+      });
+      updateRefereesLastDesignationId();
+      return;
+    } catch (e) {
+      console.warn("Failed to load cached designaciones finalizadas", e);
+    }
+  }
+
   try {
     const res = await designacionService.getByEstado(2, page, size);
     let list = Array.isArray(res) ? res : res.content || res;
     const limitDate = getMostRecentSaturday();
     list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
 
-    list.forEach((d) => {
-      d.estadoDesignacion = parseEstadoNumeric(d.estadoDesignacion !== undefined ? d.estadoDesignacion : d.estado);
-    });
+    await processAndCacheDesignaciones(list);
 
+    sessionStorage.setItem(cacheKey, JSON.stringify(list));
     state.designacionesFinalizadas = sortDesignaciones(list);
-
-    list.forEach(async (d) => {
-      const id = d.idDesignacion || d.id;
-      if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
-        state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
-      } else {
-        const refs = await loadArbitrosDesignados(id);
-        state.arbitrosDesignadosMap[id] = refs;
-      }
-    });
   } catch (e) {
     console.warn("Failed to load designaciones finalizadas", e);
   }
 };
-
 
 export const loadArbitrosDesignados = async (idDesignacion, force = false, apiConfig = {}) => {
   if (!force && state.arbitrosDesignadosMap[idDesignacion]) {
@@ -149,7 +242,51 @@ const parseEstadoNumeric = (rawState) => {
   return isNaN(num) ? 0 : num;
 };
 
-export const ultimasDesignaciones = async () => {
+export const ultimasDesignaciones = async (config = {}) => {
+  const force = config.force === true;
+  const cacheKey = "cached_ultimas_designaciones";
+  const cached = sessionStorage.getItem(cacheKey);
+
+  if (!force && cached) {
+    try {
+      const data = JSON.parse(cached);
+      state.ultimasDesignaciones = data;
+
+      const incompletas = [];
+      const completas = [];
+      const canceladas = [];
+      const finalizadas = [];
+
+      data.forEach((d) => {
+        const id = d.idDesignacion || d.id;
+        if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
+          state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
+        }
+
+        if (d.estadoDesignacion === 0) {
+          incompletas.push(d);
+        } else if (d.estadoDesignacion === 1) {
+          completas.push(d);
+        } else if (d.estadoDesignacion === 2) {
+          finalizadas.push(d);
+        } else if (d.estadoDesignacion === 3) {
+          canceladas.push(d);
+        } else {
+          incompletas.push(d);
+        }
+      });
+
+      state.designacionesIncompletas = sortDesignaciones(incompletas);
+      state.designaciones = sortDesignaciones(completas);
+      state.designacionesCanceladas = sortDesignaciones(canceladas);
+      state.designacionesFinalizadas = sortDesignaciones(finalizadas);
+      updateRefereesLastDesignationId();
+      return;
+    } catch (e) {
+      console.warn("Failed to load cached ultimas designaciones", e);
+    }
+  }
+
   state.loadingDesignaciones = true;
   try {
     const res = await designacionService.ultimasDesignaciones();
@@ -163,7 +300,7 @@ export const ultimasDesignaciones = async () => {
       const canceladas = [];
       const finalizadas = [];
 
-      data.forEach((d) => {
+      for (const d of data) {
         const rawState = d.estadoDesignacion !== undefined ? d.estadoDesignacion : d.estado;
         const numericState = parseEstadoNumeric(rawState);
         d.estadoDesignacion = numericState;
@@ -185,36 +322,66 @@ export const ultimasDesignaciones = async () => {
         }
 
         const id = d.idDesignacion || d.id;
+        const isMutable = numericState === 0 || numericState === 1;
+
         if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
           state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
+          if (isMutable) {
+            delete d.arbitrosDesignados;
+          }
         } else if (d.arbitros && d.arbitros.length > 0) {
           state.arbitrosDesignadosMap[id] = d.arbitros;
+          if (!isMutable) {
+            d.arbitrosDesignados = d.arbitros;
+          }
+        } else {
+          if (!isMutable) {
+            const matched = [...state.arbitros, ...(state.arbitrosNoDisponibles || [])]
+              .filter((a) => a && Number(a.ultimaDesignacion) === Number(id))
+              .map((a) => ({
+                idDesignados: `local-${a.idArbitro}-${id}`,
+                arbitro: a,
+                partidosDirigidos: a.designaciones || 0
+              }));
+            
+            if (matched.length > 0) {
+              state.arbitrosDesignadosMap[id] = matched;
+              d.arbitrosDesignados = matched;
+            } else {
+              const refs = await loadArbitrosDesignados(id);
+              state.arbitrosDesignadosMap[id] = refs;
+              d.arbitrosDesignados = refs;
+            }
+          }
         }
-      });
+      }
+
+      sessionStorage.setItem(cacheKey, JSON.stringify(data));
 
       state.designacionesIncompletas = sortDesignaciones(incompletas);
       state.designaciones = sortDesignaciones(completas);
       state.designacionesCanceladas = sortDesignaciones(canceladas);
       state.designacionesFinalizadas = sortDesignaciones(finalizadas);
+      updateRefereesLastDesignationId();
     } else {
-      await reloadAllDesignaciones();
+      await reloadAllDesignaciones(config);
     }
   } catch (e) {
     console.warn("Failed to load ultimas designaciones, fallback to reloadAllDesignaciones", e);
-    await reloadAllDesignaciones();
+    await reloadAllDesignaciones(config);
   } finally {
     state.loadingDesignaciones = false;
   }
 };
 
-export const reloadAllDesignaciones = async () => {
+export const reloadAllDesignaciones = async (config = {}) => {
   state.loadingDesignaciones = true;
   try {
     await Promise.all([
-      loadDesignacionesIncompletas(),
-      loadDesignacionesCompletas(),
-      loadDesignacionesCanceladas(),
-      loadDesignacionesFinalizadas(),
+      loadDesignacionesIncompletas(0, 30, config),
+      loadDesignacionesCompletas(0, 30, config),
+      loadDesignacionesCanceladas(0, 30, config),
+      loadDesignacionesFinalizadas(0, 30, config),
     ]);
   } catch (e) {
     console.warn("Failed to reload all designaciones", e);

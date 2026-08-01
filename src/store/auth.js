@@ -48,9 +48,15 @@ export const logoutUser = async () => {
   } finally {
     disconnectNotifications();
 
-    localStorage.removeItem("jwt_token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("session_start_time");
+    // Preserve session timeout message if it exists
+    const timeoutMsg = localStorage.getItem("session_timeout_message");
+
+    localStorage.clear();
+    sessionStorage.clear();
+
+    if (timeoutMsg) {
+      localStorage.setItem("session_timeout_message", timeoutMsg);
+    }
 
     state.token = null;
     state.user = null;

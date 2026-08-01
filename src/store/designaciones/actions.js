@@ -10,7 +10,16 @@ import {
 import { closeModal } from "../modal";
 import { loadArbitros } from "../arbitros";
 import designacionService from "../../services/designacionService";
-import { reloadAllDesignaciones } from "./loader";
+import { reloadAllDesignaciones, clearCache, loadArbitrosDesignados } from "./loader";
+
+const refetchAll = async () => {
+  clearCache();
+  await Promise.all([
+    loadArbitros(0, 100, { force: true }),
+    reloadAllDesignaciones({ force: true })
+  ]);
+};
+
 
 export const saveDesignacion = () => {
   const { canchaId, fecha, cantidadPartidos, etapaCampeonato, detalle, editable, estadoDesignacion } = state.form;
@@ -39,7 +48,7 @@ export const saveDesignacion = () => {
     .createDesignacion(dto)
     .then(() => {
       addToast("Designación creada con éxito.");
-      reloadAllDesignaciones();
+      refetchAll();
       closeModal();
     })
     .catch((err) => {
@@ -89,7 +98,7 @@ export const updateDesignacion = () => {
     .actualizarDesignacion(idDesignacion, dto)
     .then(() => {
       addToast("Designación actualizada con éxito.");
-      reloadAllDesignaciones();
+      refetchAll();
       closeModal();
     })
     .catch((err) => {
@@ -145,7 +154,7 @@ export const deleteDesignacion = (id) => {
     .deleteDesignacion(id)
     .then(() => {
       addToast("Designación eliminada con éxito.");
-      reloadAllDesignaciones();
+      refetchAll();
     })
     .catch((err) => {
       console.warn("deleteDesignacion failed, using local fallback", err);
@@ -367,7 +376,14 @@ export const quitarArbitroDeDesignacionManual = async (
         (asg) => (asg.arbitro?.idArbitro || asg.idArbitro) !== idArbitro
       );
     }
+    const arb = state.arbitros.find((a) => a.idArbitro === idArbitro) ||
+                (state.arbitrosNoDisponibles || []).find((a) => a.idArbitro === idArbitro);
+    if (arb && arb.ultimaDesignacion === idDesignacion) {
+      arb.ultimaDesignacion = null;
+    }
     updateDesignacionStateLocal(idDesignacion);
+    await loadArbitrosDesignados(idDesignacion, true);
+    await refetchAll();
     return true;
   } catch (error) {
     console.error("Error al quitar árbitro manualmente en frontend:", error);
@@ -525,7 +541,11 @@ export const asignarArbitroADesignacionManual = async (
       partidosDirigidos: arb.designaciones || 0,
     });
 
+    arb.ultimaDesignacion = idDesignacion;
+
     updateDesignacionStateLocal(idDesignacion);
+    await loadArbitrosDesignados(idDesignacion, true);
+    await refetchAll();
     return true;
   } catch (error) {
     console.error("Error al asignar árbitro manualmente en frontend:", error);
@@ -537,7 +557,7 @@ export const asignarArbitroADesignacionManual = async (
 export const cancelarDesignacionManual = async (idDesignacion) => {
   try {
     const res = await designacionService.cancelarDesignacion(idDesignacion);
-    await reloadAllDesignaciones();
+    await refetchAll();
     addToast("Jornada cancelada con éxito.");
     return res;
   } catch (error) {
@@ -575,7 +595,7 @@ export const cancelarDesignacionManual = async (idDesignacion) => {
 export const aceptarDesignacionManual = async (idDesignacion) => {
   try {
     await designacionService.aceptarDesignacion(idDesignacion);
-    await reloadAllDesignaciones();
+    await refetchAll();
     addToast("Designación aceptada con éxito.");
     return { success: true };
   } catch (error) {
@@ -606,7 +626,7 @@ export const aceptarDesignacionManual = async (idDesignacion) => {
 export const finalizarDesignacionManual = async (idDesignacion) => {
   try {
     await designacionService.finalizarDesignacion(idDesignacion);
-    await reloadAllDesignaciones();
+    await refetchAll();
     addToast("Jornada finalizada con éxito.");
     return { success: true };
   } catch (error) {
@@ -637,7 +657,7 @@ export const finalizarDesignacionManual = async (idDesignacion) => {
 export const reprogramarDesignacionManual = async (idDesignacion) => {
   try {
     await designacionService.reprogramarDesignacion(idDesignacion);
-    await reloadAllDesignaciones();
+    await refetchAll();
     addToast("Designación reprogramada con éxito.");
     return { success: true };
   } catch (error) {
@@ -688,6 +708,7 @@ export const confirmarEnvioDesignacion = async (idDesignacion) => {
   );
 
   addToast("Designación confirmada y enviada con éxito al backend!");
+  await refetchAll();
 };
 
 export const confirmarEnvioCancha = async (canchaId) => {
@@ -754,6 +775,7 @@ export const confirmarEnvioCancha = async (canchaId) => {
   );
 
   addToast(`¡Designaciones de la cancha "${canchaNombre}" enviadas y confirmadas con éxito!`);
+  await refetchAll();
 };
 
 export const deshacerFinalizacionLocal = (idDesignacion) => {
@@ -825,12 +847,12 @@ export const clonarDesignaciones = async (designaciones) => {
 
   try {
     await Promise.all(promises);
-    await reloadAllDesignaciones();
+    await refetchAll();
     addToast("Designaciones clonadas con éxito.");
   } catch (error) {
     console.error("Error al clonar designaciones", error);
     addToast("Hubo un error al clonar algunas designaciones.", "error");
-    await reloadAllDesignaciones();
+    await refetchAll();
     throw error;
   }
 };
@@ -849,6 +871,7 @@ export const actualizarMontoPercibidoStore = async (
         found.montoPercibido = nuevoMonto;
       }
     }
+    await refetchAll();
     return true;
   } catch (error) {
     console.error("Error al actualizar monto percibido:", error);
@@ -870,6 +893,7 @@ export const actualizarMontoATodosStore = async (
         a.montoPercibido = montoPorArbitro;
       });
     }
+    await refetchAll();
     return true;
   } catch (error) {
     console.error("Error al actualizar monto total:", error);

@@ -1,7 +1,16 @@
 import { state } from "./state";
-import { getArbitro, addToast } from "./helpers";
+import { getArbitro, addToast, updateRefereesLastDesignationId } from "./helpers";
 import { closeModal } from "./modal";
 import arbitroService from "../services/arbitroService";
+import { clearCache, reloadAllDesignaciones } from "./designaciones/loader";
+
+const refetchAll = async () => {
+  clearCache();
+  await Promise.all([
+    loadArbitros(0, 100, { force: true }),
+    reloadAllDesignaciones({ force: true })
+  ]);
+};
 
 export const saveArbitro = () => {
   const {
@@ -48,8 +57,7 @@ export const saveArbitro = () => {
         }
         addToast("Árbitro actualizado con éxito.");
         closeModal();
-        loadArbitros();
-        loadArbitrosNoDisponibles();
+        refetchAll();
       })
       .catch((err) => {
         console.warn("updateArbitro failed, updating locally", err);
@@ -78,8 +86,7 @@ export const saveArbitro = () => {
         }
         addToast("Árbitro creado con éxito.");
         closeModal();
-        loadArbitros();
-        loadArbitrosNoDisponibles();
+        refetchAll();
       })
       .catch((err) => {
         console.warn("createArbitro failed, using local fallback", err);
@@ -105,6 +112,7 @@ export const deleteArbitro = (id) => {
         (a) => a.idArbitro !== id,
       );
       addToast("Árbitro eliminado con éxito.");
+      refetchAll();
     })
     .catch((err) => {
       console.warn("deleteArbitro failed, using local fallback", err);
@@ -156,12 +164,13 @@ export const updateArbitroDisponibilidad = (id, key) => {
     .then((res) => {
       if (res) Object.assign(a, res);
       addToast("Disponibilidad de árbitro actualizada.");
+      refetchAll();
     })
     .catch((err) => {
       console.warn("updateDisponibilidad failed, reverting optimistic UI", err);
       // Revertir en caso de falla de red
       a[key] = previousValue;
-      loadArbitros(0, 100, { loaderType: "silent" });
+      loadArbitros(0, 100, { loaderType: "silent", force: true });
       addToast("Error al guardar en servidor, cambio revertido.", "error");
     });
 };
@@ -184,7 +193,7 @@ export const marcarTodosNoDisponibles = () => {
         a.estado = false;
       });
       addToast("Todos los árbitros marcados como no disponibles.");
-      loadArbitros(0, 100, { loaderType: "topbar" });
+      refetchAll();
     })
     .catch((err) => {
       console.warn("updateDisponibilidadTotal failed, updating locally", err);
@@ -224,6 +233,7 @@ export const toggleEstadoSistema = (id) => {
     .then((updated) => {
       Object.assign(a, { ...dto, ...(updated || {}) });
       addToast("Estado en sistema actualizado.");
+      refetchAll();
     })
     .catch((err) => {
       console.warn("updateArbitro failed, reverting optimistic update", err);
@@ -233,16 +243,37 @@ export const toggleEstadoSistema = (id) => {
 };
 
 export const loadArbitros = async (page = 0, size = 100, config = { loaderType: "topbar" }) => {
+  const force = config.force === true;
+  const cacheKey = "cached_arbitros";
+  const cached = sessionStorage.getItem(cacheKey);
+
+  if (!force && cached) {
+    try {
+      const list = JSON.parse(cached);
+      state.arbitros = list.filter((a) => a.disponibleSabado || a.disponibleDomingo);
+      state.arbitrosNoDisponibles = list.filter((a) => !a.disponibleSabado && !a.disponibleDomingo);
+      updateRefereesLastDesignationId();
+      return;
+    } catch (e) {
+      console.warn("Failed to load cached arbitros", e);
+    }
+  }
+
   try {
     const res = await arbitroService.getAll(page, size, config);
     const list = Array.isArray(res) ? res : res.content || res;
-    
+
+    sessionStorage.setItem(cacheKey, JSON.stringify(list));
+    console.log(list);
+
     state.arbitros = list.filter((a) => a.disponibleSabado || a.disponibleDomingo);
     state.arbitrosNoDisponibles = list.filter((a) => !a.disponibleSabado && !a.disponibleDomingo);
+    updateRefereesLastDesignationId();
   } catch (e) {
     console.warn("Failed to load arbitros", e);
   }
 };
+
 export const loadArbitrosNoDisponibles = async (page = 0, size = 100) => {
   // No-op: los árbitros no disponibles ya se cargan y filtran en loadArbitros
 };
