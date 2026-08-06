@@ -1,6 +1,8 @@
 import axios from "axios";
 import { state } from "../store/state";
 
+import { mockDatabaseAdapter } from "./mockDatabase";
+
 const baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const api = axios.create({
@@ -9,6 +11,7 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  adapter: mockDatabaseAdapter
 });
 
 let activeGlobalRequests = 0;

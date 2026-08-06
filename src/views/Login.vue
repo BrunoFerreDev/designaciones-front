@@ -35,6 +35,15 @@
           <p>Ingresa tus credenciales para acceder</p>
         </div>
 
+        <!-- Banner Modo Demo -->
+        <div class="demo-mode-banner">
+          <span class="demo-pulse-green"></span>
+          <div class="demo-banner-content">
+            <span class="demo-banner-title">Modo Demo Activo</span>
+            <span class="demo-banner-text">Ingresá cualquier número de WhatsApp y contraseña para probar el sistema con datos locales de prueba.</span>
+          </div>
+        </div>
+
         <form @submit.prevent="handleLogin" class="login-form">
           <div v-if="error" class="error-alert animate-shake">
             <span class="material-symbols-outlined error-icon">error</span>
@@ -511,5 +520,64 @@ const handleLogin = async () => {
 
 .animate-shake {
   animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Modo Demo Banner */
+.demo-mode-banner {
+  background-color: #ecfdf5; /* emerald-50 */
+  border: 1px solid #a7f3d0; /* emerald-200 */
+  border-radius: 1rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.05);
+}
+
+.demo-pulse-green {
+  width: 10px;
+  height: 10px;
+  background-color: #10b981; /* emerald-500 */
+  border-radius: 50%;
+  margin-top: 0.25rem;
+  flex-shrink: 0;
+  display: inline-block;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulse-green 1.6s infinite;
+}
+
+@keyframes pulse-green {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.demo-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.demo-banner-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #065f46; /* emerald-800 */
+}
+
+.demo-banner-text {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #047857; /* emerald-700 */
+  line-height: 1.4;
 }
 </style>

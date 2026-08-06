@@ -107,78 +107,26 @@ const handleIncomingNotification = (dataStr) => {
   }, 3000);
 };
 
-// Establish a connection with the server using fetch to support Authorization headers
+// Establish a connection with the server using local mock simulation
 export const connectNotifications = () => {
-  // If we already have an active connection, do not create a new one
-  if (activeController) {
-    console.log("La conexión de notificaciones ya está activa o en proceso.");
-    return;
+  console.log("Conectando a notificaciones locales (Simulación de Modo Demo).");
+  
+  // Register global window helper to trigger notifications from mock database
+  window.triggerMockNotification = (message, type = "info") => {
+    handleIncomingNotification(JSON.stringify({ mensaje: message, tipo: type }));
+  };
+
+  // Seed a welcome notification if there are no notifications at all
+  if (!state.notifications || state.notifications.length === 0) {
+    setTimeout(() => {
+      if (window.triggerMockNotification) {
+        window.triggerMockNotification(
+          "¡Bienvenido a la demo de ArbDesig! Todos los cambios se guardan localmente en tu navegador.",
+          "NUEVA_CREACION"
+        );
+      }
+    }, 1500);
   }
-
-  const token = localStorage.getItem("jwt_token");
-  if (!token) {
-    console.warn("No se encontró token JWT. Abortando suscripción de notificaciones.");
-    return;
-  }
-
-  const baseURL = import.meta.env.VITE_API_BASE_URL;
-  const cleanedBase = baseURL ? baseURL.replace(/\/$/, "") : "http://localhost:8081";
-  const url = `${cleanedBase}/api/notificaciones/subscribe`;
-
-  activeController = new AbortController();
-  const { signal } = activeController;
-
-  console.log("Conectando a notificaciones por SSE (fetch):", url);
-
-  fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "text/event-stream",
-    },
-    signal,
-  })
-    .then(async (response) => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop(); // Guardar última línea incompleta
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (trimmed.startsWith("data:")) {
-            const dataStr = trimmed.slice(5).trim();
-            if (dataStr) {
-              handleIncomingNotification(dataStr);
-            }
-          }
-        }
-      }
-    })
-    .catch((error) => {
-      if (error.name === "AbortError") {
-        console.log("Conexión de notificaciones cancelada (AbortError).");
-      } else {
-        console.error("Error en conexión SSE de notificaciones:", error);
-        cleanupConnection();
-        // Intentar reconectar después de 5 segundos si el usuario sigue autenticado
-        reconnectTimeout = setTimeout(() => {
-          if (localStorage.getItem("jwt_token")) {
-            connectNotifications();
-          }
-        }, 5000);
-      }
-    });
 };
 
 const cleanupConnection = () => {
@@ -195,7 +143,7 @@ const cleanupConnection = () => {
 // Terminate subscription
 export const disconnectNotifications = () => {
   cleanupConnection();
-  console.log("Desconectado de notificaciones SSE.");
+  console.log("Desconectado de notificaciones locales.");
 };
 
 // Mark a single notification as read
