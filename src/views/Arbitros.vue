@@ -73,7 +73,7 @@
               <input
                 v-model="searchQuery"
                 class="form-input"
-                placeholder="Ej: Alberto Gauto..."
+                placeholder="Ej: Nestor Pitana..."
                 style="padding-left: 36px; height: 38px"
               />
               <i
@@ -141,20 +141,22 @@
       </div>
 
       <!-- Pestañas de Navegación -->
-      <div class="tab-row" style="margin-bottom: 1.5rem;">
+      <div class="tab-row" style="margin-bottom: 1.5rem">
         <button
           class="tab-btn"
           :class="{ active: activeTab === 'disponibilidad' }"
           @click="activeTab = 'disponibilidad'"
         >
-          <i class="ti ti-calendar-time" style="margin-right: 6px;"></i>Por disponibilidad
+          <i class="ti ti-calendar-time" style="margin-right: 6px"></i>Por
+          disponibilidad
         </button>
         <button
           class="tab-btn"
           :class="{ active: activeTab === 'todos' }"
           @click="activeTab = 'todos'"
         >
-          <i class="ti ti-users" style="margin-right: 6px;"></i>Todos los árbitros
+          <i class="ti ti-users" style="margin-right: 6px"></i>Todos los
+          árbitros
         </button>
       </div>
 
@@ -493,10 +495,7 @@ const noDisponibles = computed(() => {
 
 // Lista de todos los árbitros sin importar disponibilidad
 const filteredTodos = computed(() => {
-  const allList = [
-    ...state.arbitros,
-    ...(state.arbitrosNoDisponibles || []),
-  ];
+  const allList = [...state.arbitros, ...(state.arbitrosNoDisponibles || [])];
   // Eliminar duplicados por idArbitro por si acaso
   const uniqueList = [];
   const seenIds = new Set();
@@ -522,11 +521,11 @@ const filteredTodos = computed(() => {
 });
 
 const todosEnSistema = computed(() =>
-  filteredTodos.value.filter((a) => a.estadoSistema !== false)
+  filteredTodos.value.filter((a) => a.estadoSistema !== false),
 );
 
 const todosFueraSistema = computed(() =>
-  filteredTodos.value.filter((a) => a.estadoSistema === false)
+  filteredTodos.value.filter((a) => a.estadoSistema === false),
 );
 
 // Cantidad real disponible / no disponible en toda la base de datos (para las estadísticas principales)
