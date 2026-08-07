@@ -11,7 +11,9 @@
               ? '4px solid #185fa5'
               : designacion.estadoDesignacion === 3
                 ? '4px solid #f43f5e'
-                : '4px solid #ff9800',
+                : designacion.estadoDesignacion === 4
+                  ? '4px solid #7c3aed'
+                  : '4px solid #ff9800',
     }"
   >
     <div>
@@ -73,6 +75,11 @@
             v-else-if="designacion.estadoDesignacion === 3"
             class="badge badge-red"
             >Cancelada</span
+          >
+          <span
+            v-else-if="designacion.estadoDesignacion === 4"
+            class="badge badge-purple"
+            >Suspendida en juego</span
           >
         </div>
       </div>
@@ -216,7 +223,8 @@
       <button
         v-if="
           (designacion.estadoDesignacion === 0 ||
-          designacion.estadoDesignacion === 3) &&
+          designacion.estadoDesignacion === 3 ||
+          designacion.estadoDesignacion === 4) &&
           designacion.editable !== false
         "
         class="btn text-xs"
@@ -227,7 +235,7 @@
           color: #ff9800;
         "
         @click="
-          designacion.estadoDesignacion === 3
+          designacion.estadoDesignacion === 3 || designacion.estadoDesignacion === 4
             ? handleReprogramar()
             : openModal(
                 'editDesignacion',
@@ -244,13 +252,13 @@
         <i
           v-else
           :class="
-            designacion.estadoDesignacion === 3
+            designacion.estadoDesignacion === 3 || designacion.estadoDesignacion === 4
               ? 'ti ti-calendar-time'
               : 'ti ti-edit'
           "
         ></i>
         <span>{{
-          designacion.estadoDesignacion === 3 ? "Reprogramar" : "Editar"
+          designacion.estadoDesignacion === 3 || designacion.estadoDesignacion === 4 ? "Reprogramar" : "Editar"
         }}</span>
       </button>
 
@@ -321,6 +329,24 @@
         <span>Compartir</span>
       </button>
 
+      <!-- Suspender (Cambiar a estado 4) -->
+      <button
+        v-if="designacion.estadoDesignacion === 1 && designacion.editable !== false"
+        class="btn text-xs"
+        style="
+          padding: 6px 12px;
+          gap: 6px;
+          border-color: #7c3aed;
+          color: #7c3aed;
+        "
+        @click="handleSuspender"
+        :disabled="loadingAction"
+      >
+        <i v-if="loadingAction" class="ti ti-loader spin"></i>
+        <i v-else class="ti ti-player-pause"></i>
+        <span>Suspender Jornada</span>
+      </button>
+
       <!-- Cancelar (Cambiar a estado 3) -->
       <button
         v-if="designacion.estadoDesignacion === 1 && designacion.editable !== false"
@@ -355,6 +381,28 @@
       >
         <i class="ti ti-coin"></i>
         <span>Actualizar Aranceles</span>
+      </button>
+
+      <!-- Ver Detalle (si existe detalleDesignacion) -->
+      <button
+        v-if="designacion.detalleDesignacion"
+        class="btn text-xs"
+        style="
+          padding: 6px 12px;
+          gap: 6px;
+          border-color: var(--color-border-primary);
+          color: var(--color-text-secondary);
+        "
+        @click="
+          openModal(
+            'viewDesignacionDetail',
+            designacion.idDesignacion || designacion.id,
+            designacion,
+          )
+        "
+      >
+        <i class="ti ti-info-circle"></i>
+        <span>Ver Detalle</span>
       </button>
 
       <!-- Eliminar -->
@@ -535,6 +583,11 @@ const handleFinalizar = () => {
 const handleCancelar = () => {
   const id = props.designacion.idDesignacion || props.designacion.id;
   openModal("editDesignacion", id, { ...props.designacion, action: "cancelar" });
+};
+
+const handleSuspender = () => {
+  const id = props.designacion.idDesignacion || props.designacion.id;
+  openModal("editDesignacion", id, { ...props.designacion, action: "suspender" });
 };
 
 const handleReprogramar = async () => {

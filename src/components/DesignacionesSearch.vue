@@ -225,30 +225,21 @@ const filteredMatchList = computed(() => {
         const dateOfWeek = getDayOfWeekLocal(d.fecha);
         const diaStr = dateOfWeek === 0 ? "Domingo" : "Sábado";
 
-        let statusLabel = "Incompleta";
+        let statusLabel = "Pendiente a completar";
         let statusClass = "badge-amber";
 
-        if (
-          props.completas.some(
-            (item) => (item.id || item.idDesignacion) === id
-          )
-        ) {
+        if (d.estadoDesignacion === 1) {
           statusLabel = "Completa";
           statusClass = "badge-green";
-        } else if (
-          props.aceptadas.some(
-            (item) => (item.id || item.idDesignacion) === id
-          )
-        ) {
-          statusLabel = "Aceptada";
+        } else if (d.estadoDesignacion === 2) {
+          statusLabel = "Jornada finalizada";
           statusClass = "badge-blue";
-        } else if (
-          props.aConfirmar.some(
-            (item) => (item.id || item.idDesignacion) === id
-          )
-        ) {
-          statusLabel = "A Confirmar";
-          statusClass = "badge-primary";
+        } else if (d.estadoDesignacion === 3) {
+          statusLabel = "Cancelada";
+          statusClass = "badge-red";
+        } else if (d.estadoDesignacion === 4) {
+          statusLabel = "Suspendida en juego";
+          statusClass = "badge-purple";
         }
 
         matches.push({

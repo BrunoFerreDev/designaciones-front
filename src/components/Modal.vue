@@ -40,6 +40,9 @@
 
     <!-- Comparativa de Fines de Semana -->
     <ModalComparativaFinesDeSemana v-if="state.modal.type === 'comparativaWeekend'" />
+
+    <!-- Ver Detalle de Designación -->
+    <ModalVerDetalleDesignacion v-if="state.modal.type === 'viewDesignacionDetail'" />
   </div>
 </template>
 
@@ -57,6 +60,7 @@ import ModalEditDesignacion from "./ModalEditDesignacion.vue"
 import ModalUpdateFees from "./ModalUpdateFees.vue"
 import ModalArbitrosPorDia from "./ModalArbitrosPorDia.vue"
 import ModalComparativaFinesDeSemana from "./ModalComparativaFinesDeSemana.vue"
+import ModalVerDetalleDesignacion from "./ModalVerDetalleDesignacion.vue"
 
 const modalStyle = computed(() => {
   const type = state.modal?.type;

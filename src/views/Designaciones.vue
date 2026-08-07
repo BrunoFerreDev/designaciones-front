@@ -163,7 +163,7 @@
             color: var(--color-text-secondary);
           "
         >
-          🚫 Designaciones Canceladas ({{ filteredCanceladas.length }})
+          🚫 Designaciones Canceladas / Suspendidas ({{ filteredCanceladas.length }})
         </div>
         <DesignacionesDiaGrid
           key-prefix="cancel"
