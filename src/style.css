@@ -461,6 +461,10 @@ body {
   background: #f1efe8;
   color: #5f5e5a;
 }
+.badge-purple {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
 
 /* PARTIDO ROW */
 .partido-row {

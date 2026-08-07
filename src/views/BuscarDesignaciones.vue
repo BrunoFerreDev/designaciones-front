@@ -227,6 +227,7 @@
                 <option value="1">Completa</option>
                 <option value="2">Jornada finalizada</option>
                 <option value="3">Cancelada</option>
+                <option value="4">Suspendida en juego</option>
               </select>
             </div>
 

@@ -195,6 +195,7 @@ const actionContext = computed(() => state.modal?.data?.action || "edit");
 const modalTitle = computed(() => {
   if (actionContext.value === "finalizar") return "🏁 Finalizar Jornada";
   if (actionContext.value === "cancelar") return "🚫 Cancelar Jornada";
+  if (actionContext.value === "suspender") return "⏸️ Suspender Jornada en Juego";
   return "📝 Editar Designación Completa";
 });
 
@@ -203,6 +204,8 @@ const modalSubtitle = computed(() => {
     return "Revisa los datos finales de los árbitros, sus aranceles y añade observaciones antes de finalizar la jornada.";
   if (actionContext.value === "cancelar")
     return "Especifica el motivo de la cancelación en el campo de observaciones y confirma para cancelar la jornada.";
+  if (actionContext.value === "suspender")
+    return "Especifica los detalles de la suspensión en juego en el campo de observaciones y confirma para suspender la jornada.";
   return "Modifica los parámetros de la designación, añade observaciones y configura los valores de cada árbitro.";
 });
 
@@ -210,6 +213,7 @@ const submitButtonLabel = computed(() => {
   if (isSaving.value) return "Guardando...";
   if (actionContext.value === "finalizar") return "Finalizar Jornada";
   if (actionContext.value === "cancelar") return "Confirmar Cancelación";
+  if (actionContext.value === "suspender") return "Confirmar Suspensión";
   return "Guardar cambios";
 });
 
@@ -245,6 +249,8 @@ const handleSave = async () => {
       state.form.estadoDesignacion = 2;
     } else if (actionContext.value === "cancelar") {
       state.form.estadoDesignacion = 3;
+    } else if (actionContext.value === "suspender") {
+      state.form.estadoDesignacion = 4;
     }
     // 1. Guardar los datos generales de la designación (incluye el detalle/observaciones)
     await updateDesignacion();
@@ -275,12 +281,15 @@ const handleSave = async () => {
       await Promise.all(promises);
     }
 
-    // 3. Ejecutar acción de transición de estado si aplica (finalizar / cancelar)
+    // 3. Ejecutar acción de transición de estado si aplica (finalizar / cancelar / suspender)
     if (actionContext.value === "finalizar") {
       await finalizarDesignacionManual(idDesignacion);
     } else if (actionContext.value === "cancelar") {
       const detalleObs = state.form.detalle || "";
       await cancelarDesignacionManual(idDesignacion, detalleObs);
+    } else if (actionContext.value === "suspender") {
+      addToast("Designación suspendida en juego con éxito.");
+      await reloadAllDesignaciones();
     } else {
       addToast("Designación y árbitros actualizados con éxito.");
       await reloadAllDesignaciones();

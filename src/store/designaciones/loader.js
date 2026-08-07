@@ -113,8 +113,13 @@ export const loadDesignacionesCanceladas = async (page = 0, size = 30, config = 
   }
 
   try {
-    const res = await designacionService.getByEstado(3, page, size);
-    let list = Array.isArray(res) ? res : res.content || res;
+    const [res3, res4] = await Promise.all([
+      designacionService.getByEstado(3, page, size),
+      designacionService.getByEstado(4, page, size).catch(() => [])
+    ]);
+    const list3 = Array.isArray(res3) ? res3 : res3.content || res3;
+    const list4 = Array.isArray(res4) ? res4 : res4.content || res4;
+    let list = [...list3, ...list4];
 
     const limitDate = getMostRecentSaturday();
     list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
@@ -222,7 +227,8 @@ const parseEstadoNumeric = (rawState) => {
   if (s === "0" || s.includes("INCOMPLETA") || s.includes("PENDIENTE")) return 0;
   if (s === "1" || s.includes("COMPLETA")) return 1;
   if (s === "2" || s.includes("FINALIZADA") || s.includes("JORNADA")) return 2;
-  if (s === "3" || s === "4" || s.includes("CANCELADA")) return 3;
+  if (s === "3" || s.includes("CANCELADA")) return 3;
+  if (s === "4" || s.includes("SUSPENDIDA")) return 4;
   const num = parseInt(s, 10);
   return isNaN(num) ? 0 : num;
 };
@@ -254,7 +260,7 @@ export const ultimasDesignaciones = async (config = {}) => {
           completas.push(d);
         } else if (d.estadoDesignacion === 2) {
           finalizadas.push(d);
-        } else if (d.estadoDesignacion === 3) {
+        } else if (d.estadoDesignacion === 3 || d.estadoDesignacion === 4) {
           canceladas.push(d);
         } else {
           incompletas.push(d);
@@ -299,7 +305,7 @@ export const ultimasDesignaciones = async (config = {}) => {
           completas.push(d);
         } else if (numericState === 2) {
           finalizadas.push(d);
-        } else if (numericState === 3) {
+        } else if (numericState === 3 || numericState === 4) {
           canceladas.push(d);
         } else {
           incompletas.push(d);
