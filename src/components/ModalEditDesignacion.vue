@@ -66,6 +66,15 @@
           </div>
         </div>
 
+        <!-- Tipo de Cancelación / Estado -->
+        <div v-if="actionContext === 'cancelar' || actionContext === 'suspender'" class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Estado final de la jornada (📌)</label>
+          <select v-model.number="selectedEstadoCancelacion" class="form-input" :disabled="isSaving">
+            <option :value="3">Cancelada (Estado 3)</option>
+            <option :value="4">Suspendida en Cancha (Estado 4)</option>
+          </select>
+        </div>
+
         <!-- Detalle de la designacion -->
         <div class="form-group" style="margin-bottom: 0; flex: 1; display: flex; flex-direction: column;">
           <label class="form-label">Detalle / Observaciones (💬)</label>
@@ -185,6 +194,7 @@ const isSaving = ref(false);
 const loadingReferees = ref(false);
 const assignedReferees = ref([]);
 const montoGeneral = ref(0);
+const selectedEstadoCancelacion = ref(3);
 
 const selectableCanchas = computed(() => {
   return state.canchas.filter((c) => c.estado !== false || c.id === state.form.canchaId);
@@ -194,30 +204,38 @@ const actionContext = computed(() => state.modal?.data?.action || "edit");
 
 const modalTitle = computed(() => {
   if (actionContext.value === "finalizar") return "🏁 Finalizar Jornada";
-  if (actionContext.value === "cancelar") return "🚫 Cancelar Jornada";
-  if (actionContext.value === "suspender") return "⏸️ Suspender Jornada en Juego";
+  if (actionContext.value === "cancelar" || actionContext.value === "suspender") {
+    return selectedEstadoCancelacion.value === 3 ? "🚫 Cancelar Jornada" : "⏸️ Suspender Jornada en Juego";
+  }
   return "📝 Editar Designación Completa";
 });
 
 const modalSubtitle = computed(() => {
   if (actionContext.value === "finalizar")
     return "Revisa los datos finales de los árbitros, sus aranceles y añade observaciones antes de finalizar la jornada.";
-  if (actionContext.value === "cancelar")
-    return "Especifica el motivo de la cancelación en el campo de observaciones y confirma para cancelar la jornada.";
-  if (actionContext.value === "suspender")
-    return "Especifica los detalles de la suspensión en juego en el campo de observaciones y confirma para suspender la jornada.";
+  if (actionContext.value === "cancelar" || actionContext.value === "suspender") {
+    return selectedEstadoCancelacion.value === 3
+      ? "Especifica el motivo de la cancelación en el campo de observaciones y confirma para cancelar la jornada."
+      : "Especifica los detalles de la suspensión en juego en el campo de observaciones y confirma para suspender la jornada.";
+  }
   return "Modifica los parámetros de la designación, añade observaciones y configura los valores de cada árbitro.";
 });
 
 const submitButtonLabel = computed(() => {
   if (isSaving.value) return "Guardando...";
   if (actionContext.value === "finalizar") return "Finalizar Jornada";
-  if (actionContext.value === "cancelar") return "Confirmar Cancelación";
-  if (actionContext.value === "suspender") return "Confirmar Suspensión";
+  if (actionContext.value === "cancelar" || actionContext.value === "suspender") {
+    return selectedEstadoCancelacion.value === 3 ? "Confirmar Cancelación" : "Confirmar Suspensión";
+  }
   return "Guardar cambios";
 });
 
 onMounted(async () => {
+  if (actionContext.value === "cancelar") {
+    selectedEstadoCancelacion.value = 3;
+  } else if (actionContext.value === "suspender") {
+    selectedEstadoCancelacion.value = 4;
+  }
   const id = state.modal?.id;
   if (id) {
     loadingReferees.value = true;
@@ -247,10 +265,8 @@ const handleSave = async () => {
     if (actionContext.value === "finalizar") {
       state.form.editable = false;
       state.form.estadoDesignacion = 2;
-    } else if (actionContext.value === "cancelar") {
-      state.form.estadoDesignacion = 3;
-    } else if (actionContext.value === "suspender") {
-      state.form.estadoDesignacion = 4;
+    } else if (actionContext.value === "cancelar" || actionContext.value === "suspender") {
+      state.form.estadoDesignacion = selectedEstadoCancelacion.value;
     }
     // 1. Guardar los datos generales de la designación (incluye el detalle/observaciones)
     await updateDesignacion();
@@ -284,12 +300,14 @@ const handleSave = async () => {
     // 3. Ejecutar acción de transición de estado si aplica (finalizar / cancelar / suspender)
     if (actionContext.value === "finalizar") {
       await finalizarDesignacionManual(idDesignacion);
-    } else if (actionContext.value === "cancelar") {
-      const detalleObs = state.form.detalle || "";
-      await cancelarDesignacionManual(idDesignacion, detalleObs);
-    } else if (actionContext.value === "suspender") {
-      addToast("Designación suspendida en juego con éxito.");
-      await reloadAllDesignaciones();
+    } else if (actionContext.value === "cancelar" || actionContext.value === "suspender") {
+      if (selectedEstadoCancelacion.value === 3) {
+        const detalleObs = state.form.detalle || "";
+        await cancelarDesignacionManual(idDesignacion, detalleObs);
+      } else if (selectedEstadoCancelacion.value === 4) {
+        addToast("Designación suspendida en juego con éxito.");
+        await reloadAllDesignaciones();
+      }
     } else {
       addToast("Designación y árbitros actualizados con éxito.");
       await reloadAllDesignaciones();
