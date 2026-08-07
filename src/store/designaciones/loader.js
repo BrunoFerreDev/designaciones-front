@@ -220,7 +220,7 @@ export const loadArbitrosDesignados = async (idDesignacion, force = false, apiCo
   }
 };
 
-const parseEstadoNumeric = (rawState) => {
+export const parseEstadoNumeric = (rawState) => {
   if (rawState === undefined || rawState === null) return 0;
   if (typeof rawState === "number") return rawState;
   const s = String(rawState).trim().toUpperCase();
@@ -231,6 +231,123 @@ const parseEstadoNumeric = (rawState) => {
   if (s === "4" || s.includes("SUSPENDIDA")) return 4;
   const num = parseInt(s, 10);
   return isNaN(num) ? 0 : num;
+};
+
+export const syncDesignacionToCache = (idDesignacion) => {
+  const id = Number(idDesignacion);
+  const des = [
+    ...state.designacionesIncompletas,
+    ...state.designaciones,
+    ...state.designacionesCanceladas,
+    ...state.designacionesFinalizadas,
+    ...state.designacionesAConfirmar
+  ].find(d => Number(d.idDesignacion || d.id) === id);
+
+  if (!des) return;
+
+  const finalDes = { ...des };
+  finalDes.estadoDesignacion = parseEstadoNumeric(
+    finalDes.estadoDesignacion !== undefined ? finalDes.estadoDesignacion : finalDes.estado
+  );
+
+  const isMutable = finalDes.estadoDesignacion === 0 || finalDes.estadoDesignacion === 1;
+  if (isMutable) {
+    delete finalDes.arbitrosDesignados;
+  } else {
+    finalDes.arbitrosDesignados = state.arbitrosDesignadosMap[id] || finalDes.arbitrosDesignados || finalDes.arbitros;
+  }
+
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const key = sessionStorage.key(i);
+    if (!key) continue;
+
+    if (key === "cached_ultimas_designaciones") {
+      try {
+        const cachedData = sessionStorage.getItem(key);
+        if (cachedData) {
+          let parsed = JSON.parse(cachedData);
+          if (Array.isArray(parsed)) {
+            let modified = false;
+            parsed = parsed.map((d) => {
+              if (Number(d.idDesignacion || d.id) === id) {
+                modified = true;
+                return finalDes;
+              }
+              return d;
+            });
+            if (modified) {
+              sessionStorage.setItem(key, JSON.stringify(parsed));
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Error updating cached_ultimas_designaciones", e);
+      }
+    } else if (key.startsWith("cached_designaciones_")) {
+      let belongsToThisCache = false;
+      if (key.includes("_incompletas_") && finalDes.estadoDesignacion === 0) belongsToThisCache = true;
+      else if (key.includes("_completas_") && finalDes.estadoDesignacion === 1) belongsToThisCache = true;
+      else if (key.includes("_finalizadas_") && finalDes.estadoDesignacion === 2) belongsToThisCache = true;
+      else if (key.includes("_canceladas_") && (finalDes.estadoDesignacion === 3 || finalDes.estadoDesignacion === 4)) belongsToThisCache = true;
+
+      try {
+        const cachedData = sessionStorage.getItem(key);
+        if (cachedData) {
+          let parsed = JSON.parse(cachedData);
+          if (Array.isArray(parsed)) {
+            const idxInCache = parsed.findIndex((d) => Number(d.idDesignacion || d.id) === id);
+            let modified = false;
+
+            if (belongsToThisCache) {
+              if (idxInCache !== -1) {
+                parsed[idxInCache] = finalDes;
+                modified = true;
+              } else {
+                parsed.push(finalDes);
+                modified = true;
+              }
+              if (modified) {
+                parsed = sortDesignaciones(parsed);
+                sessionStorage.setItem(key, JSON.stringify(parsed));
+              }
+            } else {
+              if (idxInCache !== -1) {
+                parsed.splice(idxInCache, 1);
+                sessionStorage.setItem(key, JSON.stringify(parsed));
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(`Error updating cache key ${key}`, e);
+      }
+    }
+  }
+};
+
+export const removeDesignacionFromCache = (idDesignacion) => {
+  const id = Number(idDesignacion);
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const key = sessionStorage.key(i);
+    if (!key) continue;
+    if (key === "cached_ultimas_designaciones" || key.startsWith("cached_designaciones_")) {
+      try {
+        const cachedData = sessionStorage.getItem(key);
+        if (cachedData) {
+          let parsed = JSON.parse(cachedData);
+          if (Array.isArray(parsed)) {
+            const initialLength = parsed.length;
+            parsed = parsed.filter((d) => Number(d.idDesignacion || d.id) !== id);
+            if (parsed.length !== initialLength) {
+              sessionStorage.setItem(key, JSON.stringify(parsed));
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(`Error removing from cache key ${key}`, e);
+      }
+    }
+  }
 };
 
 let isFetchingUltimas = false;

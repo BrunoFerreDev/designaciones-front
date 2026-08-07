@@ -10,7 +10,7 @@ import {
 import { closeModal } from "../modal";
 import { loadArbitros } from "../arbitros";
 import designacionService from "../../services/designacionService";
-import { reloadAllDesignaciones, clearCache, loadArbitrosDesignados } from "./loader";
+import { reloadAllDesignaciones, clearCache, loadArbitrosDesignados, syncDesignacionToCache, parseEstadoNumeric, removeDesignacionFromCache } from "./loader";
 
 const refetchAll = async () => {
   clearCache();
@@ -96,16 +96,80 @@ export const updateDesignacion = () => {
 
   return designacionService
     .actualizarDesignacion(idDesignacion, dto)
-    .then(() => {
+    .then((serverResponse) => {
       addToast("Designación actualizada con éxito.");
-      refetchAll();
+
+      const id = Number(idDesignacion);
+      const existingDes = [
+        ...state.designacionesIncompletas,
+        ...state.designaciones,
+        ...state.designacionesCanceladas,
+        ...state.designacionesFinalizadas,
+        ...state.designacionesAConfirmar
+      ].find(d => Number(d.idDesignacion || d.id) === id);
+
+      const mergedDes = {
+        ...existingDes,
+        ...(serverResponse || {}),
+        idCancha: canchaId,
+        canchaId: canchaId,
+        fecha: formattedFecha,
+        cantidadPartidos,
+        etapaCampeonato: etapaCampeonato || "FECHA_NORMAL",
+        detalle: detalle || "",
+        editable: editable !== undefined ? editable : true,
+      };
+
+      if (estadoDesignacion !== undefined) {
+        mergedDes.estadoDesignacion = estadoDesignacion;
+      }
+
+      mergedDes.cancha = c || mergedDes.cancha || getCancha(canchaId);
+
+      state.designacionesIncompletas = state.designacionesIncompletas.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designaciones = state.designaciones.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designacionesCanceladas = state.designacionesCanceladas.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designacionesFinalizadas = state.designacionesFinalizadas.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designacionesAConfirmar = state.designacionesAConfirmar.filter(d => Number(d.idDesignacion || d.id) !== id);
+
+      const numericState = parseEstadoNumeric(mergedDes.estadoDesignacion !== undefined ? mergedDes.estadoDesignacion : mergedDes.estado);
+      mergedDes.estadoDesignacion = numericState;
+
+      if (numericState === 0) {
+        state.designacionesIncompletas.push(mergedDes);
+      } else if (numericState === 1) {
+        state.designaciones.push(mergedDes);
+      } else if (numericState === 2) {
+        state.designacionesFinalizadas.push(mergedDes);
+      } else if (numericState === 3 || numericState === 4) {
+        state.designacionesCanceladas.push(mergedDes);
+      } else {
+        state.designacionesIncompletas.push(mergedDes);
+      }
+
+      state.designacionesIncompletas = sortDesignaciones(state.designacionesIncompletas);
+      state.designaciones = sortDesignaciones(state.designaciones);
+      state.designacionesCanceladas = sortDesignaciones(state.designacionesCanceladas);
+      state.designacionesFinalizadas = sortDesignaciones(state.designacionesFinalizadas);
+      state.designacionesAConfirmar = sortDesignaciones(state.designacionesAConfirmar);
+
+      if (Array.isArray(state.ultimasDesignaciones)) {
+        state.ultimasDesignaciones = state.ultimasDesignaciones.map((d) => {
+          if (Number(d.idDesignacion || d.id) === id) {
+            return mergedDes;
+          }
+          return d;
+        });
+      }
+
+      syncDesignacionToCache(idDesignacion);
       closeModal();
     })
     .catch((err) => {
       console.warn("actualizarDesignacion failed, using local fallback", err);
       const updateInList = (list) => {
         const idx = list.findIndex(
-          (d) => (d.idDesignacion || d.id) === idDesignacion
+          (d) => Number(d.idDesignacion || d.id) === Number(idDesignacion)
         );
         if (idx !== -1) {
           list[idx] = {
@@ -153,8 +217,31 @@ export const deleteDesignacion = (id) => {
   return designacionService
     .deleteDesignacion(id)
     .then(() => {
+      state.designaciones = state.designaciones.filter(
+        (d) => Number(d.idDesignacion || d.id) !== Number(id)
+      );
+      state.designacionesIncompletas = state.designacionesIncompletas.filter(
+        (d) => Number(d.idDesignacion || d.id) !== Number(id)
+      );
+      state.designacionesFinalizadas = state.designacionesFinalizadas.filter(
+        (d) => Number(d.idDesignacion || d.id) !== Number(id)
+      );
+      state.designacionesAConfirmar = state.designacionesAConfirmar.filter(
+        (d) => Number(d.idDesignacion || d.id) !== Number(id)
+      );
+      state.designacionesCanceladas = (state.designacionesCanceladas || []).filter(
+        (d) => Number(d.idDesignacion || d.id) !== Number(id)
+      );
+      if (Array.isArray(state.ultimasDesignaciones)) {
+        state.ultimasDesignaciones = state.ultimasDesignaciones.filter(
+          (d) => Number(d.idDesignacion || d.id) !== Number(id)
+        );
+      }
+      
+      removeDesignacionFromCache(id);
+      loadArbitros(0, 100, { force: true });
+      
       addToast("Designación eliminada con éxito.");
-      refetchAll();
     })
     .catch((err) => {
       console.warn("deleteDesignacion failed, using local fallback", err);
@@ -378,7 +465,10 @@ export const quitarArbitroDeDesignacionManual = async (
     }
     updateDesignacionStateLocal(idDesignacion);
     await loadArbitrosDesignados(idDesignacion, true);
-    await refetchAll();
+    
+    syncDesignacionToCache(idDesignacion);
+    loadArbitros(0, 100, { force: true });
+    
     return true;
   } catch (error) {
     console.error("Error al quitar árbitro manualmente en frontend:", error);
@@ -538,7 +628,10 @@ export const asignarArbitroADesignacionManual = async (
 
     updateDesignacionStateLocal(idDesignacion);
     await loadArbitrosDesignados(idDesignacion, true);
-    await refetchAll();
+    
+    syncDesignacionToCache(idDesignacion);
+    loadArbitros(0, 100, { force: true });
+    
     return true;
   } catch (error) {
     console.error("Error al asignar árbitro manualmente en frontend:", error);
@@ -550,7 +643,42 @@ export const asignarArbitroADesignacionManual = async (
 export const cancelarDesignacionManual = async (idDesignacion) => {
   try {
     const res = await designacionService.cancelarDesignacion(idDesignacion);
-    await refetchAll();
+    
+    const id = Number(idDesignacion);
+    const existingDes = [
+      ...state.designacionesIncompletas,
+      ...state.designaciones,
+      ...state.designacionesCanceladas,
+      ...state.designacionesFinalizadas,
+      ...state.designacionesAConfirmar
+    ].find(d => Number(d.idDesignacion || d.id) === id);
+
+    if (existingDes) {
+      existingDes.estadoDesignacion = 3;
+      state.designacionesIncompletas = state.designacionesIncompletas.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designaciones = state.designaciones.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designacionesFinalizadas = state.designacionesFinalizadas.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designacionesAConfirmar = state.designacionesAConfirmar.filter(d => Number(d.idDesignacion || d.id) !== id);
+      
+      const existsInCanceladas = state.designacionesCanceladas.some(d => Number(d.idDesignacion || d.id) === id);
+      if (!existsInCanceladas) {
+        state.designacionesCanceladas.push(existingDes);
+      }
+
+      state.designacionesCanceladas = sortDesignaciones(state.designacionesCanceladas);
+      if (Array.isArray(state.ultimasDesignaciones)) {
+        state.ultimasDesignaciones = state.ultimasDesignaciones.map((d) => {
+          if (Number(d.idDesignacion || d.id) === id) {
+            d.estadoDesignacion = 3;
+          }
+          return d;
+        });
+      }
+      
+      syncDesignacionToCache(idDesignacion);
+    }
+    loadArbitros(0, 100, { force: true });
+    
     addToast("Jornada cancelada con éxito.");
     return res;
   } catch (error) {
@@ -588,7 +716,43 @@ export const cancelarDesignacionManual = async (idDesignacion) => {
 export const aceptarDesignacionManual = async (idDesignacion) => {
   try {
     await designacionService.aceptarDesignacion(idDesignacion);
-    await refetchAll();
+    
+    const id = Number(idDesignacion);
+    const existingDes = [
+      ...state.designacionesIncompletas,
+      ...state.designaciones,
+      ...state.designacionesCanceladas,
+      ...state.designacionesFinalizadas,
+      ...state.designacionesAConfirmar
+    ].find(d => Number(d.idDesignacion || d.id) === id);
+
+    if (existingDes) {
+      existingDes.estadoDesignacion = 1;
+      state.designacionesIncompletas = state.designacionesIncompletas.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designacionesFinalizadas = state.designacionesFinalizadas.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designacionesCanceladas = state.designacionesCanceladas.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designacionesAConfirmar = state.designacionesAConfirmar.filter(d => Number(d.idDesignacion || d.id) !== id);
+      
+      const existsInCompleta = state.designaciones.some(d => Number(d.idDesignacion || d.id) === id);
+      if (!existsInCompleta) {
+        state.designaciones.push(existingDes);
+      }
+
+      state.designacionesIncompletas = sortDesignaciones(state.designacionesIncompletas);
+      state.designaciones = sortDesignaciones(state.designaciones);
+      
+      if (Array.isArray(state.ultimasDesignaciones)) {
+        state.ultimasDesignaciones = state.ultimasDesignaciones.map((d) => {
+          if (Number(d.idDesignacion || d.id) === id) {
+            d.estadoDesignacion = 1;
+          }
+          return d;
+        });
+      }
+      
+      syncDesignacionToCache(idDesignacion);
+    }
+    
     addToast("Designación aceptada con éxito.");
     return { success: true };
   } catch (error) {
@@ -619,7 +783,44 @@ export const aceptarDesignacionManual = async (idDesignacion) => {
 export const finalizarDesignacionManual = async (idDesignacion) => {
   try {
     await designacionService.finalizarDesignacion(idDesignacion);
-    await refetchAll();
+    
+    const id = Number(idDesignacion);
+    const existingDes = [
+      ...state.designacionesIncompletas,
+      ...state.designaciones,
+      ...state.designacionesCanceladas,
+      ...state.designacionesFinalizadas,
+      ...state.designacionesAConfirmar
+    ].find(d => Number(d.idDesignacion || d.id) === id);
+
+    if (existingDes) {
+      existingDes.estadoDesignacion = 2;
+      state.designacionesIncompletas = state.designacionesIncompletas.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designaciones = state.designaciones.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designacionesCanceladas = state.designacionesCanceladas.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designacionesAConfirmar = state.designacionesAConfirmar.filter(d => Number(d.idDesignacion || d.id) !== id);
+      
+      const existsInFinalizadas = state.designacionesFinalizadas.some(d => Number(d.idDesignacion || d.id) === id);
+      if (!existsInFinalizadas) {
+        state.designacionesFinalizadas.push(existingDes);
+      }
+
+      state.designacionesFinalizadas = sortDesignaciones(state.designacionesFinalizadas);
+      state.designaciones = sortDesignaciones(state.designaciones);
+      
+      if (Array.isArray(state.ultimasDesignaciones)) {
+        state.ultimasDesignaciones = state.ultimasDesignaciones.map((d) => {
+          if (Number(d.idDesignacion || d.id) === id) {
+            d.estadoDesignacion = 2;
+          }
+          return d;
+        });
+      }
+      
+      syncDesignacionToCache(idDesignacion);
+    }
+    loadArbitros(0, 100, { force: true });
+    
     addToast("Jornada finalizada con éxito.");
     return { success: true };
   } catch (error) {
@@ -650,7 +851,42 @@ export const finalizarDesignacionManual = async (idDesignacion) => {
 export const reprogramarDesignacionManual = async (idDesignacion) => {
   try {
     await designacionService.reprogramarDesignacion(idDesignacion);
-    await refetchAll();
+    
+    const id = Number(idDesignacion);
+    const existingDes = [
+      ...state.designacionesIncompletas,
+      ...state.designaciones,
+      ...state.designacionesCanceladas,
+      ...state.designacionesFinalizadas,
+      ...state.designacionesAConfirmar
+    ].find(d => Number(d.idDesignacion || d.id) === id);
+
+    if (existingDes) {
+      existingDes.estadoDesignacion = 0;
+      state.designaciones = state.designaciones.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designacionesFinalizadas = state.designacionesFinalizadas.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designacionesCanceladas = state.designacionesCanceladas.filter(d => Number(d.idDesignacion || d.id) !== id);
+      state.designacionesAConfirmar = state.designacionesAConfirmar.filter(d => Number(d.idDesignacion || d.id) !== id);
+      
+      const existsInIncompletas = state.designacionesIncompletas.some(d => Number(d.idDesignacion || d.id) === id);
+      if (!existsInIncompletas) {
+        state.designacionesIncompletas.push(existingDes);
+      }
+
+      state.designacionesIncompletas = sortDesignaciones(state.designacionesIncompletas);
+      
+      if (Array.isArray(state.ultimasDesignaciones)) {
+        state.ultimasDesignaciones = state.ultimasDesignaciones.map((d) => {
+          if (Number(d.idDesignacion || d.id) === id) {
+            d.estadoDesignacion = 0;
+          }
+          return d;
+        });
+      }
+      
+      syncDesignacionToCache(idDesignacion);
+    }
+    
     addToast("Designación reprogramada con éxito.");
     return { success: true };
   } catch (error) {
@@ -691,7 +927,13 @@ export const confirmarEnvioDesignacion = async (idDesignacion) => {
     state.designacionesAConfirmar.splice(idx, 1);
   }
   des.estadoDesignacion = 2;
-  state.designacionesFinalizadas.push(des);
+  
+  const existsInFinalizadas = state.designacionesFinalizadas.some(
+    (d) => (d.idDesignacion || d.id) === idDesignacion
+  );
+  if (!existsInFinalizadas) {
+    state.designacionesFinalizadas.push(des);
+  }
 
   state.designacionesFinalizadas = sortDesignaciones(
     state.designacionesFinalizadas
@@ -700,8 +942,19 @@ export const confirmarEnvioDesignacion = async (idDesignacion) => {
     state.designacionesAConfirmar
   );
 
+  if (Array.isArray(state.ultimasDesignaciones)) {
+    state.ultimasDesignaciones = state.ultimasDesignaciones.map((d) => {
+      if (Number(d.idDesignacion || d.id) === Number(idDesignacion)) {
+        d.estadoDesignacion = 2;
+      }
+      return d;
+    });
+  }
+
+  syncDesignacionToCache(idDesignacion);
+  loadArbitros(0, 100, { force: true });
+
   addToast("Designación confirmada y enviada con éxito al backend!");
-  await refetchAll();
 };
 
 export const confirmarEnvioCancha = async (canchaId) => {
@@ -757,7 +1010,13 @@ export const confirmarEnvioCancha = async (canchaId) => {
       state.designacionesAConfirmar.splice(idx, 1);
     }
     des.estadoDesignacion = 2;
-    state.designacionesFinalizadas.push(des);
+    
+    const existsInFinalizadas = state.designacionesFinalizadas.some(
+      (d) => (d.idDesignacion || d.id) === (des.idDesignacion || des.id)
+    );
+    if (!existsInFinalizadas) {
+      state.designacionesFinalizadas.push(des);
+    }
   });
 
   state.designacionesFinalizadas = sortDesignaciones(
@@ -767,8 +1026,22 @@ export const confirmarEnvioCancha = async (canchaId) => {
     state.designacionesAConfirmar
   );
 
+  if (Array.isArray(state.ultimasDesignaciones)) {
+    state.ultimasDesignaciones = state.ultimasDesignaciones.map((d) => {
+      const match = desList.find(des => Number(des.idDesignacion || des.id) === Number(d.idDesignacion || d.id));
+      if (match) {
+        d.estadoDesignacion = 2;
+      }
+      return d;
+    });
+  }
+
+  desList.forEach((des) => {
+    syncDesignacionToCache(des.idDesignacion || des.id);
+  });
+  loadArbitros(0, 100, { force: true });
+
   addToast(`¡Designaciones de la cancha "${canchaNombre}" enviadas y confirmadas con éxito!`);
-  await refetchAll();
 };
 
 export const deshacerFinalizacionLocal = (idDesignacion) => {
@@ -864,7 +1137,7 @@ export const actualizarMontoPercibidoStore = async (
         found.montoPercibido = nuevoMonto;
       }
     }
-    await refetchAll();
+    syncDesignacionToCache(idDesignacion);
     return true;
   } catch (error) {
     console.error("Error al actualizar monto percibido:", error);
@@ -886,7 +1159,7 @@ export const actualizarMontoATodosStore = async (
         a.montoPercibido = montoPorArbitro;
       });
     }
-    await refetchAll();
+    syncDesignacionToCache(idDesignacion);
     return true;
   } catch (error) {
     console.error("Error al actualizar monto total:", error);
