@@ -23,9 +23,16 @@
             class="card-title text-base font-semibold flex items-center gap-1.5 text-slate-800"
           >
             <span>🏟️</span>
-            <span>{{ canchaName }} ({{ designacion.idDesignacion || designacion.id }})</span>
+            <span
+              >{{ canchaName }} ({{
+                designacion.idDesignacion || designacion.id
+              }})</span
+            >
             <button
-              v-if="designacion.estadoDesignacion === 1 && designacion.editable !== false"
+              v-if="
+                designacion.estadoDesignacion === 1 &&
+                designacion.editable !== false
+              "
               class="btn-icon text-slate-400 hover:text-slate-600 transition-colors ml-1 p-0.5"
               style="
                 border: none;
@@ -114,7 +121,9 @@
 
       <!-- Lista de Árbitros Asignados -->
       <div
-        v-if="shouldShowArbitrosList && sortedArbitros && sortedArbitros.length > 0"
+        v-if="
+          shouldShowArbitrosList && sortedArbitros && sortedArbitros.length > 0
+        "
         class="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-100 animate-fade-in"
       >
         <div
@@ -147,7 +156,9 @@
       </div>
       <div
         v-else-if="
-          shouldShowArbitrosList && (showEmptyArbitrosState || (sortedArbitros && sortedArbitros.length === 0))
+          shouldShowArbitrosList &&
+          (showEmptyArbitrosState ||
+            (sortedArbitros && sortedArbitros.length === 0))
         "
         class="mt-3 p-3.5 bg-slate-50 rounded-lg border border-dashed border-slate-200 text-center text-xs text-slate-400"
       >
@@ -163,7 +174,7 @@
       <button
         v-if="
           (designacion.estadoDesignacion === 0 ||
-          designacion.estadoDesignacion === 1) &&
+            designacion.estadoDesignacion === 1) &&
           designacion.editable !== false
         "
         class="btn primary text-xs"
@@ -196,7 +207,7 @@
       <button
         v-if="
           (designacion.estadoDesignacion === 0 ||
-          designacion.estadoDesignacion === 1) &&
+            designacion.estadoDesignacion === 1) &&
           designacion.editable !== false
         "
         class="btn text-xs"
@@ -223,8 +234,8 @@
       <button
         v-if="
           (designacion.estadoDesignacion === 0 ||
-          designacion.estadoDesignacion === 3 ||
-          designacion.estadoDesignacion === 4) &&
+            designacion.estadoDesignacion === 3 ||
+            designacion.estadoDesignacion === 4) &&
           designacion.editable !== false
         "
         class="btn text-xs"
@@ -235,7 +246,8 @@
           color: #ff9800;
         "
         @click="
-          designacion.estadoDesignacion === 3 || designacion.estadoDesignacion === 4
+          designacion.estadoDesignacion === 3 ||
+          designacion.estadoDesignacion === 4
             ? handleReprogramar()
             : openModal(
                 'editDesignacion',
@@ -245,20 +257,21 @@
         "
         :disabled="loadingAction"
       >
-        <i
-          v-if="loadingAction"
-          class="ti ti-loader spin"
-        ></i>
+        <i v-if="loadingAction" class="ti ti-loader spin"></i>
         <i
           v-else
           :class="
-            designacion.estadoDesignacion === 3 || designacion.estadoDesignacion === 4
+            designacion.estadoDesignacion === 3 ||
+            designacion.estadoDesignacion === 4
               ? 'ti ti-calendar-time'
               : 'ti ti-edit'
           "
         ></i>
         <span>{{
-          designacion.estadoDesignacion === 3 || designacion.estadoDesignacion === 4 ? "Reprogramar" : "Editar"
+          designacion.estadoDesignacion === 3 ||
+          designacion.estadoDesignacion === 4
+            ? "Reprogramar"
+            : "Editar"
         }}</span>
       </button>
 
@@ -286,7 +299,9 @@
 
       <!-- Finalizar (para Completas) -->
       <button
-        v-if="designacion.estadoDesignacion === 1 && designacion.editable !== false"
+        v-if="
+          designacion.estadoDesignacion === 1 && designacion.editable !== false
+        "
         class="btn text-xs"
         style="
           padding: 6px 12px;
@@ -307,7 +322,7 @@
         v-if="
           ((designacion.estadoDesignacion === 0 &&
             assignedCount >= minArbitrosReq) ||
-          designacion.estadoDesignacion === 1) &&
+            designacion.estadoDesignacion === 1) &&
           designacion.editable !== false
         "
         class="btn text-xs"
@@ -331,7 +346,9 @@
 
       <!-- Suspender (Cambiar a estado 4) -->
       <button
-        v-if="designacion.estadoDesignacion === 1 && designacion.editable !== false"
+        v-if="
+          designacion.estadoDesignacion === 1 && designacion.editable !== false
+        "
         class="btn text-xs"
         style="
           padding: 6px 12px;
@@ -349,7 +366,9 @@
 
       <!-- Cancelar (Cambiar a estado 3) -->
       <button
-        v-if="designacion.estadoDesignacion === 1 && designacion.editable !== false"
+        v-if="
+          designacion.estadoDesignacion === 1 && designacion.editable !== false
+        "
         class="btn text-xs danger"
         style="padding: 6px 12px; gap: 6px"
         @click="handleCancelar"
@@ -362,7 +381,9 @@
 
       <!-- Actualizar Aranceles (para Finalizadas) -->
       <button
-        v-if="designacion.estadoDesignacion === 2 && designacion.editable !== false"
+        v-if="
+          designacion.estadoDesignacion === 2 && designacion.editable !== false
+        "
         class="btn text-xs"
         style="
           padding: 6px 12px;
@@ -409,7 +430,7 @@
       <button
         v-if="
           (designacion.estadoDesignacion === 0 ||
-          designacion.estadoDesignacion === 1) &&
+            designacion.estadoDesignacion === 1) &&
           designacion.editable !== false
         "
         class="btn danger text-xs"
@@ -519,20 +540,38 @@ const ORDER_CAT = {
   PRINCIPAL_4: 6,
   ASISTENTE: 7,
   INCIAL: 8,
-  INICIAL: 8
+  INICIAL: 8,
 };
 
 const sortedArbitros = computed(() => {
-  const list = props.arbitros || props.designacion.arbitrosDesignados || props.designacion.arbitros || [];
+  const list =
+    props.arbitros ||
+    props.designacion.arbitrosDesignados ||
+    props.designacion.arbitros ||
+    [];
   return [...list].sort((a, b) => {
-    const nameA = `${a.arbitro?.nombre || a.nombre || ""} ${a.arbitro?.apellido || a.apellido || ""}`.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    const nameB = `${b.arbitro?.nombre || b.nombre || ""} ${b.arbitro?.apellido || b.apellido || ""}`.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const nameA =
+      `${a.arbitro?.nombre || a.nombre || ""} ${a.arbitro?.apellido || a.apellido || ""}`
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+    const nameB =
+      `${b.arbitro?.nombre || b.nombre || ""} ${b.arbitro?.apellido || b.apellido || ""}`
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
     if (nameA === "hector mendoza" && nameB === "hector mendoza") return 0;
     if (nameA === "hector mendoza") return 1;
     if (nameB === "hector mendoza") return -1;
 
-    const catA = String(a.arbitro?.categoria || a.categoria || "").trim().toUpperCase();
-    const catB = String(b.arbitro?.categoria || b.categoria || "").trim().toUpperCase();
+    const catA = String(a.arbitro?.categoria || a.categoria || "")
+      .trim()
+      .toUpperCase();
+    const catB = String(b.arbitro?.categoria || b.categoria || "")
+      .trim()
+      .toUpperCase();
 
     const valA = ORDER_CAT[catA] !== undefined ? ORDER_CAT[catA] : 99;
     const valB = ORDER_CAT[catB] !== undefined ? ORDER_CAT[catB] : 99;
@@ -577,17 +616,26 @@ const handleAceptar = async () => {
 
 const handleFinalizar = () => {
   const id = props.designacion.idDesignacion || props.designacion.id;
-  openModal("editDesignacion", id, { ...props.designacion, action: "finalizar" });
+  openModal("editDesignacion", id, {
+    ...props.designacion,
+    action: "finalizar",
+  });
 };
 
 const handleCancelar = () => {
   const id = props.designacion.idDesignacion || props.designacion.id;
-  openModal("editDesignacion", id, { ...props.designacion, action: "cancelar" });
+  openModal("editDesignacion", id, {
+    ...props.designacion,
+    action: "cancelar",
+  });
 };
 
 const handleSuspender = () => {
   const id = props.designacion.idDesignacion || props.designacion.id;
-  openModal("editDesignacion", id, { ...props.designacion, action: "suspender" });
+  openModal("editDesignacion", id, {
+    ...props.designacion,
+    action: "suspender",
+  });
 };
 
 const handleReprogramar = async () => {

@@ -61,6 +61,9 @@ import {
     logoutUser,
     connectNotifications,
     disconnectNotifications,
+    ultimasDesignaciones,
+    loadCanchas,
+    loadArbitros,
 } from "./store";
 import Sidebar from "./components/Sidebar.vue";
 import Modal from "./components/Modal.vue";
@@ -100,6 +103,9 @@ onMounted(() => {
 
     if (state.isAuthenticated) {
         connectNotifications();
+        ultimasDesignaciones().catch((err) => console.warn("Background prefetch designaciones failed", err));
+        loadCanchas().catch((err) => console.warn("Background prefetch canchas failed", err));
+        loadArbitros().catch((err) => console.warn("Background prefetch arbitros failed", err));
     }
 
     // Monitorear expiración de sesión cada 10 segundos

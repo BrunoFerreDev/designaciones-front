@@ -2,6 +2,9 @@ import { state } from "./state";
 import * as authService from "../services/authService";
 import router from "../router";
 import { connectNotifications, disconnectNotifications } from "./notifications";
+import { ultimasDesignaciones } from "./designaciones/loader";
+import { loadCanchas } from "./canchas";
+import { loadArbitros } from "./arbitros";
 
 
 export const loginUser = async (whatsapp, contrasenia) => {
@@ -21,6 +24,11 @@ export const loginUser = async (whatsapp, contrasenia) => {
       state.isAuthenticated = true;
 
       connectNotifications();
+
+      // Prefetch data in background
+      ultimasDesignaciones().catch((err) => console.warn("Background prefetch designaciones failed", err));
+      loadCanchas().catch((err) => console.warn("Background prefetch canchas failed", err));
+      loadArbitros().catch((err) => console.warn("Background prefetch arbitros failed", err));
 
       router.push("/arbitros");
       return { success: true };

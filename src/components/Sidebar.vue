@@ -9,23 +9,35 @@
     </div>
 
     <div class="nav-items-container">
-      <router-link
-        v-for="nav in navItems"
-        :key="nav.id"
-        :to="nav.path"
-        class="nav-item"
-        active-class="active"
-        @click="$emit('close')"
-      >
-        <i :class="['ti', nav.icon]" aria-hidden="true"></i>
-        <span>{{ nav.label }}</span>
-        <span
-          v-if="nav.id === 'notificaciones' && unreadNotificationsCount > 0"
-          class="badge-notification"
+      <template v-for="nav in navItems" :key="nav.id">
+        <!-- Notificaciones button -->
+        <button
+          v-if="nav.id === 'notificaciones'"
+          class="nav-item"
+          @click="handleNavClick(nav)"
         >
-          {{ unreadNotificationsCount }}
-        </span>
-      </router-link>
+          <i :class="['ti', nav.icon]" aria-hidden="true"></i>
+          <span>{{ nav.label }}</span>
+          <span
+            v-if="unreadNotificationsCount > 0"
+            class="badge-notification"
+          >
+            {{ unreadNotificationsCount }}
+          </span>
+        </button>
+
+        <!-- Router links -->
+        <router-link
+          v-else
+          :to="nav.path"
+          class="nav-item"
+          active-class="active"
+          @click="$emit('close')"
+        >
+          <i :class="['ti', nav.icon]" aria-hidden="true"></i>
+          <span>{{ nav.label }}</span>
+        </router-link>
+      </template>
     </div>
 
     <!-- Temporary Notification Alert Box -->
@@ -58,7 +70,7 @@
 </template>
 
 <script setup>
-import { logoutUser, unreadNotificationsCount, state } from '../store';
+import { logoutUser, unreadNotificationsCount, state, openModal } from '../store';
 
 const props = defineProps({
   isOpen: {
@@ -74,11 +86,18 @@ const navItems = [
   { id: "canchas", path: "/canchas", icon: "ti-map-pin", label: "Canchas" },
   { id: "suspensiones", path: "/suspensiones", icon: "ti-ban", label: "Suspensiones" },
   { id: "designaciones", path: "/designaciones", icon: "ti-clipboard-list", label: "Designaciones" },
-  { id: "notificaciones", path: "/notificaciones", icon: "ti-bell", label: "Notificaciones" },
+  { id: "notificaciones", icon: "ti-bell", label: "Notificaciones" },
   { id: "buscar", path: "/buscar", icon: "ti-search", label: "Buscador" },
   { id: "estadisticas", path: "/estadisticas", icon: "ti-chart-bar", label: "Estadísticas" },
   { id: "historico", path: "/designaciones-viejas", icon: "ti-history", label: "Historial" },
 ];
+
+const handleNavClick = (nav) => {
+  emit("close");
+  if (nav.id === "notificaciones") {
+    openModal("showNotifications");
+  }
+};
 
 const handleLogout = async () => {
   emit("close");

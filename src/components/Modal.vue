@@ -43,6 +43,9 @@
 
     <!-- Ver Detalle de Designación -->
     <ModalVerDetalleDesignacion v-if="state.modal.type === 'viewDesignacionDetail'" />
+
+    <!-- Notificaciones en Modal -->
+    <ModalNotifications v-if="state.modal.type === 'showNotifications'" />
   </div>
 </template>
 
@@ -61,6 +64,7 @@ import ModalUpdateFees from "./ModalUpdateFees.vue"
 import ModalArbitrosPorDia from "./ModalArbitrosPorDia.vue"
 import ModalComparativaFinesDeSemana from "./ModalComparativaFinesDeSemana.vue"
 import ModalVerDetalleDesignacion from "./ModalVerDetalleDesignacion.vue"
+import ModalNotifications from "./ModalNotifications.vue"
 
 const modalStyle = computed(() => {
   const type = state.modal?.type;

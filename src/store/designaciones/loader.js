@@ -233,6 +233,8 @@ const parseEstadoNumeric = (rawState) => {
   return isNaN(num) ? 0 : num;
 };
 
+let isFetchingUltimas = false;
+
 export const ultimasDesignaciones = async (config = {}) => {
   const force = config.force === true;
   const cacheKey = "cached_ultimas_designaciones";
@@ -277,7 +279,12 @@ export const ultimasDesignaciones = async (config = {}) => {
     }
   }
 
+  if (isFetchingUltimas) {
+    return;
+  }
+  isFetchingUltimas = true;
   state.loadingDesignaciones = true;
+
   try {
     const res = await designacionService.ultimasDesignaciones();
     const data = Array.isArray(res) ? res : res.content || res.data || res;
@@ -351,6 +358,7 @@ export const ultimasDesignaciones = async (config = {}) => {
     await reloadAllDesignaciones(config);
   } finally {
     state.loadingDesignaciones = false;
+    isFetchingUltimas = false;
   }
 };
 

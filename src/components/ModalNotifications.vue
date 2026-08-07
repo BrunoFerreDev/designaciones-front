@@ -1,65 +1,98 @@
 <template>
-  <div>
-    <div class="topbar">
-      <div>
-        <div class="topbar-title">Notificaciones</div>
-        <div class="topbar-sub">
-          {{ unreadCount }} por leer · {{ state.notifications?.length || 0 }} en total
+  <div class="modal-card max-w-xl w-full mx-auto" style="border-radius: var(--border-radius-lg, 14px); overflow: hidden; background: white; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);">
+    <!-- Header -->
+    <div class="modal-header" style="background: #1e293b; color: white; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-top-left-radius: var(--border-radius-lg); border-top-right-radius: var(--border-radius-lg);">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i class="ti ti-bell" style="font-size: 24px;"></i>
+        <div>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: white;">Notificaciones</h3>
+          <span style="font-size: 11px; opacity: 0.9; color: #cbd5e1;">
+            {{ unreadCount }} por leer · {{ state.notifications?.length || 0 }} en total
+          </span>
         </div>
       </div>
-      <div class="topbar-actions" v-if="state.notifications && state.notifications.length > 0">
-        <button class="btn secondary" @click="markAllAsRead" title="Marcar todas como leídas">
+      <button 
+        @click="closeModal" 
+        style="background: transparent; border: none; color: white; cursor: pointer; padding: 4px; display: inline-flex; border-radius: 50%;"
+        onmouseover="this.style.background='rgba(255, 255, 255, 0.15)'"
+        onmouseout="this.style.background='transparent'"
+      >
+        <i class="ti ti-x" style="font-size: 20px;"></i>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body" style="padding: 1.25rem;">
+      <!-- Actions Bar (if notifications exist) -->
+      <div 
+        v-if="state.notifications && state.notifications.length > 0" 
+        style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 1rem;"
+      >
+        <button 
+          class="btn secondary" 
+          style="padding: 6px 12px; font-size: 12px; height: auto;" 
+          @click="markAllAsRead" 
+          title="Marcar todas como leídas"
+        >
           <i class="ti ti-check-all"></i> Marcar todas leídas
         </button>
-        <button class="btn danger-outline" @click="clearAllNotifications" title="Limpiar todas las notificaciones">
+        <button 
+          class="btn danger-outline" 
+          style="padding: 6px 12px; font-size: 12px; height: auto;" 
+          @click="clearAllNotifications" 
+          title="Limpiar todas las notificaciones"
+        >
           <i class="ti ti-trash"></i> Limpiar historial
         </button>
       </div>
-    </div>
 
-    <div class="content">
       <!-- Empty State -->
-      <div v-if="!state.notifications || state.notifications.length === 0" class="empty-state notification-empty">
+      <div v-if="!state.notifications || state.notifications.length === 0" class="notification-empty" style="padding: 40px 20px;">
         <div class="empty-icon-wrapper">
           <div class="pulse-ring"></div>
-          <i class="ti ti-bell-off text-emerald-500" style="font-size: 42px;"></i>
+          <i class="ti ti-bell-off text-emerald-500" style="font-size: 36px;"></i>
         </div>
-        <h3 class="empty-title">Tu campo de juego está al día</h3>
-        <p class="empty-desc">No tienes notificaciones pendientes. Te avisaremos cuando ocurra algo importante.</p>
+        <h3 class="empty-title" style="font-size: 18px; margin-top: 1rem;">Tu campo de juego está al día</h3>
+        <p class="empty-desc" style="font-size: 13px;">No tienes notificaciones pendientes. Te avisaremos cuando ocurra algo importante.</p>
       </div>
 
-      <!-- Notifications List -->
-      <div v-else class="notifications-list">
+      <!-- Scrollable Notifications List -->
+      <div v-else class="notifications-scroll-area" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px;">
         <div
           v-for="item in state.notifications"
           :key="item.id"
           :class="['notification-item-card', `notif-${item.type}`, { 'unread': !item.read }]"
           @click="handleCardClick(item)"
+          style="border-radius: 10px; padding: 12px 14px; gap: 12px; border-left-width: 4px;"
         >
           <!-- Unread Dot Indicator -->
-          <div v-if="!item.read" class="unread-indicator" title="Sin leer"></div>
+          <div v-if="!item.read" class="unread-indicator" title="Sin leer" style="top: 8px; right: 8px;"></div>
 
-          <!-- Icon wrapper with dynamic background -->
-          <div :class="['notif-icon-container', `notif-icon-${item.type}`]">
+          <!-- Icon wrapper -->
+          <div 
+            :class="['notif-icon-container', `notif-icon-${item.type}`]"
+            style="width: 36px; height: 36px; font-size: 16px; border-radius: 8px;"
+          >
             <i :class="['ti', getIcon(item.type)]"></i>
           </div>
 
           <!-- Notification Details -->
           <div class="notif-body">
-            <div class="notif-header">
-              <span class="notif-title">{{ item.title }}</span>
-              <span class="notif-time" :title="formatFullDate(item.timestamp)">
+            <div class="notif-header" style="align-items: center;">
+              <span class="notif-title" style="font-size: 14px;">{{ item.title }}</span>
+              <span class="notif-time" :title="formatFullDate(item.timestamp)" style="font-size: 11px;">
                 {{ formatTimeAgo(item.timestamp) }}
               </span>
             </div>
-            <p class="notif-message">{{ item.message }}</p>
+            <p class="notif-message" style="font-size: 12.5px; line-height: 1.4;">{{ item.message }}</p>
           </div>
 
           <!-- Action buttons for card -->
-          <div class="notif-actions" @click.stop>
+          <div class="notif-actions" @click.stop style="gap: 2px;">
             <button
               v-if="!item.read"
               class="btn-icon-only text-emerald-600 hover:bg-emerald-50"
+              style="width: 28px; height: 28px; font-size: 14px;"
               @click="markAsRead(item.id)"
               title="Marcar como leída"
             >
@@ -67,6 +100,7 @@
             </button>
             <button
               class="btn-icon-only text-red-500 hover:bg-red-50"
+              style="width: 28px; height: 28px; font-size: 14px;"
               @click="deleteNotification(item.id)"
               title="Eliminar notificación"
             >
@@ -83,6 +117,7 @@
 import { computed } from "vue";
 import {
   state,
+  closeModal,
   markAsRead,
   markAllAsRead,
   deleteNotification,
@@ -137,36 +172,20 @@ const handleCardClick = (item) => {
 </script>
 
 <style scoped>
-.topbar-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.notifications-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
 .notification-item-card {
   position: relative;
   display: flex;
-  gap: 16px;
-  padding: 16px 20px;
   background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
   border-left: 5px solid #cbd5e1;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   user-select: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .notification-item-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .notification-item-card.unread {
@@ -190,8 +209,6 @@ const handleCardClick = (item) => {
 /* Unread indicator dot */
 .unread-indicator {
   position: absolute;
-  top: 10px;
-  right: 10px;
   width: 8px;
   height: 8px;
   background: #10b981;
@@ -203,10 +220,6 @@ const handleCardClick = (item) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  font-size: 20px;
   flex-shrink: 0;
 }
 
@@ -233,19 +246,17 @@ const handleCardClick = (item) => {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 0; /* for text wrapping and ellipsis */
+  min-width: 0;
 }
 
 .notif-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
   gap: 12px;
 }
 
 .notif-title {
   font-weight: 600;
-  font-size: 15px;
   color: #1e293b;
 }
 
@@ -254,15 +265,12 @@ const handleCardClick = (item) => {
 }
 
 .notif-time {
-  font-size: 12px;
   color: #94a3b8;
   white-space: nowrap;
 }
 
 .notif-message {
-  font-size: 14px;
   color: #64748b;
-  line-height: 1.5;
   margin: 0;
   word-break: break-word;
 }
@@ -275,7 +283,6 @@ const handleCardClick = (item) => {
 /* Card action buttons */
 .notif-actions {
   display: flex;
-  gap: 4px;
   align-self: center;
 }
 
@@ -283,14 +290,11 @@ const handleCardClick = (item) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
   border: none;
   background: transparent;
   cursor: pointer;
+  border-radius: 6px;
   transition: background-color 0.2s;
-  font-size: 16px;
 }
 
 /* Empty State Details */
@@ -299,7 +303,6 @@ const handleCardClick = (item) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
   text-align: center;
 }
 
@@ -308,11 +311,10 @@ const handleCardClick = (item) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 80px;
-  height: 80px;
+  width: 72px;
+  height: 72px;
   background: #f0fdf4;
   border-radius: 50%;
-  margin-bottom: 24px;
 }
 
 .pulse-ring {
@@ -326,14 +328,12 @@ const handleCardClick = (item) => {
 }
 
 .empty-title {
-  font-size: 20px;
   font-weight: 600;
   color: #1e293b;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
 }
 
 .empty-desc {
-  font-size: 14px;
   color: #64748b;
   max-width: 320px;
   margin: 0;
@@ -344,6 +344,7 @@ const handleCardClick = (item) => {
   background: transparent;
   border: 1px solid #ef4444;
   color: #ef4444;
+  transition: all 0.2s;
 }
 
 .btn.danger-outline:hover {
@@ -362,5 +363,21 @@ const handleCardClick = (item) => {
     transform: scale(1.3);
     opacity: 0;
   }
+}
+
+/* Custom Scrollbar for scrollable area */
+.notifications-scroll-area::-webkit-scrollbar {
+  width: 6px;
+}
+.notifications-scroll-area::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+.notifications-scroll-area::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+.notifications-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 </style>
