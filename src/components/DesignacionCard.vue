@@ -305,7 +305,11 @@
 
       <!-- Cancelar (Cambiar a estado 3) -->
       <button
-        v-if="designacion.estadoDesignacion === 1 && designacion.editable !== false"
+        v-if="
+          (designacion.estadoDesignacion === 0 ||
+            designacion.estadoDesignacion === 1) &&
+          designacion.editable !== false
+        "
         class="btn text-xs danger"
         style="padding: 6px 12px; gap: 6px"
         @click="handleCancelar"
@@ -476,11 +480,16 @@ const handleFinalizar = async () => {
 };
 
 const handleCancelar = async () => {
-  if (!confirm("¿Estás seguro de que deseas cancelar esta jornada?")) return;
+  const detalle = prompt("Por favor, ingrese el motivo de la cancelación de la jornada:");
+  if (detalle === null) return; // Se canceló la acción del prompt
+  if (!detalle.trim()) {
+    alert("Debe ingresar un motivo para cancelar la jornada.");
+    return;
+  }
   loadingAction.value = true;
   try {
     const id = props.designacion.idDesignacion || props.designacion.id;
-    await cancelarDesignacionManual(id);
+    await cancelarDesignacionManual(id, detalle);
     emit("action-complete", id);
   } catch (err) {
     console.error(err);

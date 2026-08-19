@@ -42,6 +42,14 @@
           <i class="ti ti-user" style="font-size: 14px; margin-right: 5px"></i>
           Detalle por Árbitro
         </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'comparacion' }"
+          @click="activeTab = 'comparacion'"
+        >
+          <i class="ti ti-scale" style="font-size: 14px; margin-right: 5px"></i>
+          Comparación
+        </button>
       </div>
 
       <!-- Alerta de Error -->
@@ -90,6 +98,13 @@
           @seleccionar-arbitro="seleccionarYVerDetalle"
           class="animate-fade-in"
         />
+
+        <!-- Pestaña Comparación -->
+        <StatsComparacion
+          v-else-if="activeTab === 'comparacion'"
+          :listaArbitros="listaArbitrosCompletos"
+          class="animate-fade-in"
+        />
       </div>
     </div>
   </div>
@@ -102,6 +117,7 @@ import estadisticasService from "../services/estadisticasService";
 import StatsFiltros from "../components/StatsFiltros.vue";
 import StatsResumenGlobal from "../components/StatsResumenGlobal.vue";
 import StatsDetalleArbitro from "../components/StatsDetalleArbitro.vue";
+import StatsComparacion from "../components/StatsComparacion.vue";
 
 // Pestaña Activa
 const activeTab = ref("global");

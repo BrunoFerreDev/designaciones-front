@@ -24,98 +24,60 @@ const getMostRecentSaturday = () => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
-export const loadDesignacionesIncompletas = async (page = 0, size = 100) => {
-  try {
-    const res0 = await designacionService.getByEstado(0, page, size);
-    let list = Array.isArray(res0) ? res0 : res0.content || res0;
+let loadingPromise = null;
 
-    const limitDate = getMostRecentSaturday();
-    list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
-    state.designacionesIncompletas = sortDesignaciones(list);
+export const loadDesignacionesUltimos7Dias = async () => {
+  if (loadingPromise) return loadingPromise;
 
-    // Pre-cargar árbitros asignados en el mapa
-    list.forEach(async (d) => {
-      const id = d.idDesignacion || d.id;
-      if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
-        state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
-      } else {
-        const refs = await loadArbitrosDesignados(id);
-        state.arbitrosDesignadosMap[id] = refs;
-      }
-    });
-  } catch (e) {
-    console.warn("Failed to load designaciones incompletas", e);
-  }
+  loadingPromise = (async () => {
+    try {
+      const res = await designacionService.getUltimos7Dias();
+      const list = Array.isArray(res) ? res : [];
+
+      const incompletas = list.filter((d) => d.estadoDesignacion === 0);
+      const completas = list.filter((d) => d.estadoDesignacion === 1);
+      const finalizadas = list.filter((d) => d.estadoDesignacion === 2);
+      const aceptadas = list.filter((d) => d.estadoDesignacion === 3);
+
+      state.designacionesIncompletas = sortDesignaciones(incompletas);
+      state.designaciones = sortDesignaciones(completas);
+      state.designacionesFinalizadas = sortDesignaciones(finalizadas);
+      state.designacionesAceptadas = sortDesignaciones(aceptadas);
+
+      // Pre-cargar árbitros asignados en el mapa
+      list.forEach(async (d) => {
+        const id = d.idDesignacion || d.id;
+        if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
+          state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
+        } else {
+          const refs = await loadArbitrosDesignados(id);
+          state.arbitrosDesignadosMap[id] = refs;
+        }
+      });
+    } catch (e) {
+      console.warn("Failed to load designaciones for last 7 days", e);
+    } finally {
+      loadingPromise = null;
+    }
+  })();
+
+  return loadingPromise;
 };
 
-export const loadDesignacionesAceptadas = async (page = 0, size = 100) => {
-  try {
-    const res = await designacionService.getByEstado(3, page, size);
-    let list = Array.isArray(res) ? res : res.content || res;
-
-    const limitDate = getMostRecentSaturday();
-    list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
-    state.designacionesAceptadas = sortDesignaciones(list);
-
-    // Pre-cargar árbitros asignados en el mapa
-    list.forEach(async (d) => {
-      const id = d.idDesignacion || d.id;
-      if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
-        state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
-      } else {
-        const refs = await loadArbitrosDesignados(id);
-        state.arbitrosDesignadosMap[id] = refs;
-      }
-    });
-  } catch (e) {
-    console.warn("Failed to load designaciones aceptadas", e);
-  }
+export const loadDesignacionesIncompletas = async () => {
+  await loadDesignacionesUltimos7Dias();
 };
 
-export const loadDesignacionesCompletas = async (page = 0, size = 100) => {
-  try {
-    const res = await designacionService.getByEstado(1, page, size);
-    let list = Array.isArray(res) ? res : res.content || res;
-    const limitDate = getMostRecentSaturday();
-    list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
-    state.designaciones = sortDesignaciones(list);
-
-    // Pre-cargar árbitros asignados en el mapa
-    list.forEach(async (d) => {
-      const id = d.idDesignacion || d.id;
-      if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
-        state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
-      } else {
-        const refs = await loadArbitrosDesignados(id);
-        state.arbitrosDesignadosMap[id] = refs;
-      }
-    });
-  } catch (e) {
-    console.warn("Failed to load designaciones completas", e);
-  }
+export const loadDesignacionesAceptadas = async () => {
+  await loadDesignacionesUltimos7Dias();
 };
 
-export const loadDesignacionesFinalizadas = async (page = 0, size = 100) => {
-  try {
-    const res = await designacionService.getByEstado(2, page, size);
-    let list = Array.isArray(res) ? res : res.content || res;
-    const limitDate = getMostRecentSaturday();
-    list = list.filter((d) => d.fecha && d.fecha.split("T")[0] >= limitDate);
-    state.designacionesFinalizadas = sortDesignaciones(list);
+export const loadDesignacionesCompletas = async () => {
+  await loadDesignacionesUltimos7Dias();
+};
 
-    // Pre-cargar árbitros asignados en el mapa
-    list.forEach(async (d) => {
-      const id = d.idDesignacion || d.id;
-      if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
-        state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
-      } else {
-        const refs = await loadArbitrosDesignados(id);
-        state.arbitrosDesignadosMap[id] = refs;
-      }
-    });
-  } catch (e) {
-    console.warn("Failed to load designaciones finalizadas", e);
-  }
+export const loadDesignacionesFinalizadas = async () => {
+  await loadDesignacionesUltimos7Dias();
 };
 
 export const reloadAllDesignaciones = async () => {
@@ -662,9 +624,9 @@ export const asignarArbitroADesignacionManual = async (
   }
 };
 
-export const cancelarDesignacionManual = async (idDesignacion) => {
+export const cancelarDesignacionManual = async (idDesignacion, detalle) => {
   try {
-    const res = await designacionService.cancelarDesignacion(idDesignacion);
+    const res = await designacionService.cancelarDesignacion(idDesignacion, detalle);
     await reloadAllDesignaciones();
     return res;
   } catch (error) {

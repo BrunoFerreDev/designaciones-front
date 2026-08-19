@@ -25,12 +25,16 @@ const asignarArbitrosAutomaticamente = (id) =>
   api.post(`/designaciones/${id}/asignar-automatico`).then((r) => r.data);
 const getArbitrosDesignados = (id) =>
   api.get(`/designaciones/${id}/arbitros`).then((r) => r.data);
-const asignarArbitroManual = (idDesignacion, idArbitro, tipo = 1) =>
-  api
-    .post(`/designaciones/${idDesignacion}/asignar-arbitro`, null, {
+const asignarArbitroManual = (idDesignacion, idArbitro, tipo = 1) => {
+  const endpoint = tipo === 0
+    ? `/designaciones/${idDesignacion}/asignar-arbitro/historico`
+    : `/designaciones/${idDesignacion}/asignar-arbitro`;
+  return api
+    .post(endpoint, null, {
       params: { idArbitro },
     })
     .then((r) => r.data);
+};
 const quitarArbitroManual = (idDesignacion, idArbitro) =>
   api
     .delete(`/designaciones/${idDesignacion}/arbitros/${idArbitro}`)
@@ -41,9 +45,11 @@ const designarListaArbitrosADesignacion = (idDesignacion, idsArbitros) =>
   api
     .post(`/designaciones/${idDesignacion}/arbitros/bulk`, idsArbitros)
     .then((r) => r.data);
-const cancelarDesignacion = (idDesignacion) =>
+const cancelarDesignacion = (idDesignacion, detalle) =>
   api
-    .put(`/designaciones/${idDesignacion}/cambiar-cancelado`)
+    .put(`/designaciones/${idDesignacion}/cambiar-cancelado`, null, {
+      params: { detalle },
+    })
     .then((r) => r.data);
 const buscarPorRango = (inicio, fin) =>
   api
@@ -53,6 +59,20 @@ const buscarPorFecha = (fecha) =>
   api
     .get("/designaciones/obtener-por-fecha", { params: { fecha } })
     .then((r) => r.data);
+const getUltimos7Dias = (fechaBase = new Date()) => {
+  const base = typeof fechaBase === "string" ? new Date(fechaBase.replace(" ", "T")) : new Date(fechaBase);
+  const promesas = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(base);
+    d.setDate(base.getDate() - i);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const fecha = `${yyyy}-${mm}-${dd}`;
+    promesas.push(buscarPorFecha(fecha));
+  }
+  return Promise.all(promesas).then((results) => results.filter(Boolean).flat());
+};
 const buscarPorMes = (mes, anio) =>
   api.get("/designaciones/mes", { params: { mes, anio } }).then((r) => r.data);
 const actualizarDesignacion = (idDesignacion, dto) =>
@@ -93,6 +113,7 @@ export default {
   //enviarListaArbitros,
   buscarPorRango,
   buscarPorFecha,
+  getUltimos7Dias,
   buscarPorMes,
   actualizarDesignacion,
   aceptarDesignacion,

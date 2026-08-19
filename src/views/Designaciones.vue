@@ -224,8 +224,8 @@
       <div v-if="filteredIncompletas.length > 0">
         <div class="alert alert-warning">
           <i class="ti ti-alert-triangle"></i>
-          {{ filteredIncompletas.length }} designación(es) por
-          completar - Asigna árbitros
+          {{ filteredIncompletas.length }} designación(es) por completar -
+          Asigna árbitros
         </div>
 
         <div style="margin-bottom: 2rem">
@@ -366,8 +366,7 @@
 
         <div
           v-if="
-            filteredCompletas.length === 0 &&
-            filteredIncompletas.length === 0
+            filteredCompletas.length === 0 && filteredIncompletas.length === 0
           "
           class="empty-state"
         >
@@ -949,9 +948,7 @@
               color: var(--color-text-secondary);
             "
           >
-            🏁 Designaciones Finalizadas ({{
-              filteredFinalizadas.length
-            }})
+            🏁 Designaciones Finalizadas ({{ filteredFinalizadas.length }})
           </div>
           <button
             class="btn"
@@ -1219,19 +1216,19 @@ const arbitrosDesignados = computed(() => {
 });
 
 const filteredIncompletas = computed(() =>
-  state.designacionesIncompletas.filter((d) => d.editable !== false)
+  state.designacionesIncompletas.filter((d) => d.editable !== false),
 );
 const filteredCompletas = computed(() =>
-  state.designaciones.filter((d) => d.editable !== false)
+  state.designaciones.filter((d) => d.editable !== false),
 );
 const filteredFinalizadas = computed(() =>
-  state.designacionesFinalizadas.filter((d) => d.editable !== false)
+  state.designacionesFinalizadas.filter((d) => d.editable !== false),
 );
 const filteredAceptadas = computed(() =>
-  state.designacionesAceptadas.filter((d) => d.editable !== false)
+  state.designacionesAceptadas.filter((d) => d.editable !== false),
 );
 const filteredAConfirmar = computed(() =>
-  state.designacionesAConfirmar.filter((d) => d.editable !== false)
+  state.designacionesAConfirmar.filter((d) => d.editable !== false),
 );
 
 const getDayOfWeek = getDayOfWeekLocal;
