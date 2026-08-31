@@ -7,20 +7,35 @@ export const getArbitro = (id) =>
   state.arbitros.find((a) => a.idArbitro === id) ||
   (state.arbitrosNoDisponibles || []).find((a) => a.idArbitro === id);
 
+export const isArbitroActivo = (a) => {
+  if (!a) return false;
+  if (a.estadoSistema !== undefined) return a.estadoSistema !== false;
+  if (a.estado !== undefined) return a.estado !== false;
+  return true;
+};
+
 export const disponiblesCount = computed(
   () =>
-    state.arbitros.filter((a) => a.disponibleSabado || a.disponibleDomingo)
-      .length,
+    state.arbitros.filter(
+      (a) => isArbitroActivo(a) && (a.disponibleSabado || a.disponibleDomingo),
+    ).length,
 );
 export const noDisponiblesCount = computed(
-  () => (state.arbitrosNoDisponibles || []).length,
+  () =>
+    state.arbitros.filter(
+      (a) => isArbitroActivo(a) && !a.disponibleSabado && !a.disponibleDomingo,
+    ).length,
 );
 export const disponiblesSabadoCount = computed(
-  () => state.arbitros.filter((a) => a.disponibleSabado).length,
+  () =>
+    state.arbitros.filter((a) => isArbitroActivo(a) && a.disponibleSabado)
+      .length,
 );
 
 export const disponiblesDomingoCount = computed(
-  () => state.arbitros.filter((a) => a.disponibleDomingo).length,
+  () =>
+    state.arbitros.filter((a) => isArbitroActivo(a) && a.disponibleDomingo)
+      .length,
 );
 
 export const calcStatus = (partidos) => {
@@ -217,4 +232,34 @@ export const isRefereeAssignedToDifferentCourtOnSameDay = (
     }
   }
   return false;
+};
+
+export const ESTADOS_DESIGNACION = [
+  { id: 0, label: "Pendiente a completar", shortLabel: "Pendiente", badge: "badge-amber", color: "#d97706", bg: "#fef3c7" },
+  { id: 1, label: "Aceptada", shortLabel: "Aceptada", badge: "badge-blue", color: "#185fa5", bg: "#e0f2fe" },
+  { id: 2, label: "Jornada finalizada", shortLabel: "Finalizada", badge: "badge-green", color: "#0f6e56", bg: "#e1f5ee" },
+  { id: 3, label: "Jornada cancelada", shortLabel: "Cancelada", badge: "badge-red", color: "#b91c1c", bg: "#fee2e2" },
+  { id: 4, label: "Suspendida en juego", shortLabel: "Suspendida", badge: "badge-purple", color: "#7e22ce", bg: "#f3e8ff" },
+];
+
+export const getEstadoDesignacionInfo = (estado) => {
+  const num = Number(estado);
+  const found = ESTADOS_DESIGNACION.find((e) => e.id === num);
+  return found || { id: num, label: "Desconocido", shortLabel: "Desconocido", badge: "badge-gray", color: "#64748b", bg: "#f1f5f9" };
+};
+
+export const formatLocalDateTime = (dateStr) => {
+  if (!dateStr) return "";
+  let s = String(dateStr).trim();
+  if (s.includes(" ")) {
+    s = s.replace(" ", "T");
+  }
+  const parts = s.split("T");
+  if (parts.length === 2) {
+    const timeParts = parts[1].split(":");
+    if (timeParts.length === 2) {
+      return `${parts[0]}T${timeParts[0]}:${timeParts[1]}:00`;
+    }
+  }
+  return s;
 };

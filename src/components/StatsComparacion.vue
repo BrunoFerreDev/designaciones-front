@@ -15,7 +15,7 @@
               Comparador de Rendimiento
             </h3>
             <p class="text-xs text-slate-500 mt-1">
-              Selecciona de 2 a 4 árbitros para contrastar estadísticas de designaciones, partidos dirigidos y honorarios.
+              Selecciona de 2 a 4 árbitros para contrastar estadísticas de designaciones, partidos dirigidos y volumen de actividad.
             </p>
           </div>
           
@@ -271,6 +271,7 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
+import { isArbitroActivo } from "../store";
 import estadisticasService from "../services/estadisticasService";
 import StatsComparacionFicha from "./StatsComparacionFicha.vue";
 import StatsComparacionPonderacion from "./StatsComparacionPonderacion.vue";
@@ -313,12 +314,13 @@ const rangoInvalido = computed(() => {
   return mesInicio.value !== null && mesFin.value !== null && mesInicio.value > mesFin.value;
 });
 
-// Filtrar árbitros
+// Filtrar árbitros (sólo activos en el sistema)
 const filteredArbitros = computed(() => {
   if (!props.listaArbitros) return [];
   const q = searchQuery.value.toLowerCase().trim();
-  if (!q) return props.listaArbitros;
-  return props.listaArbitros.filter((a) =>
+  const activos = props.listaArbitros.filter(isArbitroActivo);
+  if (!q) return activos;
+  return activos.filter((a) =>
     `${a.nombre} ${a.apellido}`.toLowerCase().includes(q)
   );
 });

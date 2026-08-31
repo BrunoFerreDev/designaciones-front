@@ -119,7 +119,7 @@
                 type="button"
                 class="btn"
                 style="padding: 4px 8px; font-size: 11px; border-color: #bcd1e6; color: #185fa5; background: #f6fafd;"
-                @click="openModal('viewSuspension', s.id || s.idSuspencion)"
+                @click="openModal('viewSuspension', s.id || s.idSuspencion, s)"
               >
                 👁️ Ver Detalle
               </button>
@@ -217,7 +217,7 @@
             type="button"
             class="btn"
             style="padding: 4px 8px; font-size: 10px; border-color: #bcd1e6; color: #185fa5; background: #f6fafd;"
-            @click="openModal('viewSuspension', s.id || s.idSuspencion)"
+            @click="openModal('viewSuspension', s.id || s.idSuspencion, s)"
           >
             👁️ Ver Detalle
           </button>

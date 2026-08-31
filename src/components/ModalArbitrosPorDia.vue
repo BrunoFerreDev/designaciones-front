@@ -244,7 +244,8 @@ import {
   getCancha, 
   loadDesignacionesIncompletas,
   loadDesignacionesCompletas,
-  loadDesignacionesAceptadas
+  loadDesignacionesAceptadas,
+  isArbitroActivo,
 } from "../store";
 
 const loading = ref(false);
@@ -391,10 +392,12 @@ const soloDomingo = computed(() => {
 });
 
 const sinDesignar = computed(() => {
-  return state.arbitros.filter(arb => {
-    const arbId = arb.idArbitro || arb.id;
-    return !arbitrosResumen.value.some(a => a.idArbitro === arbId);
-  });
+  return state.arbitros
+    .filter(isArbitroActivo)
+    .filter((arb) => {
+      const arbId = arb.idArbitro || arb.id;
+      return !arbitrosResumen.value.some((a) => a.idArbitro === arbId);
+    });
 });
 
 const totalDesignados = computed(() => arbitrosResumen.value.length);

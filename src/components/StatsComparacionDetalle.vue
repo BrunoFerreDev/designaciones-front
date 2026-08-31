@@ -58,12 +58,12 @@
             :key="d.idDesignacion"
             class="bg-slate-50/70 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors text-xs"
           >
-            <!-- Fila Cancha y Monto -->
+            <!-- Fila Cancha y Cantidad Partidos -->
             <div class="flex justify-between items-start font-bold text-slate-700">
               <span class="truncate max-w-[70%]" :title="d.nombreCancha">
                 <i class="ti ti-map-pin text-[10px] text-slate-400 mr-0.5"></i> {{ d.nombreCancha }}
               </span>
-              <span class="shrink-0 text-emerald-600">{{ formatMonto(d.montoPercibido) }}</span>
+              <span class="shrink-0 badge badge-blue text-[10px]">⚽ {{ d.cantidadPartidos || 1 }} part.</span>
             </div>
             
             <!-- Fila Fecha y Rol -->
@@ -142,15 +142,6 @@ const getAvatarColors = (name) => {
 const getDotBg = (name) => {
   const [c1] = getAvatarColors(name);
   return `background-color: ${c1};`;
-};
-
-const formatMonto = (valor) => {
-  if (valor === undefined || valor === null) return "$0,00";
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    minimumFractionDigits: 2,
-  }).format(valor);
 };
 
 const getPercent = (parcial, total) => {

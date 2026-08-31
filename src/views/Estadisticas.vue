@@ -111,14 +111,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
-import { state, loadArbitros, loadArbitrosNoDisponibles } from "../store";
+import {
+  state,
+  loadArbitros,
+  loadArbitrosNoDisponibles,
+  isArbitroActivo,
+} from "../store";
 import estadisticasService from "../services/estadisticasService";
 import StatsFiltros from "../components/StatsFiltros.vue";
 import StatsResumenGlobal from "../components/StatsResumenGlobal.vue";
 import StatsDetalleArbitro from "../components/StatsDetalleArbitro.vue";
 import StatsComparacion from "../components/StatsComparacion.vue";
-
+import { ref,computed,onMounted } from "vue";
 // Pestaña Activa
 const activeTab = ref("global");
 
@@ -207,9 +211,12 @@ const seleccionarYVerDetalle = (id, nombre) => {
   cargarDatosDetalle();
 };
 
-// Combinar árbitros disponibles y no disponibles para el Selector
+// Combinar árbitros disponibles y no disponibles para el Selector (sólo activos en el sistema)
 const listaArbitrosCompletos = computed(() => {
-  const list = [...state.arbitros, ...(state.arbitrosNoDisponibles || [])];
+  const list = [
+    ...(state.arbitros || []),
+    ...(state.arbitrosNoDisponibles || []),
+  ].filter(isArbitroActivo);
   // Eliminar duplicados por idArbitro y ordenar alfabéticamente por Apellido
   const unique = [];
   const map = new Set();
@@ -224,9 +231,9 @@ const listaArbitrosCompletos = computed(() => {
   );
 });
 
-// Árbitros rápidos para sugerencia cuando no se ha seleccionado nada
+// Árbitros rápidos para sugerencia cuando no se ha seleccionado nada (sólo activos)
 const arbitrosRapidos = computed(() => {
-  return state.arbitros.slice(0, 4);
+  return state.arbitros.filter(isArbitroActivo).slice(0, 4);
 });
 
 onMounted(() => {

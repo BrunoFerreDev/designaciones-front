@@ -10,246 +10,23 @@
     </div>
 
     <div class="content animate-fade-in">
-      <!-- Selector de Modo de Búsqueda -->
-      <div class="tab-row" style="max-width: 800px; margin-bottom: 1.5rem">
-        <button
-          :class="['tab-btn', { active: searchMode === 'single' }]"
-          @click="searchMode = 'single'"
-        >
-          <i class="ti ti-calendar" style="margin-right: 6px"></i>Fecha Única
-        </button>
-        <button
-          :class="['tab-btn', { active: searchMode === 'range' }]"
-          @click="searchMode = 'range'"
-        >
-          <i class="ti ti-calendar-event" style="margin-right: 6px"></i>Rango de
-          Fechas
-        </button>
-        <button
-          :class="['tab-btn', { active: searchMode === 'monthly' }]"
-          @click="searchMode = 'monthly'"
-        >
-          <i class="ti ti-calendar-stats" style="margin-right: 6px"></i>Por Mes
-        </button>
-        <button
-          :class="['tab-btn', { active: searchMode === 'referee' }]"
-          @click="searchMode = 'referee'"
-        >
-          <i class="ti ti-user" style="margin-right: 6px"></i>Por Árbitro
-        </button>
-        <button
-          :class="['tab-btn', { active: searchMode === 'court' }]"
-          @click="searchMode = 'court'"
-        >
-          <i class="ti ti-map-pin" style="margin-right: 6px"></i>Por Cancha
-        </button>
-        <button
-          :class="['tab-btn', { active: searchMode === 'status' }]"
-          @click="searchMode = 'status'"
-        >
-          <i class="ti ti-activity" style="margin-right: 6px"></i>Por Estado
-        </button>
-      </div>
-
-      <!-- Formulario de Búsqueda -->
-      <div class="card" style="margin-bottom: 2rem; max-width: 800px">
-        <form @submit.prevent="ejecutarBusqueda(false)">
-          <div class="filters-grid" style="align-items: center; gap: 16px">
-            <!-- Modo Fecha Única -->
-            <div
-              v-if="searchMode === 'single'"
-              class="form-group"
-              style="margin-bottom: 0; flex: 1"
-            >
-              <label class="form-label">Seleccionar Fecha</label>
-              <input
-                type="date"
-                v-model="fechaSingle"
-                class="form-input"
-                required
-              />
-            </div>
-
-            <!-- Modo Rango de Fechas -->
-            <div
-              v-else-if="searchMode === 'range'"
-              style="
-                display: flex;
-                gap: 16px;
-                flex: 1;
-                width: 100%;
-                flex-wrap: wrap;
-              "
-            >
-              <div
-                class="form-group"
-                style="margin-bottom: 0; flex: 1; min-width: 150px"
-              >
-                <label class="form-label">Fecha Desde (Inicio)</label>
-                <input
-                  type="date"
-                  v-model="fechaInicio"
-                  class="form-input"
-                  required
-                />
-              </div>
-              <div
-                class="form-group"
-                style="margin-bottom: 0; flex: 1; min-width: 150px"
-              >
-                <label class="form-label">Fecha Hasta (Fin)</label>
-                <input
-                  type="date"
-                  v-model="fechaFin"
-                  class="form-input"
-                  required
-                />
-              </div>
-            </div>
-
-            <!-- Modo Por Mes -->
-            <div
-              v-else-if="searchMode === 'monthly'"
-              style="
-                display: flex;
-                gap: 16px;
-                flex: 1;
-                width: 100%;
-                flex-wrap: wrap;
-              "
-            >
-              <div
-                class="form-group"
-                style="margin-bottom: 0; flex: 1; min-width: 150px"
-              >
-                <label class="form-label">Mes</label>
-                <select
-                  v-model.number="selectedMonth"
-                  class="form-input"
-                  required
-                >
-                  <option value="1">Enero</option>
-                  <option value="2">Febrero</option>
-                  <option value="3">Marzo</option>
-                  <option value="4">Abril</option>
-                  <option value="5">Mayo</option>
-                  <option value="6">Junio</option>
-                  <option value="7">Julio</option>
-                  <option value="8">Agosto</option>
-                  <option value="9">Septiembre</option>
-                  <option value="10">Octubre</option>
-                  <option value="11">Noviembre</option>
-                  <option value="12">Diciembre</option>
-                </select>
-              </div>
-              <div
-                class="form-group"
-                style="margin-bottom: 0; flex: 1; min-width: 120px"
-              >
-                <label class="form-label">Año</label>
-                <select
-                  v-model.number="selectedYear"
-                  class="form-input"
-                  required
-                >
-                  <option v-for="y in yearsList" :key="y" :value="y">
-                    {{ y }}
-                  </option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Modo Por Árbitro -->
-            <div
-              v-else-if="searchMode === 'referee'"
-              class="form-group"
-              style="margin-bottom: 0; flex: 1"
-            >
-              <label class="form-label">Seleccionar Árbitro</label>
-              <select
-                v-model="selectedArbitroId"
-                class="form-input"
-                style="height: 38px"
-                required
-              >
-                <option value="" disabled>Seleccione un árbitro...</option>
-                <option
-                  v-for="a in listaArbitrosCompletos"
-                  :key="a.idArbitro"
-                  :value="a.idArbitro"
-                >
-                  {{ a.apellido }}, {{ a.nombre }} ({{
-                    getCategoryLabel(a.categoria)
-                  }})
-                </option>
-              </select>
-            </div>
-
-            <!-- Modo Por Cancha -->
-            <div
-              v-else-if="searchMode === 'court'"
-              class="form-group"
-              style="margin-bottom: 0; flex: 1"
-            >
-              <label class="form-label">Seleccionar Cancha</label>
-              <select
-                v-model="selectedCanchaId"
-                class="form-input"
-                style="height: 38px"
-                required
-              >
-                <option value="" disabled>Seleccione una cancha...</option>
-                <option
-                  v-for="c in listaCanchasCompletas"
-                  :key="c.id"
-                  :value="c.id"
-                >
-                  {{ c.nombre }} ({{ getCategoryLabel(c.categoria) }})
-                </option>
-              </select>
-            </div>
-
-            <!-- Modo Por Estado -->
-            <div
-              v-if="searchMode === 'status'"
-              class="form-group"
-              style="margin-bottom: 0; flex: 1"
-            >
-              <label class="form-label">Seleccionar Estado</label>
-              <select
-                v-model="selectedEstado"
-                class="form-input"
-                style="height: 38px"
-                required
-              >
-                <option value="" disabled>Seleccione un estado...</option>
-                <option value="0">Pendiente a completar</option>
-                <option value="1">Aceptada</option>
-                <option value="2">Jornada finalizada</option>
-                <option value="3">Jornada cancelada</option>
-              </select>
-            </div>
-
-            <!-- Botón Buscar -->
-            <div style="margin-top: 18px">
-              <button
-                type="submit"
-                class="btn primary"
-                :disabled="loading"
-                style="width: 100%; height: 38px"
-              >
-                <i
-                  v-if="loading"
-                  class="ti ti-loader"
-                  style="animation: spin 1s linear infinite"
-                ></i>
-                <i v-else class="ti ti-search"></i>
-                {{ loading ? "Buscando..." : "Buscar" }}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
+      <!-- Selector de Modo y Formulario de Búsqueda -->
+      <BuscarFiltrosForm
+        v-model:searchMode="searchMode"
+        v-model:fechaSingle="fechaSingle"
+        v-model:fechaInicio="fechaInicio"
+        v-model:fechaFin="fechaFin"
+        v-model:selectedMonth="selectedMonth"
+        v-model:selectedYear="selectedYear"
+        v-model:selectedArbitroId="selectedArbitroId"
+        v-model:selectedCanchaId="selectedCanchaId"
+        v-model:selectedEstado="selectedEstado"
+        :years-list="yearsList"
+        :lista-arbitros="listaArbitrosCompletos"
+        :lista-canchas="listaCanchasCompletas"
+        :loading="loading"
+        @submit="ejecutarBusqueda(false)"
+      />
 
       <!-- Alerta de Error -->
       <div
@@ -372,43 +149,18 @@
         </div>
 
         <!-- Paginación para Búsqueda por Árbitro, Cancha o Estado -->
-        <div
+        <BuscarResultadosPaginacion
           v-if="
             (searchMode === 'referee' ||
               searchMode === 'court' ||
               searchMode === 'status') &&
             totalPages > 1
           "
-          class="flex justify-between items-center p-4 h-12 py-2 bg-white rounded-lg border border-slate-100 shadow-sm"
-          style="margin-top: 3.5rem; gap: 12px; flex-wrap: wrap"
-        >
-          <span class="text-xs text-slate-500 font-medium">
-            Mostrando página {{ currentPage + 1 }} de {{ totalPages }} ({{
-              totalElements
-            }}
-            resultados totales)
-          </span>
-          <div class="flex gap-2">
-            <button
-              class="btn"
-              style="padding: 5px 12px; font-size: 13px"
-              :disabled="currentPage === 0"
-              @click="cambiarPagina(currentPage - 1)"
-            >
-              <i class="ti ti-chevron-left" style="margin-right: 4px"></i>
-              Anterior
-            </button>
-            <button
-              class="btn"
-              style="padding: 5px 12px; font-size: 13px"
-              :disabled="currentPage >= totalPages - 1"
-              @click="cambiarPagina(currentPage + 1)"
-            >
-              Siguiente
-              <i class="ti ti-chevron-right" style="margin-left: 4px"></i>
-            </button>
-          </div>
-        </div>
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total-elements="totalElements"
+          @change-page="cambiarPagina"
+        />
       </div>
     </div>
   </div>
@@ -423,14 +175,16 @@ import {
   loadArbitros,
   loadArbitrosNoDisponibles,
   loadCanchas,
+  isArbitroActivo,
 } from "../store";
 import designacionService from "../services/designacionService";
 import arbitroService from "../services/arbitroService";
 import canchaService from "../services/canchaService";
 import DesignacionCard from "../components/DesignacionCard.vue";
+import BuscarFiltrosForm from "../components/buscar/BuscarFiltrosForm.vue";
+import BuscarResultadosPaginacion from "../components/buscar/BuscarResultadosPaginacion.vue";
 
-// Estados reactivos
-const searchMode = ref("single"); // 'single', 'range', 'monthly' o 'referee'
+const searchMode = ref("single");
 const fechaSingle = ref("");
 const fechaInicio = ref("");
 const fechaFin = ref("");
@@ -453,30 +207,14 @@ const totalPages = ref(1);
 const totalElements = ref(0);
 const pageSize = ref(10);
 
-// Mapas para almacenar árbitros por designación
 const arbitrosDesignados = ref({});
 const resultadosCargados = ref({});
 
-// Obtener etiqueta legible de categoría de árbitro
-const getCategoryLabel = (cat) => {
-  const map = {
-    ELITE: "Elite",
-    AVANZADO: "Avanzado",
-    INTERMEDIO_ALTO: "Intermedio Alto",
-    INTERMEDIO: "Intermedio",
-    INTERMEDIO_BAJO: "Intermedio Bajo",
-    EN_FORMACION: "En Formación",
-    INICIAL: "Inicial",
-  };
-  return map[cat] || cat || "Inicial";
-};
-
-// Combinar árbitros disponibles y no disponibles para el Selector
 const listaArbitrosCompletos = computed(() => {
   const list = [
     ...(state.arbitros || []),
     ...(state.arbitrosNoDisponibles || []),
-  ];
+  ].filter(isArbitroActivo);
   const unique = [];
   const map = new Set();
   for (const item of list) {
@@ -491,7 +229,6 @@ const listaArbitrosCompletos = computed(() => {
   );
 });
 
-// Obtener canchas ordenadas alfabéticamente
 const listaCanchasCompletas = computed(() => {
   const list = state.canchas || [];
   return [...list].sort((a, b) =>
@@ -499,13 +236,11 @@ const listaCanchasCompletas = computed(() => {
   );
 });
 
-// Cambiar de página en el buscador de árbitro o cancha
 const cambiarPagina = (nuevaPagina) => {
   if (nuevaPagina >= 0 && nuevaPagina < totalPages.value) {
     currentPage.value = nuevaPagina;
     ejecutarBusqueda(false, false);
 
-    // Volver arriba de la página / contenedor al cambiar de página
     const el = document.querySelector(".main");
     if (el) {
       el.scrollTo({ top: 0, behavior: "smooth" });
@@ -515,7 +250,6 @@ const cambiarPagina = (nuevaPagina) => {
   }
 };
 
-// Inicializar con la fecha actual, cargar árbitros y canchas
 onMounted(() => {
   const hoy = new Date();
   const yyyy = hoy.getFullYear();
@@ -541,7 +275,6 @@ onMounted(() => {
   }
 });
 
-// Ejecución de la búsqueda
 const ejecutarBusqueda = async (silent = false, resetPage = false) => {
   if (resetPage) {
     currentPage.value = 0;
@@ -600,8 +333,6 @@ const ejecutarBusqueda = async (silent = false, resetPage = false) => {
       );
 
       const content = pageData?.content || [];
-      // El backend ahora devuelve directamente la designación (GetDesignacionDTO),
-      // pero mantenemos la compatibilidad de mapeo en caso de que existiera la estructura anidada.
       data = content.map((item) => item.Designacion || item);
 
       totalPages.value = pageData?.totalPages || 1;
@@ -653,7 +384,6 @@ const ejecutarBusqueda = async (silent = false, resetPage = false) => {
     resultados.value = data || [];
     realizoBusqueda.value = true;
 
-    // Cargar detalles de árbitros para los resultados de forma proactiva
     for (const d of resultados.value) {
       const id = d.idDesignacion || d.id;
       if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
@@ -673,7 +403,6 @@ const ejecutarBusqueda = async (silent = false, resetPage = false) => {
   }
 };
 
-// Limpiar resultados al cambiar de modo de búsqueda
 watch(searchMode, () => {
   resultados.value = [];
   realizoBusqueda.value = false;
@@ -684,19 +413,15 @@ watch(searchMode, () => {
   selectedEstado.value = "";
 });
 
-// Monitorear cuando se cierra el modal global de gestión de árbitros
-// para actualizar en tiempo real los resultados de la búsqueda actual
 watch(
   () => state.modal,
   async (newModal, oldModal) => {
-    // Si el modal estaba abierto (oldModal es objeto) y ahora se cierra (newModal es null)
     if (
       oldModal &&
       !newModal &&
       realizoBusqueda.value &&
       resultados.value.length > 0
     ) {
-      console.log("Modal de árbitros cerrado. Recargando buscador...");
       await ejecutarBusqueda(true, false);
     }
   },

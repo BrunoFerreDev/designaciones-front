@@ -21,13 +21,20 @@ export const openModal = (type, id = null, data = null) => {
       estado: true,
     };
   } else if (type === "editArbitro" && id) {
-    state.form = { ...getArbitro(id) };
+    const a = getArbitro(id) || {};
+    const activo = (a.estadoSistema !== undefined ? a.estadoSistema : a.estado) !== false;
+    state.form = {
+      ...a,
+      estadoSistema: activo,
+      estado: activo,
+    };
   } else if (type === "addArbitro") {
     state.form = {
       rol: ROLES_ARB[0],
       categoria: "INCIAL",
       talleCamiseta: "M",
       talleShort: "M",
+      estadoSistema: true,
       estado: true,
       disponibleSabado: true,
       disponibleDomingo: true,
@@ -37,14 +44,15 @@ export const openModal = (type, id = null, data = null) => {
     };
   } else if (type === "addDesignacion") {
     state.form = { cantidadPartidos: 1, etapaCampeonato: "FECHA_NORMAL" }; // defaults para designación
-  } else if ((type === "manageReferees" || type === "updateFees") && id) {
+  } else if (type === "manageReferees" && id) {
     state.form = { idDesignacion: id };
-  } else if (type === "editDesignacion" && id) {
+  } else if ((type === "editDesignacion" || type === "changeStatus" || type === "cambiarEstado") && id) {
     const list = [
       ...state.designacionesIncompletas,
       ...state.designaciones,
       ...state.designacionesFinalizadas,
       ...state.designacionesAConfirmar,
+      ...(state.designacionesAceptadas || []),
     ];
     let des = list.find((d) => (d.idDesignacion || d.id) === id);
     if (!des && data) {
@@ -69,6 +77,25 @@ export const openModal = (type, id = null, data = null) => {
         cantidadPartidos: des.cantidadPartidos || 1,
         etapaCampeonato:
           des.etapaCampeonato || des.etapaTorneo || "FECHA_NORMAL",
+        detalle:
+          des.detalleDesignacion ||
+          des.detalle ||
+          des.observacion ||
+          des.observaciones ||
+          des.motivo ||
+          "",
+        detalleDesignacion:
+          des.detalleDesignacion ||
+          des.detalle ||
+          des.observacion ||
+          des.observaciones ||
+          des.motivo ||
+          "",
+        editable: des.editable !== undefined ? des.editable : true,
+        estadoDesignacion:
+          data?.targetState !== undefined
+            ? data.targetState
+            : (des.estadoDesignacion !== undefined ? des.estadoDesignacion : 0),
       };
     } else {
       state.form = {};

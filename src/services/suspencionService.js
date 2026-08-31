@@ -1,7 +1,12 @@
 import api from "./api";
 
-const create = (dto) =>
-  api.post("/arbitros/cargar-suspencion", dto).then((r) => r.data);
+const create = (idArbitro, dto) =>
+  api.post(`/arbitros/${idArbitro}/suspenciones`, dto).then((r) => r.data);
+
+const getByArbitro = (idArbitro, page = 0, size = 50) =>
+  api
+    .get(`/arbitros/${idArbitro}/suspenciones`, { params: { page, size } })
+    .then((r) => r.data);
 
 const getAll = (page = 0, size = 100) =>
   api
@@ -13,6 +18,7 @@ const deleteSuspencion = (idSuspencion) =>
 
 export default {
   create,
+  getByArbitro,
   getAll,
   deleteSuspencion,
 };

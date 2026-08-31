@@ -45,10 +45,20 @@ const updateDisponibilidad = (id, dto) =>
   api.put(`/arbitros/${id}/disponibilidad`, dto).then((r) => r.data);
 const updateDisponibilidadTotal = () =>
   api.put("/arbitros/modificar-disponibilidad-total").then((r) => r.data);
+const toggleEstado = (idArbitro) =>
+  api.put(`/arbitros/${idArbitro}/toggle`).then((r) => r.data);
 const deleteArbitro = (id) => api.delete(`/arbitros/${id}`).then((r) => r.data);
 const getDesignacionesByArbitro = (idArbitro, page = 0, size = 10) =>
   api
     .get("/arbitros/designaciones", { params: { idArbitro, page, size } })
+    .then((r) => r.data);
+const getSuspencionesByArbitro = (idArbitro, page = 0, size = 50) =>
+  api
+    .get(`/arbitros/${idArbitro}/suspenciones`, { params: { page, size } })
+    .then((r) => r.data);
+const createSuspencionForArbitro = (idArbitro, dto) =>
+  api
+    .post(`/arbitros/${idArbitro}/suspenciones`, dto)
     .then((r) => r.data);
 
 export default {
@@ -59,6 +69,9 @@ export default {
   updateArbitro,
   updateDisponibilidad,
   updateDisponibilidadTotal,
+  toggleEstado,
   deleteArbitro,
   getDesignacionesByArbitro,
+  getSuspencionesByArbitro,
+  createSuspencionForArbitro,
 };

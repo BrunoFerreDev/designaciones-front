@@ -1,4 +1,5 @@
 import { reactive } from "vue";
+import { initLocalStorage } from "./storage";
 
 export const ROLES_ARB = [
   "Árbitro Principal",
@@ -41,3 +42,5 @@ export const state = reactive({
   user: JSON.parse(localStorage.getItem("user")) || null,
   token: localStorage.getItem("jwt_token") || null,
 });
+
+initLocalStorage(state);

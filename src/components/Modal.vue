@@ -26,14 +26,17 @@
     <!-- Compartir WhatsApp -->
     <ModalWhatsapp v-if="state.modal.type === 'whatsappMessage'" />
 
-    <!-- Ver Suspensión -->
-    <ModalVerSuspencion v-if="state.modal.type === 'viewSuspension'" />
+    <!-- Ver Detalle de Designación -->
+    <ModalDetalleDesignacion v-if="state.modal.type === 'viewDesignacion' || state.modal.type === 'detalleDesignacion'" />
+
+    <!-- Ver Detalle de Suspensión -->
+    <ModalVerSuspencion v-if="state.modal.type === 'viewSuspension' || state.modal.type === 'verSuspencion'" />
+
+    <!-- Cambiar Estado de Designación -->
+    <ModalCambiarEstado v-if="state.modal.type === 'changeStatus' || state.modal.type === 'cambiarEstado'" />
 
     <!-- Editar Designación -->
     <ModalEditDesignacion v-if="state.modal.type === 'editDesignacion'" />
-
-    <!-- Actualizar Montos de Aranceles -->
-    <ModalUpdateFees v-if="state.modal.type === 'updateFees'" />
 
     <!-- Resumen de Árbitros por Día -->
     <ModalArbitrosPorDia v-if="state.modal.type === 'arbitrosPorDia'" />
@@ -53,8 +56,9 @@ import ModalGestionarArbitros from "./ModalGestionarArbitros.vue"
 import ModalGestionarArbitrosViejas from "./ModalGestionarArbitrosViejas.vue"
 import ModalWhatsapp from "./ModalWhatsapp.vue"
 import ModalVerSuspencion from "./ModalVerSuspencion.vue"
+import ModalDetalleDesignacion from "./ModalDetalleDesignacion.vue"
+import ModalCambiarEstado from "./ModalCambiarEstado.vue"
 import ModalEditDesignacion from "./ModalEditDesignacion.vue"
-import ModalUpdateFees from "./ModalUpdateFees.vue"
 import ModalArbitrosPorDia from "./ModalArbitrosPorDia.vue"
 import ModalComparativaFinesDeSemana from "./ModalComparativaFinesDeSemana.vue"
 
@@ -65,14 +69,27 @@ const modalStyle = computed(() => {
     "manageReferees",
     "manageRefereesViejas",
     "arbitrosPorDia",
-    "comparativaWeekend",
-    "updateFees"
+    "comparativaWeekend"
   ];
   if (largeModals.includes(type)) {
     return {
       width: "95vw",
       maxWidth: "1050px",
       maxHeight: "92vh"
+    };
+  }
+  if (type === "viewDesignacion" || type === "detalleDesignacion") {
+    return {
+      width: "95vw",
+      maxWidth: "680px",
+      maxHeight: "90vh"
+    };
+  }
+  if (type === "viewSuspension" || type === "verSuspencion") {
+    return {
+      width: "95vw",
+      maxWidth: "560px",
+      maxHeight: "90vh"
     };
   }
   return {

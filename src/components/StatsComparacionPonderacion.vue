@@ -4,22 +4,22 @@
       <span class="inline-flex items-center justify-center bg-emerald-50 text-emerald-600 w-7 h-7 rounded-lg">
         <i class="ti ti-chart-bar text-xs"></i>
       </span>
-      Análisis de Ponderación Cruzada
+      Análisis de Ponderación y Distribución
     </h4>
 
     <div class="flex flex-col gap-8">
       
-      <!-- Métrica 1: Monto Percibido -->
+      <!-- Métrica 1: Total Designaciones -->
       <div class="bg-slate-50 p-5 rounded-xl border border-slate-100/60">
         <div class="flex justify-between items-center mb-3">
-          <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">Monto Total Percibido</span>
-          <span class="text-[10px] text-slate-400 font-medium">Suma acumulada de honorarios</span>
+          <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">Total Designaciones (Jornadas)</span>
+          <span class="text-[10px] text-slate-400 font-medium">Cantidad de fechas asignadas</span>
         </div>
 
         <div class="flex flex-col gap-2.5">
           <div 
             v-for="arb in comparacionData" 
-            :key="'monto-' + arb.idArbitro"
+            :key="'desig-' + arb.idArbitro"
             class="flex items-center gap-3"
           >
             <div class="w-1/3 text-xs text-slate-700 font-medium truncate flex items-center gap-1.5">
@@ -30,16 +30,16 @@
               <div 
                 class="h-full rounded-full transition-all duration-500"
                 :style="{ 
-                  width: getMetricShare(arb.totalMontoPercibido, 'totalMontoPercibido') + '%',
-                  background: isMetricLeader(arb.idArbitro, 'totalMontoPercibido') 
-                    ? 'linear-gradient(90deg, #10b981, #059669)' 
+                  width: getMetricShare(arb.totalDesignaciones, 'totalDesignaciones') + '%',
+                  background: isMetricLeader(arb.idArbitro, 'totalDesignaciones') 
+                    ? 'linear-gradient(90deg, #8b5cf6, #6d28d9)' 
                     : 'linear-gradient(90deg, #64748b, #475569)'
                 }"
               ></div>
             </div>
             <div class="w-24 text-right text-xs font-bold text-slate-800 flex items-center justify-end gap-1">
-              <span>{{ formatMonto(arb.totalMontoPercibido) }}</span>
-              <span v-if="isMetricLeader(arb.idArbitro, 'totalMontoPercibido')" class="text-amber-500 text-[10px]" title="Líder honorarios">⭐</span>
+              <span>{{ arb.totalDesignaciones || 0 }} desig.</span>
+              <span v-if="isMetricLeader(arb.idArbitro, 'totalDesignaciones')" class="text-amber-500 text-[10px]" title="Líder designaciones">⭐</span>
             </div>
           </div>
         </div>
@@ -49,7 +49,7 @@
       <div class="bg-slate-50 p-5 rounded-xl border border-slate-100/60">
         <div class="flex justify-between items-center mb-3">
           <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">Partidos Dirigidos</span>
-          <span class="text-[10px] text-slate-400 font-medium">Volumen de juego arbitrado</span>
+          <span class="text-[10px] text-slate-400 font-medium">Volumen total de partidos dirigidos</span>
         </div>
 
         <div class="flex flex-col gap-2.5">
@@ -74,18 +74,18 @@
               ></div>
             </div>
             <div class="w-24 text-right text-xs font-bold text-slate-800 flex items-center justify-end gap-1">
-              <span>{{ arb.totalPartidosDirigidos || 0 }}</span>
+              <span>{{ arb.totalPartidosDirigidos || 0 }} part.</span>
               <span v-if="isMetricLeader(arb.idArbitro, 'totalPartidosDirigidos')" class="text-amber-500 text-[10px]" title="Líder partidos dirigidos">⭐</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Métrica 3: Promedio de Honorario por Partido -->
+      <!-- Métrica 3: Promedio de Partidos por Designación -->
       <div class="bg-slate-50 p-5 rounded-xl border border-slate-100/60">
         <div class="flex justify-between items-center mb-3">
-          <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">Promedio de Pago por Partido</span>
-          <span class="text-[10px] text-slate-400 font-medium">Rentabilidad por partido arbitrado</span>
+          <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">Promedio Partidos / Designación</span>
+          <span class="text-[10px] text-slate-400 font-medium">Intensidad y carga por jornada</span>
         </div>
 
         <div class="flex flex-col gap-2.5">
@@ -102,16 +102,16 @@
               <div 
                 class="h-full rounded-full transition-all duration-500"
                 :style="{ 
-                  width: getMetricShare(getPromedioPago(arb), 'promedioPago') + '%',
-                  background: isMetricLeader(arb.idArbitro, 'promedioPago') 
-                    ? 'linear-gradient(90deg, #f59e0b, #d97706)' 
+                  width: getMetricShare(getPromedioPartidos(arb), 'promedioPartidos') + '%',
+                  background: isMetricLeader(arb.idArbitro, 'promedioPartidos') 
+                    ? 'linear-gradient(90deg, #10b981, #059669)' 
                     : 'linear-gradient(90deg, #64748b, #475569)'
                 }"
               ></div>
             </div>
             <div class="w-24 text-right text-xs font-bold text-slate-800 flex items-center justify-end gap-1">
-              <span>{{ formatMonto(getPromedioPago(arb)) }}</span>
-              <span v-if="isMetricLeader(arb.idArbitro, 'promedioPago')" class="text-amber-500 text-[10px]" title="Líder promedio">⭐</span>
+              <span>{{ getPromedioPartidos(arb).toFixed(1) }} p/d</span>
+              <span v-if="isMetricLeader(arb.idArbitro, 'promedioPartidos')" class="text-amber-500 text-[10px]" title="Líder promedio por jornada">⭐</span>
             </div>
           </div>
         </div>
@@ -129,10 +129,10 @@ const props = defineProps({
   },
 });
 
-// Promedio de pago por partido
-const getPromedioPago = (arb) => {
-  if (!arb.totalPartidosDirigidos) return 0;
-  return (arb.totalMontoPercibido || 0) / arb.totalPartidosDirigidos;
+// Promedio partidos por designacion
+const getPromedioPartidos = (arb) => {
+  if (!arb.totalDesignaciones) return 0;
+  return (arb.totalPartidosDirigidos || 0) / arb.totalDesignaciones;
 };
 
 // Encontrar líderes
@@ -142,8 +142,8 @@ const isMetricLeader = (idArbitro, metric) => {
 
   for (const arb of props.comparacionData) {
     let val = 0;
-    if (metric === "promedioPago") {
-      val = getPromedioPago(arb);
+    if (metric === "promedioPartidos") {
+      val = getPromedioPartidos(arb);
     } else {
       val = arb[metric] || 0;
     }
@@ -161,8 +161,8 @@ const isMetricLeader = (idArbitro, metric) => {
 // Obtiene el porcentaje de aporte de la métrica individual
 const getMetricShare = (value, metric) => {
   let totalSum = 0;
-  if (metric === "promedioPago") {
-    totalSum = props.comparacionData.reduce((acc, curr) => acc + getPromedioPago(curr), 0);
+  if (metric === "promedioPartidos") {
+    totalSum = props.comparacionData.reduce((acc, curr) => acc + getPromedioPartidos(curr), 0);
   } else {
     totalSum = props.comparacionData.reduce((acc, curr) => acc + (curr[metric] || 0), 0);
   }
@@ -193,14 +193,5 @@ const getAvatarColors = (name) => {
 const getDotBg = (name) => {
   const [c1] = getAvatarColors(name);
   return `background-color: ${c1};`;
-};
-
-const formatMonto = (valor) => {
-  if (valor === undefined || valor === null) return "$0,00";
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    minimumFractionDigits: 2,
-  }).format(valor);
 };
 </script>

@@ -1,9 +1,9 @@
 <template>
   <div>
     <!-- KPIs principales -->
-    <div class="stats-row">
+    <div class="stats-row five-cols">
       <div class="stat-card border border-slate-100 shadow-sm">
-        <div class="stat-num stat-green">{{ stats.totalDesignaciones || 0 }}</div>
+        <div class="stat-num text-purple-600">{{ stats.totalDesignaciones || 0 }}</div>
         <div class="stat-label">Total Designaciones</div>
       </div>
       <div class="stat-card border border-slate-100 shadow-sm">
@@ -11,12 +11,16 @@
         <div class="stat-label">Partidos Dirigidos</div>
       </div>
       <div class="stat-card border border-slate-100 shadow-sm">
-        <div class="stat-num text-purple-600">{{ stats.estadisticasCanchas?.length || 0 }}</div>
-        <div class="stat-label">Canchas Activas</div>
+        <div class="stat-num stat-green">{{ promedioGlobalPartidosPorDesignacion }}</div>
+        <div class="stat-label">Prom. Partidos / Desig.</div>
+      </div>
+      <div class="stat-card border border-slate-100 shadow-sm">
+        <div class="stat-num text-emerald-600">{{ stats.estadisticasCanchas?.length || 0 }}</div>
+        <div class="stat-label">Canchas Utilizadas</div>
       </div>
       <div class="stat-card border border-slate-100 shadow-sm">
         <div class="stat-num text-amber-600">{{ stats.estadisticasArbitros?.length || 0 }}</div>
-        <div class="stat-label">Árbitros con Partidos</div>
+        <div class="stat-label">Árbitros Activos</div>
       </div>
     </div>
 
@@ -87,17 +91,21 @@
             <thead>
               <tr>
                 <th>Cancha</th>
-                <th>Designaciones</th>
-                <th>Partidos</th>
-                <th>Porcentaje</th>
+                <th class="text-center">Designaciones</th>
+                <th class="text-center">Partidos</th>
+                <th class="text-center">Prom. Part/Desig</th>
+                <th>Distribución</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="c in stats.estadisticasCanchas" :key="c.idCancha || c.nombreCancha">
                 <td class="font-medium text-slate-800">{{ c.nombreCancha }}</td>
-                <td>{{ c.totalDesignaciones }}</td>
-                <td><span class="badge badge-blue">{{ c.totalPartidos }}</span></td>
-                <td style="width: 120px;">
+                <td class="text-center font-semibold text-purple-700">{{ c.totalDesignaciones }}</td>
+                <td class="text-center"><span class="badge badge-blue">{{ c.totalPartidos }}</span></td>
+                <td class="text-center text-xs text-slate-600 font-medium">
+                  {{ c.totalDesignaciones ? (c.totalPartidos / c.totalDesignaciones).toFixed(1) : '0' }}
+                </td>
+                <td style="width: 100px;">
                   <div class="flex items-center gap-2">
                     <div class="progress-bar flex-1" style="height: 6px; margin-top: 0;">
                       <div class="progress-fill" :style="{ width: getPorcentaje(c.totalPartidos, stats.totalPartidosDirigidos) + '%' }"></div>
@@ -107,7 +115,7 @@
                 </td>
               </tr>
               <tr v-if="!stats.estadisticasCanchas || stats.estadisticasCanchas.length === 0">
-                <td colspan="4" class="text-center text-slate-400 py-4">No hay datos de canchas disponibles.</td>
+                <td colspan="5" class="text-center text-slate-400 py-4">No hay datos de canchas disponibles.</td>
               </tr>
             </tbody>
           </table>
@@ -143,6 +151,7 @@
                 <th>Nombre</th>
                 <th class="text-center">Designaciones</th>
                 <th class="text-center">Partidos</th>
+                <th class="text-center">Prom. P/D</th>
                 <th>Acción</th>
               </tr>
             </thead>
@@ -151,9 +160,12 @@
                 <td class="font-medium text-slate-800">
                   {{ a.nombreCompleto }}
                 </td>
-                <td class="text-center">{{ a.totalDesignaciones }}</td>
+                <td class="text-center font-semibold text-purple-700">{{ a.totalDesignaciones }}</td>
                 <td class="text-center">
                   <span class="badge badge-green">{{ a.totalPartidosDirigidos }}</span>
+                </td>
+                <td class="text-center text-xs text-slate-600 font-medium">
+                  {{ a.totalDesignaciones ? (a.totalPartidosDirigidos / a.totalDesignaciones).toFixed(1) : '0' }}
                 </td>
                 <td>
                   <button class="btn" style="padding: 4px 8px; font-size: 11px;" @click="$emit('ver-detalle', a.idArbitro, a.nombreCompleto)">
@@ -162,7 +174,7 @@
                 </td>
               </tr>
               <tr v-if="arbitrosFiltrados.length === 0">
-                <td colspan="4" class="text-center text-slate-400 py-4">Ningún árbitro coincide con la búsqueda.</td>
+                <td colspan="5" class="text-center text-slate-400 py-4">Ningún árbitro coincide con la búsqueda.</td>
               </tr>
             </tbody>
           </table>
@@ -185,6 +197,11 @@ const props = defineProps({
 defineEmits(["ver-detalle"]);
 
 const busquedaLocal = ref("");
+
+const promedioGlobalPartidosPorDesignacion = computed(() => {
+  if (!props.stats || !props.stats.totalDesignaciones) return "0.0";
+  return ((props.stats.totalPartidosDirigidos || 0) / props.stats.totalDesignaciones).toFixed(1);
+});
 
 // Ranking de árbitros filtrado por el input local
 const arbitrosFiltrados = computed(() => {

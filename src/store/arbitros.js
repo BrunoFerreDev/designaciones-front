@@ -1,6 +1,11 @@
 import { state } from "./state";
-import { getArbitro } from "./helpers";
+import { getArbitro, isArbitroActivo } from "./helpers";
 import { closeModal } from "./modal";
+import {
+  persistArbitrosStorage,
+  updateArbitroInStorage,
+  removeArbitroFromStorage,
+} from "./storage";
 import arbitroService from "../services/arbitroService";
 
 export const saveArbitro = () => {
@@ -10,6 +15,7 @@ export const saveArbitro = () => {
     apellido,
     whatsapp,
     estado,
+    estadoSistema,
     disponibleSabado,
     disponibleDomingo,
     categoria,
@@ -20,12 +26,20 @@ export const saveArbitro = () => {
     alert("Ingresá nombre y apellido.");
     return;
   }
+  const isActivo =
+    estadoSistema !== undefined
+      ? estadoSistema
+      : estado !== undefined
+        ? estado
+        : true;
+
   const dto = {
     nombre: nombre.trim(),
     apellido: apellido.trim(),
     rol: "Árbitro Principal",
     whatsapp: whatsapp?.trim() || "",
-    estado: estado !== undefined ? estado : true,
+    estadoSistema: isActivo,
+    estado: isActivo,
     disponibleSabado: disponibleSabado !== undefined ? disponibleSabado : true,
     disponibleDomingo:
       disponibleDomingo !== undefined ? disponibleDomingo : true,
@@ -37,53 +51,58 @@ export const saveArbitro = () => {
   const isEdit = !!idArbitro;
 
   if (isEdit) {
+    const a = getArbitro(idArbitro);
+    if (a) {
+      Object.assign(a, dto);
+      updateArbitroInStorage(state, a);
+    }
+    closeModal();
+
     arbitroService
       .updateArbitro(idArbitro, dto)
       .then((updated) => {
-        const a = getArbitro(idArbitro);
-        if (a) {
-          Object.assign(a, { ...dto, ...(updated || {}) });
+        if (updated) {
+          const arb = getArbitro(idArbitro) || a;
+          if (arb) {
+            Object.assign(arb, updated);
+            updateArbitroInStorage(state, arb);
+          }
         }
-        closeModal();
-        loadArbitros();
-        loadArbitrosNoDisponibles();
       })
       .catch((err) => {
-        console.warn("updateArbitro failed, updating locally", err);
-        const a = getArbitro(idArbitro);
-        if (a) {
-          Object.assign(a, dto);
-        }
-        closeModal();
+        console.warn("updateArbitro backend failed, kept local state", err);
       });
   } else {
     arbitroService
       .createArbitro(dto)
       .then((created) => {
-        if (created && created.idArbitro) {
-          state.arbitros.push(created);
-        } else if (created && created.id) {
-          state.arbitros.push({ idArbitro: created.id, ...created });
+        if (created && (created.idArbitro || created.id)) {
+          const newArb = {
+            idArbitro: created.idArbitro || created.id,
+            ...dto,
+            ...created,
+          };
+          updateArbitroInStorage(state, newArb);
         } else {
-          state.arbitros.push({
+          const fallback = {
             idArbitro: state.nextArbId++,
             designaciones: 0,
             estado: true,
             ...dto,
-          });
+          };
+          updateArbitroInStorage(state, fallback);
         }
         closeModal();
-        loadArbitros();
-        loadArbitrosNoDisponibles();
       })
       .catch((err) => {
         console.warn("createArbitro failed, using local fallback", err);
-        state.arbitros.push({
+        const fallback = {
           idArbitro: state.nextArbId++,
           designaciones: 0,
           estado: true,
           ...dto,
-        });
+        };
+        updateArbitroInStorage(state, fallback);
         closeModal();
       });
   }
@@ -91,64 +110,83 @@ export const saveArbitro = () => {
 
 export const deleteArbitro = (id) => {
   if (!confirm("¿Eliminar este árbitro?")) return;
+  removeArbitroFromStorage(state, id);
   arbitroService
     .deleteArbitro(id)
-    .then(() => {
-      state.arbitros = state.arbitros.filter((a) => a.idArbitro !== id);
-      state.arbitrosNoDisponibles = (state.arbitrosNoDisponibles || []).filter(
-        (a) => a.idArbitro !== id,
-      );
+    .catch((err) => {
+      console.warn("deleteArbitro backend failed, removed locally", err);
+    });
+};
+
+export const toggleEstadoArbitro = (id) => {
+  const a = getArbitro(id);
+  if (!a) return Promise.reject("Árbitro no encontrado");
+
+  const currentEstado = isArbitroActivo(a);
+  const newEstado = !currentEstado;
+
+  // Actualización optimista local
+  a.estadoSistema = newEstado;
+  a.estado = newEstado;
+  updateArbitroInStorage(state, a);
+
+  return arbitroService
+    .toggleEstado(id)
+    .then((res) => {
+      if (res && typeof res === "object") {
+        Object.assign(a, res);
+        updateArbitroInStorage(state, a);
+      }
     })
     .catch((err) => {
-      console.warn("deleteArbitro failed, using local fallback", err);
-      state.arbitros = state.arbitros.filter((a) => a.idArbitro !== id);
-      state.arbitrosNoDisponibles = (state.arbitrosNoDisponibles || []).filter(
-        (a) => a.idArbitro !== id,
-      );
+      console.warn("toggleEstado failed, keeping local state", err);
     });
 };
 
 export const updateArbitroDisponibilidad = (id, key) => {
+  if (key === "estado" || key === "estadoSistema") {
+    return toggleEstadoArbitro(id);
+  }
+
   const a = getArbitro(id);
   if (!a) return Promise.reject("Árbitro no encontrado");
 
-  const updatedValue = !a[key];
+  const currentEstado = isArbitroActivo(a);
+  const currentSabado = a.disponibleSabado !== false;
+  const currentDomingo = a.disponibleDomingo !== false;
+
+  const newSabado =
+    key === "disponibleSabado" ? !currentSabado : currentSabado;
+  const newDomingo =
+    key === "disponibleDomingo" ? !currentDomingo : currentDomingo;
+
   const dto = {
-    estado:
-      key === "estado"
-        ? updatedValue
-        : a.estado !== undefined
-          ? a.estado
-          : true,
-    disponibleSabado:
-      key === "disponibleSabado"
-        ? updatedValue
-        : a.disponibleSabado !== undefined
-          ? a.disponibleSabado
-          : true,
-    disponibleDomingo:
-      key === "disponibleDomingo"
-        ? updatedValue
-        : a.disponibleDomingo !== undefined
-          ? a.disponibleDomingo
-          : true,
+    estadoSistema: currentEstado,
+    estado: currentEstado,
+    disponibleSabado: newSabado,
+    disponibleDomingo: newDomingo,
   };
+
+  // Actualización optimista local
+  a.disponibleSabado = newSabado;
+  a.disponibleDomingo = newDomingo;
+  updateArbitroInStorage(state, a);
 
   return arbitroService
     .updateDisponibilidad(id, dto)
     .then((res) => {
-      Object.assign(a, res || { idArbitro: id, ...dto });
-      loadArbitros();
-      loadArbitrosNoDisponibles();
+      if (res && typeof res === "object") {
+        Object.assign(a, res);
+        updateArbitroInStorage(state, a);
+      }
     })
     .catch((err) => {
-      console.warn("updateDisponibilidad failed, updating locally", err);
-      a[key] = updatedValue;
+      console.warn("updateDisponibilidad failed, keeping local state", err);
     });
 };
 
 export const toggleDisponible = (id) => {
-  return updateArbitroDisponibilidad(id, "estado");
+  return toggleEstadoArbitro(id);
 };
 
 export const marcarTodosNoDisponibles = () => {
@@ -158,20 +196,21 @@ export const marcarTodosNoDisponibles = () => {
     )
   )
     return;
+
+  state.arbitros.forEach((a) => {
+    a.estado = false;
+    a.estadoSistema = false;
+  });
+  persistArbitrosStorage(state);
+
   arbitroService
     .updateDisponibilidadTotal()
     .then(() => {
-      state.arbitros.forEach((a) => {
-        a.estado = false;
-      });
       loadArbitros();
       loadArbitrosNoDisponibles();
     })
     .catch((err) => {
       console.warn("updateDisponibilidadTotal failed, updating locally", err);
-      state.arbitros.forEach((a) => {
-        a.estado = false;
-      });
     });
 };
 
@@ -179,14 +218,17 @@ export const loadArbitros = async (page = 0, size = 100) => {
   try {
     const res = await arbitroService.getAll(page, size);
     state.arbitros = Array.isArray(res) ? res : res.content || res;
+    persistArbitrosStorage(state);
   } catch (e) {
     console.warn("Failed to load arbitros", e);
   }
 };
+
 export const loadArbitrosNoDisponibles = async (page = 0, size = 100) => {
   try {
     const res = await arbitroService.getNoDisponibles(page, size);
     state.arbitrosNoDisponibles = Array.isArray(res) ? res : res.content || res;
+    persistArbitrosStorage(state);
   } catch (e) {
     console.warn("Failed to load arbitros no disponibles", e);
   }

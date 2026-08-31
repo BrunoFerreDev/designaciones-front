@@ -2,9 +2,9 @@ import { state } from "./state";
 import * as authService from "../services/authService";
 import router from "../router";
 
-export const loginUser = async (whatsapp, contrasenia) => {
+export const loginUser = async (username, password) => {
   try {
-    const response = await authService.login(whatsapp, contrasenia);
+    const response = await authService.login(username, password);
 
     if (response.status && response.jwt) {
       localStorage.setItem("jwt_token", response.jwt);

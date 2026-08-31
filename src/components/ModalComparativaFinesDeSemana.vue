@@ -105,6 +105,7 @@ import {
   getCancha,
   loadArbitrosDesignados,
   loadArbitros,
+  isArbitroActivo,
 } from "../store";
 import designacionService from "../services/designacionService";
 import ModalComparativaHeader from "./ModalComparativaHeader.vue";
@@ -200,9 +201,11 @@ onMounted(async () => {
 const comparativeResumen = computed(() => {
   const result = {};
 
-  state.arbitros.forEach((arb) => {
-    const arbId = arb.idArbitro || arb.id;
-    if (!arbId) return;
+  state.arbitros
+    .filter(isArbitroActivo)
+    .forEach((arb) => {
+      const arbId = arb.idArbitro || arb.id;
+      if (!arbId) return;
 
     result[arbId] = {
       idArbitro: arbId,

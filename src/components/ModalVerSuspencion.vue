@@ -235,7 +235,7 @@
           </span>
         </div>
 
-        <!-- Cancha -->
+            <!-- Cancha -->
         <div
           style="
             background: #fafafa;
@@ -254,7 +254,7 @@
             >CANCHA</span
           >
           <span style="font-weight: 500; font-size: 12px">
-            {{ susp.cancha?.nombreCancha || "—" }}
+            {{ getCanchaName(susp.cancha || susp.idCancha || susp.canchaId) }}
           </span>
         </div>
       </div>
@@ -376,24 +376,64 @@
       </div>
     </div>
   </div>
+
+  <!-- Fallback State -->
+  <div
+    v-else
+    class="modal-card max-w-lg w-full mx-auto"
+    style="
+      background: white;
+      border-radius: 14px;
+      padding: 2rem;
+      text-align: center;
+    "
+  >
+    <i
+      class="ti ti-loader"
+      style="font-size: 28px; color: #185fa5; animation: spin 1s linear infinite"
+    ></i>
+    <p style="font-size: 13px; color: var(--color-text-secondary); margin: 12px 0 16px;">
+      Cargando detalle de la sanción disciplinaria...
+    </p>
+    <button class="btn" @click="closeModal">Cerrar</button>
+  </div>
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import {
   state,
   closeModal,
   getArbitro,
+  getCancha,
   formatFecha,
   deleteSuspencion,
+  loadSuspensiones,
 } from "../store";
 
 // Obtener la suspensión correspondiente
 const suspId = computed(() => state.modal?.id);
 const susp = computed(() => {
-  return state.suspensiones.find(
-    (s) => (s.id || s.idSuspencion) === suspId.value,
+  const id = suspId.value;
+  if (
+    state.modal?.data &&
+    (state.modal.data.id === id ||
+      state.modal.data.idSuspencion === id ||
+      !id)
+  ) {
+    return state.modal.data;
+  }
+  const found = state.suspensiones.find(
+    (s) => (s.id || s.idSuspencion) == id,
   );
+  if (found) return found;
+  return state.modal?.data || null;
+});
+
+onMounted(() => {
+  if (!state.suspensiones || state.suspensiones.length === 0) {
+    loadSuspensiones();
+  }
 });
 
 // Ayudantes de resolución de árbitros
@@ -403,6 +443,15 @@ const getArbitroId = (arbitroProp) => {
     return arbitroProp.idArbitro || arbitroProp.id;
   }
   return Number(arbitroProp);
+};
+
+const getCanchaName = (canchaProp) => {
+  if (!canchaProp) return "—";
+  if (typeof canchaProp === "object") {
+    return canchaProp.nombreCancha || canchaProp.nombre || "—";
+  }
+  const c = getCancha(Number(canchaProp));
+  return c?.nombre || c?.nombreCancha || `Cancha ${canchaProp}`;
 };
 
 const getInitials = (arbitroProp) => {

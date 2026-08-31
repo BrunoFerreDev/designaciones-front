@@ -1,5 +1,10 @@
 import { state } from "./state";
 import { getArbitro } from "./helpers";
+import {
+  persistSuspensionesStorage,
+  updateSuspensionInStorage,
+  removeSuspensionFromStorage,
+} from "./storage";
 import suspencionService from "../services/suspencionService";
 import arbitroService from "../services/arbitroService";
 
@@ -7,6 +12,7 @@ export const loadSuspensiones = async () => {
   try {
     const res = await suspencionService.getAll();
     state.suspensiones = Array.isArray(res) ? res : res.content || res;
+    persistSuspensionesStorage(state);
   } catch (e) {
     console.warn("Failed to load suspensiones, using local state", e);
   }
@@ -14,13 +20,14 @@ export const loadSuspensiones = async () => {
 
 export const saveSuspencion = async (dto) => {
   try {
-    const created = await suspencionService.create(dto);
+    const idArbitro = dto.arbitro || dto.idArbitro;
+    const created = await suspencionService.create(idArbitro, dto);
     const newSusp = {
       id: created?.id || created?.idSuspencion || state.nextSuspId++,
       ...dto,
       ...created,
     };
-    state.suspensiones.push(newSusp);
+    updateSuspensionInStorage(state, newSusp);
 
     if (dto.tipoSuspencion === 2) {
       const arb = getArbitro(dto.arbitro);
@@ -40,7 +47,7 @@ export const saveSuspencion = async (dto) => {
       id: state.nextSuspId++,
       ...dto,
     };
-    state.suspensiones.push(newSusp);
+    updateSuspensionInStorage(state, newSusp);
 
     if (dto.tipoSuspencion === 2) {
       const arb = getArbitro(dto.arbitro);
@@ -54,17 +61,10 @@ export const saveSuspencion = async (dto) => {
 
 export const deleteSuspencion = async (idSuspencion) => {
   if (!confirm("¿Deseas eliminar/revocar esta sanción?")) return;
+  removeSuspensionFromStorage(state, idSuspencion);
   try {
     await suspencionService.deleteSuspencion(idSuspencion);
-    state.suspensiones = state.suspensiones.filter(
-      (s) => s.id !== idSuspencion && s.idSuspencion !== idSuspencion,
-    );
-    alert("Sanción eliminada correctamente");
   } catch (e) {
-    console.warn("delete suspencion failed, using local fallback", e);
-    state.suspensiones = state.suspensiones.filter(
-      (s) => s.id !== idSuspencion && s.idSuspencion !== idSuspencion,
-    );
-    alert("Sanción eliminada correctamente");
+    console.warn("delete suspencion backend failed, kept local removal", e);
   }
 };

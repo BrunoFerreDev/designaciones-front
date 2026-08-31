@@ -28,9 +28,12 @@
           style="height: 38px"
         >
           <option value="" disabled selected>Seleccione un árbitro...</option>
-          <option v-for="a in state.arbitros" :key="a.idArbitro" :value="a.idArbitro">
+          <option
+            v-for="a in state.arbitros.filter(isArbitroActivo)"
+            :key="a.idArbitro"
+            :value="a.idArbitro"
+          >
             {{ a.apellido }}, {{ a.nombre }} ({{ getCategoryLabel(a.categoria) }})
-            {{ a.estado ? "· [Disponible]" : "· [No Disp.]" }}
           </option>
         </select>
       </div>
@@ -128,7 +131,7 @@
 
 <script setup>
 import { reactive, onMounted } from "vue";
-import { state, saveSuspencion } from "../store";
+import { state, saveSuspencion, isArbitroActivo } from "../store";
 
 const form = reactive({
   arbitro: "",

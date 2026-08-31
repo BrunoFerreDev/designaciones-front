@@ -97,8 +97,51 @@
     <!-- Datos del Árbitro -->
     <div v-else class="animate-fade-in">
       <!-- Info y Wallet -->
-      <div class="stats-row">
-        <!-- Wallet Card (Premium Style) -->
+      <!-- KPIs del Árbitro -->
+      <div class="stats-row four-cols">
+        <!-- Total Designaciones -->
+        <div
+          class="stat-card border-none shadow-md text-white flex flex-col justify-between"
+          style="
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            padding: 1.25rem;
+            min-height: 110px;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+          "
+        >
+          <div class="flex justify-between items-start z-10">
+            <span
+              class="text-purple-100 text-xs font-semibold uppercase tracking-wider"
+            >
+              Total Designaciones
+            </span>
+            <i
+              class="ti ti-clipboard-check text-purple-200"
+              style="font-size: 22px"
+            ></i>
+          </div>
+          <div
+            class="stat-num text-left z-10 text-white"
+            style="font-size: 28px; font-weight: 700; margin-top: 10px"
+          >
+            {{ stats.totalDesignaciones || 0 }}
+          </div>
+          <div
+            style="
+              position: absolute;
+              width: 120px;
+              height: 120px;
+              border-radius: 50%;
+              background: rgba(255, 255, 255, 0.05);
+              top: -20px;
+              right: -30px;
+            "
+          ></div>
+        </div>
+
+        <!-- Partidos Dirigidos -->
         <div
           class="stat-card border-none shadow-md text-white flex flex-col justify-between"
           style="
@@ -113,10 +156,11 @@
           <div class="flex justify-between items-start z-10">
             <span
               class="text-emerald-100 text-xs font-semibold uppercase tracking-wider"
-              >Monto Total Percibido</span
             >
+              Partidos Dirigidos
+            </span>
             <i
-              class="ti ti-wallet text-emerald-200"
+              class="ti ti-ball-football text-emerald-200"
               style="font-size: 22px"
             ></i>
           </div>
@@ -124,9 +168,8 @@
             class="stat-num text-left z-10 text-white"
             style="font-size: 28px; font-weight: 700; margin-top: 10px"
           >
-            {{ formatMonto(stats.totalMontoPercibido) }}
+            {{ stats.totalPartidosDirigidos || 0 }}
           </div>
-          <!-- Círculos decorativos premium de fondo -->
           <div
             style="
               position: absolute;
@@ -138,67 +181,41 @@
               right: -30px;
             "
           ></div>
-          <div
-            style="
-              position: absolute;
-              width: 80px;
-              height: 80px;
-              border-radius: 50%;
-              background: rgba(255, 255, 255, 0.03);
-              bottom: -20px;
-              left: -10px;
-            "
-          ></div>
         </div>
 
-        <!-- Partidos Dirigidos -->
+        <!-- Promedio Partidos por Designación -->
         <div
           class="stat-card border border-slate-100 shadow-sm flex flex-col justify-between"
           style="padding: 1.25rem"
         >
           <span
             class="text-slate-400 text-xs font-semibold uppercase tracking-wider text-left"
-            >Partidos Dirigidos</span
           >
+            Prom. Partidos / Designación
+          </span>
           <div
             class="stat-num text-slate-800 text-left"
             style="font-size: 28px; font-weight: 700; margin-top: 10px"
           >
-            {{ stats.totalPartidosDirigidos || 0 }}
+            {{ promedioPartidosPorDesignacion }}
           </div>
         </div>
 
-        <!-- Total Designaciones -->
+        <!-- Canchas Diferentes -->
         <div
           class="stat-card border border-slate-100 shadow-sm flex flex-col justify-between"
           style="padding: 1.25rem"
         >
           <span
             class="text-slate-400 text-xs font-semibold uppercase tracking-wider text-left"
-            >Designaciones Totales</span
           >
+            Canchas Asignadas
+          </span>
           <div
             class="stat-num text-slate-800 text-left"
             style="font-size: 28px; font-weight: 700; margin-top: 10px"
           >
-            {{ stats.totalDesignaciones || 0 }}
-          </div>
-        </div>
-
-        <!-- Promedio por Partido -->
-        <div
-          class="stat-card border border-slate-100 shadow-sm flex flex-col justify-between"
-          style="padding: 1.25rem"
-        >
-          <span
-            class="text-slate-400 text-xs font-semibold uppercase tracking-wider text-left"
-            >Promedio por Partido</span
-          >
-          <div
-            class="stat-num text-slate-800 text-left"
-            style="font-size: 28px; font-weight: 700; margin-top: 10px"
-          >
-            {{ formatMonto(promedioPorPartido) }}
+            {{ stats.estadisticasCanchas?.length || 0 }}
           </div>
         </div>
       </div>
@@ -231,12 +248,12 @@
                 class="flex justify-between items-center text-xs font-semibold text-slate-700 mb-1"
               >
                 <span>{{ c.nombreCancha }}</span>
-                <span class="text-emerald-600 capitalize"
-                  >{{ c.totalDesignaciones }}
-                  {{
-                    c.totalDesignaciones === 1 ? "designación" : "designaciones"
-                  }}</span
-                >
+                <span class="text-emerald-600">
+                  {{ c.totalDesignaciones }} desig. ({{
+                    c.totalPartidos || c.totalDesignaciones * 2
+                  }}
+                  part.)
+                </span>
               </div>
               <div class="progress-bar" style="height: 6px; margin-top: 0">
                 <div
@@ -244,8 +261,8 @@
                   :style="{
                     width:
                       getPorcentaje(
-                        c.totalPartidos,
-                        stats.totalPartidosDirigidos,
+                        c.totalPartidos || c.totalDesignaciones,
+                        stats.totalPartidosDirigidos || stats.totalDesignaciones,
                       ) + '%',
                   }"
                 ></div>
@@ -408,23 +425,13 @@ const props = defineProps({
 
 defineEmits(["update:selectedArbitroId", "seleccionar-arbitro"]);
 
-// Promedio de pago por partido
-const promedioPorPartido = computed(() => {
-  if (!props.stats || !props.stats.totalPartidosDirigidos) return 0;
+// Promedio de partidos por designación
+const promedioPartidosPorDesignacion = computed(() => {
+  if (!props.stats || !props.stats.totalDesignaciones) return "0.0";
   return (
-    (props.stats.totalMontoPercibido || 0) / props.stats.totalPartidosDirigidos
-  );
+    (props.stats.totalPartidosDirigidos || 0) / props.stats.totalDesignaciones
+  ).toFixed(1);
 });
-
-// Formatear montos a moneda local
-const formatMonto = (valor) => {
-  if (valor === undefined || valor === null) return "$0,00";
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    minimumFractionDigits: 2,
-  }).format(valor);
-};
 
 // Calcular porcentajes redondeados
 const getPorcentaje = (parcial, total) => {

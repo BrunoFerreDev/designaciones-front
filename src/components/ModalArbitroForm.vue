@@ -75,10 +75,14 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label">Estado</label>
+      <label class="form-label">Estado en el Sistema</label>
       <label class="checkbox-label">
-        <input v-model="state.form.estado" type="checkbox" />
-        Activo (Disponible para designación)
+        <input
+          :checked="state.form.estadoSistema !== false && state.form.estado !== false"
+          @change="state.form.estadoSistema = $event.target.checked; state.form.estado = $event.target.checked"
+          type="checkbox"
+        />
+        Habilitado (Activo para designación)
       </label>
     </div>
 

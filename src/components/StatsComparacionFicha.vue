@@ -44,14 +44,20 @@
         </div>
 
         <!-- Resumen de Métricas -->
-        <div class="grid grid-cols-3 gap-3 w-full mt-6 pt-5 border-t border-slate-100">
+        <div class="grid grid-cols-4 gap-2 w-full mt-6 pt-5 border-t border-slate-100">
+          <div class="text-center">
+            <span class="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">Desig.</span>
+            <span class="text-sm font-bold text-purple-700 block mt-0.5">{{ arb.totalDesignaciones || 0 }}</span>
+          </div>
           <div class="text-center">
             <span class="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">Partidos</span>
             <span class="text-sm font-bold text-slate-700 block mt-0.5">{{ arb.totalPartidosDirigidos || 0 }}</span>
           </div>
           <div class="text-center border-x border-slate-100">
-            <span class="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">Desig.</span>
-            <span class="text-sm font-bold text-slate-700 block mt-0.5">{{ arb.totalDesignaciones || 0 }}</span>
+            <span class="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">Prom. P/D</span>
+            <span class="text-sm font-bold text-emerald-600 block mt-0.5">
+              {{ arb.totalDesignaciones ? (arb.totalPartidosDirigidos / arb.totalDesignaciones).toFixed(1) : '0.0' }}
+            </span>
           </div>
           <div class="text-center">
             <span class="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">Efec.</span>
@@ -88,10 +94,10 @@ const getArbitroCategory = (id) => {
   return a ? a.categoria : "INICIAL";
 };
 
-// Promedio de pago por partido
-const getPromedioPago = (arb) => {
-  if (!arb.totalPartidosDirigidos) return 0;
-  return (arb.totalMontoPercibido || 0) / arb.totalPartidosDirigidos;
+// Promedio partidos por designacion
+const getPromedioPartidos = (arb) => {
+  if (!arb.totalDesignaciones) return 0;
+  return (arb.totalPartidosDirigidos || 0) / arb.totalDesignaciones;
 };
 
 // Encontrar líderes
@@ -101,8 +107,8 @@ const isMetricLeader = (idArbitro, metric) => {
 
   for (const arb of props.comparacionData) {
     let val = 0;
-    if (metric === "promedioPago") {
-      val = getPromedioPago(arb);
+    if (metric === "promedioPartidos") {
+      val = getPromedioPartidos(arb);
     } else {
       val = arb[metric] || 0;
     }
@@ -118,7 +124,7 @@ const isMetricLeader = (idArbitro, metric) => {
 };
 
 const isGlobalLeader = (idArbitro) => {
-  const metrics = ["totalMontoPercibido", "totalPartidosDirigidos", "totalDesignaciones", "promedioPago"];
+  const metrics = ["totalPartidosDirigidos", "totalDesignaciones", "promedioPartidos"];
   let leadersCount = 0;
   for (const m of metrics) {
     if (isMetricLeader(idArbitro, m)) {
