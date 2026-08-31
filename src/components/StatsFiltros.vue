@@ -1,7 +1,7 @@
 <template>
   <div
     class="card border border-slate-100 shadow-sm animate-fade-in"
-    style="margin-bottom: 1.25rem; padding: 16px 20px"
+    style="padding: 20px 24px"
   >
     <!-- Selector de Tipo de Filtro -->
     <div class="flex gap-2 mb-4 border-b border-slate-100 pb-3 flex-wrap">
@@ -201,8 +201,8 @@
         </div>
       </div>
 
-      <!-- Acciones de Búsqueda -->
-      <div class="flex gap-2 flex-wrap">
+      <!-- Acciones de Búsqueda y Orden -->
+      <div class="flex gap-2 flex-wrap items-center">
         <button
           type="button"
           class="btn"
@@ -237,16 +237,39 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  orden: {
+    type: String,
+    default: "DESC",
+  },
+  showOrden: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits([
   "update:fechaInicio",
   "update:fechaFin",
+  "update:orden",
   "buscar",
   "reiniciar",
 ]);
 
 const tipoFiltro = ref("rango"); // 'rango' | 'mes' | 'intervalo'
+
+const localOrden = ref(props.orden || "DESC");
+watch(
+  () => props.orden,
+  (val) => {
+    if (val) localOrden.value = val;
+  },
+);
+
+const toggleOrden = () => {
+  localOrden.value = localOrden.value === "DESC" ? "ASC" : "DESC";
+  emit("update:orden", localOrden.value);
+  emit("buscar");
+};
 
 // Rango libre local state
 const localFechaInicio = ref(props.fechaInicio);
@@ -328,6 +351,7 @@ const aplicarFiltro = () => {
 
   emit("update:fechaInicio", inicio);
   emit("update:fechaFin", fin);
+  emit("update:orden", localOrden.value);
   emit("buscar");
 };
 

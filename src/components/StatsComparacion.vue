@@ -90,6 +90,32 @@
               </select>
             </div>
           </div>
+
+          <!-- Atajos rápidos de período -->
+          <div class="flex items-center gap-2 flex-wrap sm:col-span-2 pt-2 border-t border-slate-200/50">
+            <span class="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">Atajos:</span>
+            <button
+              type="button"
+              @click="setPresetMes('actual')"
+              class="px-2.5 py-1 rounded text-[11px] font-semibold bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 shadow-xs transition-colors cursor-pointer"
+            >
+              Mes Actual
+            </button>
+            <button
+              type="button"
+              @click="setPresetMes('trimestre')"
+              class="px-2.5 py-1 rounded text-[11px] font-semibold bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 shadow-xs transition-colors cursor-pointer"
+            >
+              Último Trimestre
+            </button>
+            <button
+              type="button"
+              @click="setPresetMes('anual')"
+              class="px-2.5 py-1 rounded text-[11px] font-semibold bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 shadow-xs transition-colors cursor-pointer"
+            >
+              Año Completo
+            </button>
+          </div>
         </div>
 
         <!-- Chips de Seleccionados (Efecto entrada animada) -->
@@ -313,6 +339,21 @@ const meses = [
 const rangoInvalido = computed(() => {
   return mesInicio.value !== null && mesFin.value !== null && mesInicio.value > mesFin.value;
 });
+
+const setPresetMes = (tipo) => {
+  const currentMonth = new Date().getMonth() + 1;
+  if (tipo === "actual") {
+    mesInicio.value = currentMonth;
+    mesFin.value = currentMonth;
+  } else if (tipo === "trimestre") {
+    const start = Math.max(1, currentMonth - 2);
+    mesInicio.value = start;
+    mesFin.value = currentMonth;
+  } else if (tipo === "anual") {
+    mesInicio.value = null;
+    mesFin.value = null;
+  }
+};
 
 // Filtrar árbitros (sólo activos en el sistema)
 const filteredArbitros = computed(() => {

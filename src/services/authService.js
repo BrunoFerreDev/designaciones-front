@@ -6,13 +6,13 @@ import api from "./api";
 
 /**
  * Autentica las credenciales y genera el token Bearer JWT con roles y expiración.
- * @param {string} username - Nombre de usuario o teléfono
- * @param {string} password - Contraseña
+ * @param {string} whatsapp - Nombre de usuario o teléfono
+ * @param {string} contrasenia - Contraseña
  */
-export const login = async (username, password) => {
+export const login = async (whatsapp, contrasenia) => {
   const response = await api.post("/auth/login", {
-    username,
-    password,
+    whatsapp,
+    contrasenia,
   });
   return response.data;
 };

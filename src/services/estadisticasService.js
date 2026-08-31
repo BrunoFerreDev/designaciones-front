@@ -17,11 +17,24 @@ const getEstadisticas = (inicio, fin) => {
  * @param {number|string} idArbitro - Identificador del árbitro
  * @param {string} inicio - Fecha inicio (YYYY-MM-DD)
  * @param {string} fin - Fecha fin (YYYY-MM-DD)
+ * @param {string} [orden] - Dirección del orden (DESC o ASC)
+ * @param {number} [page] - Número de página (0-indexed)
+ * @param {number} [size] - Tamaño de página
  */
-const getEstadisticasArbitro = async (idArbitro, inicio, fin) => {
+const getEstadisticasArbitro = async (
+  idArbitro,
+  inicio,
+  fin,
+  orden = "DESC",
+  page = 0,
+  size = 10,
+) => {
   const params = {};
   if (inicio) params.inicio = inicio;
   if (fin) params.fin = fin;
+  if (orden) params.orden = orden;
+  if (page !== undefined && page !== null) params.page = page;
+  if (size !== undefined && size !== null) params.size = size;
   return await api
     .get(`/designaciones/estadisticas/arbitro/${idArbitro}`, { params })
     .then((r) => r.data);

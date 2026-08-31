@@ -8,6 +8,7 @@ import Designaciones from './views/Designaciones.vue';
 import BuscarDesignaciones from './views/BuscarDesignaciones.vue';
 import DesignacionesViejas from './views/DesignacionesViejas.vue';
 import Estadisticas from './views/Estadisticas.vue';
+import Comparador from './views/Comparador.vue';
 import Login from './views/Login.vue';
 
 const routes = [
@@ -29,6 +30,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/comparador',
+    name: 'comparador',
+    component: Comparador,
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/canchas',
     name: 'canchas',
     component: Canchas,
@@ -39,6 +46,10 @@ const routes = [
     name: 'arbitros',
     component: Arbitros,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/arbitros/:id/estadisticas',
+    redirect: to => ({ path: '/estadisticas', query: { arbitro: to.params.id } })
   },
   {
     path: '/suspensiones',

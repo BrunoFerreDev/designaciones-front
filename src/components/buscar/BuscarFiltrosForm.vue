@@ -2,12 +2,7 @@
   <div>
     <!-- Selector de Modo de Búsqueda -->
     <div class="tab-row" style="max-width: 800px; margin-bottom: 1.5rem">
-      <button
-        :class="['tab-btn', { active: searchMode === 'single' }]"
-        @click="$emit('update:searchMode', 'single')"
-      >
-        <i class="ti ti-calendar" style="margin-right: 6px"></i>Fecha Única
-      </button>
+
       <button
         :class="['tab-btn', { active: searchMode === 'range' }]"
         @click="$emit('update:searchMode', 'range')"

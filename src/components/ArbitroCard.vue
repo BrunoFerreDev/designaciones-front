@@ -111,6 +111,22 @@
     <div
       class="arb-list-actions mt-3 flex items-center justify-end gap-2 flex-wrap"
     >
+      <router-link
+        :to="{ path: '/estadisticas', query: { arbitro: arbitro.idArbitro } }"
+        class="btn"
+        style="
+          padding: 6px 10px;
+          font-size: 12px;
+          color: #0f6e56;
+          border-color: #a7f3d0;
+          background: #ecfdf5;
+        "
+        title="Ver estadísticas y rendimiento"
+      >
+        <i class="ti ti-chart-bar"></i>
+        <span>Estadísticas</span>
+      </router-link>
+
       <button
         class="btn"
         @click="openModal('editArbitro', arbitro.idArbitro)"

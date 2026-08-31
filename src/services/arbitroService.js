@@ -48,10 +48,13 @@ const updateDisponibilidadTotal = () =>
 const toggleEstado = (idArbitro) =>
   api.put(`/arbitros/${idArbitro}/toggle`).then((r) => r.data);
 const deleteArbitro = (id) => api.delete(`/arbitros/${id}`).then((r) => r.data);
-const getDesignacionesByArbitro = (idArbitro, page = 0, size = 10) =>
-  api
-    .get("/arbitros/designaciones", { params: { idArbitro, page, size } })
+const getDesignacionesByArbitro = (idArbitro, page = 0, size = 10, orden = "DESC") => {
+  const params = { idArbitro, page, size };
+  if (orden) params.orden = orden;
+  return api
+    .get("/arbitros/designaciones", { params })
     .then((r) => r.data);
+};
 const getSuspencionesByArbitro = (idArbitro, page = 0, size = 50) =>
   api
     .get(`/arbitros/${idArbitro}/suspenciones`, { params: { page, size } })

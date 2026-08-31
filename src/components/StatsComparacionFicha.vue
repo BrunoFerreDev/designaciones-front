@@ -37,10 +37,18 @@
           {{ arb.nombreCompleto }}
         </h4>
         
-        <div class="mt-2 flex gap-1">
+        <div class="mt-2 flex items-center gap-1.5 flex-wrap justify-center">
           <span class="badge text-[10px] uppercase font-bold tracking-wider px-2 py-0.5" :class="getCategoryBadge(arb.idArbitro)">
             {{ getCategoryLabel(getArbitroCategory(arb.idArbitro)) }}
           </span>
+          <router-link
+            :to="{ path: '/estadisticas', query: { arbitro: arb.idArbitro } }"
+            class="text-[10px] font-semibold text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-0.5 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 hover:bg-emerald-100 transition-colors"
+            title="Ver Ficha Completa"
+          >
+            <i class="ti ti-id-badge-2 text-xs"></i>
+            <span>Ficha</span>
+          </router-link>
         </div>
 
         <!-- Resumen de Métricas -->
