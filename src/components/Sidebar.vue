@@ -345,12 +345,12 @@ const handleLogout = async () => {
 .mobile-bottom-item-active::after {
   content: "";
   position: absolute;
-  top: 0;
+  bottom: 0;
   left: 20%;
   right: 20%;
   height: 2.5px;
   background-color: #0f6e56;
-  border-radius: 0 0 4px 4px;
+  border-radius: 4px 4px 0 0;
 }
 
 /* Mobile Drawer Link Active */
