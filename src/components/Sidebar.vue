@@ -4,7 +4,7 @@
     <!-- DESKTOP SIDEBAR (Pantallas >= 768px)       -->
     <!-- ========================================== -->
     <aside
-      class="desktop-sidebar hidden md:flex flex-col w-57.5 -3 h-full bg-[#f8fafc] border-r border-slate-200/80 select-none shrink-0 relative z-30"
+      class="desktop-sidebar hidden md:flex flex-col w-57.5 h-full bg-[#f8fafc] border-r border-slate-200/80 select-none shrink-0 relative z-30"
     >
       <!-- Brand Header -->
       <div
@@ -50,7 +50,7 @@
 
       <!-- Footer: Logout (Always pinned at the bottom) -->
       <div
-        class="mt-auto p-4 border-t border-slate-200/80 bg-[#f8fafc] shrink-0"
+        class="mt-auto p-4 border-b border-slate-200/80 bg-[#f8fafc] shrink-0"
       >
         <button
           type="button"
@@ -70,7 +70,7 @@
     <!-- MOBILE BOTTOM NAVIGATION (Pantallas < 768px) -->
     <!-- ========================================== -->
     <nav
-      class="mobile-bottom-nav fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around gap-4 z-40 md:hidden px-2 shadow-[0_-2px_10px_rgba(0,0,0,0.04)]"
+      class="mobile-bottom-nav fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-b border-slate-200 flex items-center justify-around gap-4 z-40 md:hidden px-2 shadow-[0_-2px_10px_rgba(0,0,0,0.04)]"
     >
       <!-- 4 Primary Links -->
       <router-link
@@ -188,7 +188,7 @@
 
             <!-- Drawer Footer: Logout (Pinned to bottom of drawer) -->
             <div
-              class="mt-auto p-4 border-t border-slate-200/80 bg-white shrink-0"
+              class="mt-auto p-4 border-b border-slate-200/80 bg-white shrink-0"
             >
               <button
                 type="button"
