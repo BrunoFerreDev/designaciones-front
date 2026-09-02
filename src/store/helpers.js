@@ -1,5 +1,5 @@
 import { computed } from "vue";
-import { state } from "./state";
+import { state } from "./state.js";
 
 export const getCancha = (id) => state.canchas.find((c) => c.id === id);
 

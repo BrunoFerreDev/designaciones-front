@@ -213,6 +213,30 @@
         }}</span>
       </button>
 
+      <!-- Limpiar Árbitros -->
+      <button
+        v-if="
+          assignedCount > 0 &&
+          (designacion.estadoDesignacion === 0 ||
+            designacion.estadoDesignacion === 1) &&
+          designacion.editable !== false
+        "
+        class="btn text-xs"
+        style="
+          padding: 6px 12px;
+          gap: 6px;
+          border-color: #f43f5e;
+          color: #e11d48;
+          background: #fff1f2;
+        "
+        @click="handleLimpiarArbitros"
+        :disabled="loadingAction"
+        title="Quitar todos los árbitros asignados para poder volver a asignar"
+      >
+        <i class="ti ti-eraser"></i>
+        <span>Limpiar árbitros</span>
+      </button>
+
       <!-- Ver / Ocultar Árbitros -->
       <button
         v-if="showVerArbitrosBtn"
@@ -325,13 +349,7 @@
           border-color: #185fa5;
           color: #185fa5;
         "
-        @click="
-          openModal(
-            'changeStatus',
-            designacion.idDesignacion || designacion.id,
-            { ...designacion, targetState: 1 },
-          )
-        "
+        @click="handleAceptar"
         :disabled="loadingAction"
       >
         <i class="ti ti-check"></i>
@@ -437,6 +455,8 @@ import {
   minArbitros,
   formatFecha,
   asignarArbitros,
+  limpiarArbitrosDesignacion,
+  aceptarDesignacionManual,
   cambiarEstadoDesignacionManual,
   reprogramarDesignacionManual,
   deleteDesignacion,
@@ -521,6 +541,26 @@ const handleAsignarAutom = async () => {
     emit("action-complete", id);
   } catch (err) {
     console.error(err);
+  } finally {
+    loadingAction.value = false;
+  }
+};
+
+const handleLimpiarArbitros = async () => {
+  if (
+    !confirm(
+      "¿Seguro que deseas limpiar todos los árbitros asignados a esta designación? Volverá a estar pendiente para poder reasignar.",
+    )
+  ) {
+    return;
+  }
+  loadingAction.value = true;
+  try {
+    const id = props.designacion.idDesignacion || props.designacion.id;
+    await limpiarArbitrosDesignacion(id);
+    emit("action-complete", id);
+  } catch (err) {
+    console.error("Error al limpiar árbitros:", err);
   } finally {
     loadingAction.value = false;
   }

@@ -41,8 +41,8 @@
         <option value="PRINCIPAL_2">Principal 2</option>
         <option value="PRINCIPAL_3">Principal 3</option>
         <option value="PRINCIPAL_4">Principal 4</option>
-        <option value="INICIAL">Inicial</option>
         <option value="ASISTENTE">Asistente</option>
+        <option value="INICIAL">Inicial</option>
       </select>
     </div>
 

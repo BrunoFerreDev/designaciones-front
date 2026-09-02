@@ -1,5 +1,5 @@
 import { reactive } from "vue";
-import { initLocalStorage } from "./storage";
+import { initLocalStorage } from "./storage.js";
 
 export const ROLES_ARB = [
   "Árbitro Principal",

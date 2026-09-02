@@ -7,6 +7,7 @@ import {
   loadArbitrosDesignados,
   loadArbitros,
   quitarArbitroDeDesignacionManual,
+  limpiarArbitrosDesignacion,
   asignarArbitroADesignacionManual,
   forzarAsignarArbitroADesignacionManual,
   isRefereeAssignedToDifferentCourtOnSameDay,
@@ -258,6 +259,19 @@ export function useGestionarArbitros(options = {}) {
     }
   };
 
+  const limpiarTodosArbitros = async () => {
+    if (!designacionId.value || isBlockedNotEditable.value) return;
+    errorMessage.value = "";
+    try {
+      await limpiarArbitrosDesignacion(designacionId.value);
+      await loadAssigned();
+    } catch (error) {
+      console.error(error);
+      errorMessage.value =
+        error.message || "No se pudieron limpiar los árbitros.";
+    }
+  };
+
   return {
     designacionId,
     designacion,
@@ -284,6 +298,7 @@ export function useGestionarArbitros(options = {}) {
     assignReferee,
     forceAssignReferee,
     removeReferee,
+    limpiarTodosArbitros,
   };
 }
 

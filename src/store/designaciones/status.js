@@ -120,14 +120,118 @@ export const aceptarDesignacionManual = async (
   detalle = "",
   reloadFn = null,
 ) => {
-  return cambiarEstadoDesignacionManual(
-    idDesignacion,
-    {
-      estadoDesignacion: 1,
-      detalle: detalle || "Jornada aceptada y confirmada",
-    },
-    reloadFn,
+  const list = [
+    ...state.designacionesIncompletas,
+    ...state.designaciones,
+    ...state.designacionesFinalizadas,
+    ...state.designacionesAConfirmar,
+    ...(state.designacionesAceptadas || []),
+  ];
+  let des = list.find((d) => (d.idDesignacion || d.id) === idDesignacion);
+
+  // 1. Enviar los árbitros asignados en frontend al backend
+  const assigned =
+    state.arbitrosDesignadosMap[idDesignacion] ||
+    des?.arbitrosDesignados ||
+    des?.arbitros ||
+    [];
+  const idsArbitros = assigned
+    .map((a) => a.arbitro?.idArbitro || a.idArbitro)
+    .filter(Boolean);
+
+  if (idsArbitros.length > 0) {
+    try {
+      console.log(
+        `Enviando ${idsArbitros.length} árbitros al backend para designación ${idDesignacion}...`,
+      );
+      await designacionService.designarListaArbitrosADesignacion(
+        idDesignacion,
+        idsArbitros,
+      );
+    } catch (errArb) {
+      console.warn("Fallo al enviar lista de árbitros al backend:", errArb);
+    }
+  }
+
+  // 2. Enviar aceptación al backend
+  try {
+    await designacionService.aceptarDesignacion(idDesignacion);
+  } catch (errAceptar) {
+    console.warn(
+      "Fallo endpoint aceptarDesignacion, usando actualizarDesignacion:",
+      errAceptar,
+    );
+    try {
+      const canchaId =
+        des?.idCancha || des?.canchaId || des?.cancha?.idCancha || des?.cancha?.id;
+      await designacionService.actualizarDesignacion(idDesignacion, {
+        idCancha: Number(canchaId),
+        fecha: formatLocalDateTime(des?.fecha),
+        cantidadPartidos: Number(des?.cantidadPartidos || 1),
+        etapaCampeonato: des?.etapaCampeonato || "FECHA_NORMAL",
+        detalle: detalle || "Jornada aceptada y confirmada",
+        detalleDesignacion: detalle || "Jornada aceptada y confirmada",
+        editable: des?.editable !== false,
+        estadoDesignacion: 1,
+      });
+    } catch (e2) {
+      console.warn("Fallback actualizarDesignacion también falló:", e2);
+    }
+  }
+
+  // 3. Mover a designacionesAceptadas en frontend
+  const fromLists = [
+    state.designacionesIncompletas,
+    state.designaciones,
+    state.designacionesAConfirmar,
+  ];
+  fromLists.forEach((l) => {
+    const idx = l.findIndex((d) => (d.idDesignacion || d.id) === idDesignacion);
+    if (idx !== -1) {
+      des = l[idx];
+      l.splice(idx, 1);
+    }
+  });
+
+  if (des) {
+    des.estadoDesignacion = 1;
+    const exists = state.designacionesAceptadas.some(
+      (d) => (d.idDesignacion || d.id) === idDesignacion,
+    );
+    if (!exists) {
+      state.designacionesAceptadas.push(des);
+    }
+  }
+
+  state.designacionesIncompletas = sortDesignaciones(
+    state.designacionesIncompletas,
   );
+  state.designaciones = sortDesignaciones(state.designaciones);
+  state.designacionesAConfirmar = sortDesignaciones(
+    state.designacionesAConfirmar,
+  );
+  state.designacionesAceptadas = sortDesignaciones(
+    state.designacionesAceptadas,
+  );
+  persistDesignacionesStorage(state);
+
+  if (reloadFn) {
+    await reloadFn();
+  }
+
+  return { success: true };
+};
+
+export const aceptarLoteDesignaciones = async (designacionesList) => {
+  const list = Array.isArray(designacionesList) ? designacionesList : [];
+  if (list.length === 0) return;
+
+  const promises = list.map(async (d) => {
+    const id = d.idDesignacion || d.id;
+    return aceptarDesignacionManual(id);
+  });
+
+  return Promise.all(promises);
 };
 
 export const finalizarDesignacionManual = async (

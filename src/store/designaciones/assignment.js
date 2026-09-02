@@ -10,6 +10,7 @@ import {
 import { persistDesignacionesStorage } from "../storage";
 import { loadArbitros } from "../arbitros";
 import designacionService from "../../services/designacionService";
+import { ejecutarAsignacionAutomatica } from "../../services/asignacionAutomaticaService";
 
 export const updateDesignacionStateLocal = (idDesignacion) => {
   let des = null;
@@ -87,70 +88,17 @@ export const asignarArbitros = async (idDesignacion) => {
 
     await loadArbitros();
 
-    let disponibles = state.arbitros.filter((a) => {
-      if (!isArbitroActivo(a)) return false;
-      const day = getDayOfWeekLocal(des.fecha);
-      if (day === 6) return a.disponibleSabado;
-      if (day === 0) return a.disponibleDomingo;
-      return true;
-    });
+    const { asignacionesPorDesignacion, advertencias } =
+      ejecutarAsignacionAutomatica([des]);
 
-    const isSaturday = getDayOfWeekLocal(des.fecha) === 6;
-    const targetCanchaId =
-      des.idCancha || des.canchaId || des.cancha?.idCancha || des.cancha?.id;
-
-    const satRepetitionExcluded = new Set();
-    if (isSaturday) {
-      state.designacionesFinalizadas.forEach((finalD) => {
-        const finalCanchaId =
-          finalD.idCancha ||
-          finalD.canchaId ||
-          finalD.cancha?.idCancha ||
-          finalD.cancha?.id;
-        if (
-          String(finalCanchaId) === String(targetCanchaId) &&
-          getDayOfWeekLocal(finalD.fecha) === 6
-        ) {
-          const assigned = finalD.arbitrosDesignados || finalD.arbitros || [];
-          assigned.forEach((asg) => {
-            const arbId = asg.arbitro?.idArbitro || asg.idArbitro;
-            if (arbId) {
-              const arbObj = state.arbitros.find((a) => a.idArbitro === arbId);
-              if (arbObj) {
-                const nombreCompleto =
-                  `${arbObj.nombre || ""} ${arbObj.apellido || ""}`.trim();
-                const normalized = nombreCompleto
-                  .normalize("NFD")
-                  .replace(/[\u0300-\u036f]/g, "")
-                  .toLowerCase();
-                if (normalized === "hector mendoza") {
-                  return;
-                }
-              }
-              satRepetitionExcluded.add(arbId);
-            }
-          });
-        }
-      });
+    const resultado = asignacionesPorDesignacion[idDesignacion];
+    if (!resultado || !resultado.arbitros || resultado.arbitros.length === 0) {
+      throw new Error(
+        "No se pudieron asignar árbitros para esta designación debido a falta de disponibilidad o conflictos de reglas.",
+      );
     }
 
-    let elegibles = disponibles.filter((arb) => {
-      const id = arb.idArbitro;
-      if (isSaturday && satRepetitionExcluded.has(id)) return false;
-      if (isRefereeAssignedToDifferentCourtOnSameDay(id, des)) return false;
-      return true;
-    });
-
-    elegibles.sort((a, b) => (a.designaciones || 0) - (b.designaciones || 0));
-
-    const req = minArbitros(des.cantidadPartidos);
-    const selected = elegibles.slice(0, req);
-
-    state.arbitrosDesignadosMap[idDesignacion] = selected.map((arb, index) => ({
-      idDesignados: Date.now() + index + Math.random(),
-      arbitro: arb,
-      partidosDirigidos: arb.designaciones || 0,
-    }));
+    state.arbitrosDesignadosMap[idDesignacion] = resultado.arbitros;
 
     let desObj = null;
     let idx = state.designacionesIncompletas.findIndex(
@@ -165,16 +113,23 @@ export const asignarArbitros = async (idDesignacion) => {
       );
       if (idx !== -1) {
         desObj = state.designaciones[idx];
-        state.designaciones.splice(idx, 1);
       }
     }
 
     if (desObj) {
-      const existsInConfirmar = state.designacionesAConfirmar.some(
+      desObj.estadoDesignacion = 0; // Sigue pendiente de aceptar
+      const existsInCompletas = state.designaciones.some(
         (d) => (d.idDesignacion || d.id) === idDesignacion,
       );
-      if (!existsInConfirmar) {
-        state.designacionesAConfirmar.push(desObj);
+      if (!existsInCompletas) {
+        state.designaciones.push(desObj);
+      }
+      // Quitar de aConfirmar si estuviese
+      const idxConf = state.designacionesAConfirmar.findIndex(
+        (d) => (d.idDesignacion || d.id) === idDesignacion,
+      );
+      if (idxConf !== -1) {
+        state.designacionesAConfirmar.splice(idxConf, 1);
       }
     }
 
@@ -185,6 +140,12 @@ export const asignarArbitros = async (idDesignacion) => {
     state.designacionesAConfirmar = sortDesignaciones(
       state.designacionesAConfirmar,
     );
+    persistDesignacionesStorage(state);
+
+    if (advertencias && advertencias.length > 0) {
+      console.warn("Advertencias al asignar árbitros:", advertencias);
+      alert(advertencias.join("\n"));
+    }
 
     return state.arbitrosDesignadosMap[idDesignacion];
   } catch (error) {
@@ -192,7 +153,156 @@ export const asignarArbitros = async (idDesignacion) => {
       "Error al asignar árbitros automáticamente en frontend:",
       error,
     );
-    alert("Hubo un error al intentar asignar árbitros automáticamente.");
+    alert(error.message || "Hubo un error al intentar asignar árbitros automáticamente.");
+    throw error;
+  }
+};
+
+export const asignarLoteDesignacionesAutomaticas = async (designacionesList) => {
+  try {
+    await loadArbitros();
+
+    const { asignacionesPorDesignacion, advertencias } =
+      ejecutarAsignacionAutomatica(designacionesList);
+
+    const idsProcesados = Object.keys(asignacionesPorDesignacion);
+
+    idsProcesados.forEach((idDes) => {
+      const info = asignacionesPorDesignacion[idDes];
+      if (info && info.arbitros) {
+        state.arbitrosDesignadosMap[idDes] = info.arbitros;
+      }
+
+      // Mover de incompletas a completadas (state.designaciones), puramente en frontend
+      let desObj = null;
+      let idx = state.designacionesIncompletas.findIndex(
+        (d) => String(d.idDesignacion || d.id) === String(idDes),
+      );
+      if (idx !== -1) {
+        desObj = state.designacionesIncompletas[idx];
+        state.designacionesIncompletas.splice(idx, 1);
+      } else {
+        idx = state.designaciones.findIndex(
+          (d) => String(d.idDesignacion || d.id) === String(idDes),
+        );
+        if (idx !== -1) {
+          desObj = state.designaciones[idx];
+        }
+      }
+
+      if (desObj) {
+        desObj.estadoDesignacion = 0; // Sigue pendiente de aceptar por el usuario
+        const existsInCompletas = state.designaciones.some(
+          (d) => String(d.idDesignacion || d.id) === String(idDes),
+        );
+        if (!existsInCompletas) {
+          state.designaciones.push(desObj);
+        }
+        // Quitar de aConfirmar si estuviese
+        const idxConf = state.designacionesAConfirmar.findIndex(
+          (d) => String(d.idDesignacion || d.id) === String(idDes),
+        );
+        if (idxConf !== -1) {
+          state.designacionesAConfirmar.splice(idxConf, 1);
+        }
+      }
+    });
+
+    state.designacionesIncompletas = sortDesignaciones(
+      state.designacionesIncompletas,
+    );
+    state.designaciones = sortDesignaciones(state.designaciones);
+    state.designacionesAConfirmar = sortDesignaciones(
+      state.designacionesAConfirmar,
+    );
+    persistDesignacionesStorage(state);
+
+    return {
+      asignacionesPorDesignacion,
+      advertencias,
+      totalProcesadas: idsProcesados.length,
+    };
+  } catch (error) {
+    console.error("Error al asignar lote de designaciones:", error);
+    throw error;
+  }
+};
+
+export const limpiarArbitrosDesignacion = async (idDesignacion) => {
+  try {
+    const list = [
+      ...state.designacionesIncompletas,
+      ...state.designaciones,
+      ...state.designacionesAConfirmar,
+      ...(state.designacionesAceptadas || []),
+    ];
+    let des = list.find((d) => (d.idDesignacion || d.id) === idDesignacion);
+    if (!des) {
+      throw new Error("No se encontró la designación.");
+    }
+
+    const assigned =
+      state.arbitrosDesignadosMap[idDesignacion] ||
+      des.arbitrosDesignados ||
+      des.arbitros ||
+      [];
+
+    // Intentar desvincular del backend si ya estaban guardados
+    if (assigned.length > 0) {
+      try {
+        await designacionService.limpiarArbitrosDesignacion(
+          idDesignacion,
+          assigned,
+        );
+      } catch (err) {
+        console.warn("Limpieza en backend falló, continuando localmente:", err);
+      }
+    }
+
+    // 1. Limpiar estructuras en memoria reactiva
+    state.arbitrosDesignadosMap[idDesignacion] = [];
+    des.arbitrosDesignados = [];
+    des.arbitros = [];
+    des.estadoDesignacion = 0; // Vuelve a pendiente e incompleta
+
+    // 2. Mover de vuelta a designacionesIncompletas
+    const fromLists = [
+      state.designaciones,
+      state.designacionesAConfirmar,
+      state.designacionesAceptadas,
+    ];
+    fromLists.forEach((l) => {
+      const idx = l.findIndex(
+        (d) => (d.idDesignacion || d.id) === idDesignacion,
+      );
+      if (idx !== -1) {
+        l.splice(idx, 1);
+      }
+    });
+
+    const existsInInc = state.designacionesIncompletas.some(
+      (d) => (d.idDesignacion || d.id) === idDesignacion,
+    );
+    if (!existsInInc) {
+      state.designacionesIncompletas.push(des);
+    }
+
+    state.designacionesIncompletas = sortDesignaciones(
+      state.designacionesIncompletas,
+    );
+    state.designaciones = sortDesignaciones(state.designaciones);
+    state.designacionesAConfirmar = sortDesignaciones(
+      state.designacionesAConfirmar,
+    );
+    state.designacionesAceptadas = sortDesignaciones(
+      state.designacionesAceptadas,
+    );
+    persistDesignacionesStorage(state);
+
+    return true;
+  } catch (error) {
+    console.error("Error al limpiar árbitros de designación:", error);
+    alert(error.message || "Hubo un error al limpiar los árbitros.");
     throw error;
   }
 };

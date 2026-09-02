@@ -64,6 +64,8 @@ export const loadDesignacionesUltimos7Dias = async () => {
   return loadingPromise;
 };
 
+export const loadDesignacionesPeriodoActual = loadDesignacionesUltimos7Dias;
+
 export const loadDesignacionesIncompletas = async () => {
   await loadDesignacionesUltimos7Dias();
 };

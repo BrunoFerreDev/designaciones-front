@@ -1,4 +1,4 @@
-import { sortDesignaciones } from "./helpers";
+import { sortDesignaciones } from "./helpers.js";
 
 // Claves únicas consolidadas en LocalStorage
 const KEYS = {

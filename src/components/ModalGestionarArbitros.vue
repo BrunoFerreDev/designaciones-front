@@ -140,6 +140,21 @@
         "
       >
         <span>🏃‍♂️ Árbitros Asignados ({{ assignedReferees.length }})</span>
+        <button
+          v-if="assignedReferees.length > 0"
+          class="btn text-xs"
+          style="
+            padding: 3px 8px;
+            gap: 4px;
+            color: #e11d48;
+            border-color: #fecdd3;
+            background: #fff1f2;
+          "
+          @click="handleLimpiarTodos"
+          title="Quitar todos los árbitros asignados a esta designación"
+        >
+          <i class="ti ti-eraser"></i> Limpiar todos
+        </button>
       </div>
 
       <div
@@ -422,7 +437,19 @@ const {
   assignReferee,
   forceAssignReferee,
   removeReferee,
+  limpiarTodosArbitros,
 } = useGestionarArbitros({ isHistorico: false });
+
+const handleLimpiarTodos = async () => {
+  if (
+    !confirm(
+      "¿Seguro que deseas limpiar todos los árbitros de esta designación? Volverá a estar pendiente para poder reasignar.",
+    )
+  ) {
+    return;
+  }
+  await limpiarTodosArbitros();
+};
 
 onMounted(() => {
   loadAssigned();

@@ -52,25 +52,94 @@ export const buscarPorRango = (inicio, fin) =>
 export const buscarPorFecha = (fecha) =>
   buscar({ fecha });
 
-// Obtener listado de designaciones de los últimos 7 días
-export const getUltimos7Dias = async (fechaBase = new Date()) => {
-  const base =
-    typeof fechaBase === "string"
-      ? new Date(fechaBase.replace(" ", "T"))
-      : new Date(fechaBase);
-  const promesas = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(base);
-    d.setDate(base.getDate() - i);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    const fecha = `${yyyy}-${mm}-${dd}`;
-    promesas.push(buscarPorFecha(fecha));
-  }
-  const results = await Promise.all(promesas);
-  return results.filter(Boolean).flat();
+// Helper para calcular rango desde fin de semana pasado hasta fin de semana próximo
+export const getRangoFindePasadoAProximo = (referenceDate = new Date()) => {
+  const d =
+    typeof referenceDate === "string"
+      ? new Date(referenceDate.replace(" ", "T"))
+      : new Date(referenceDate);
+  const day = d.getDay();
+  const diffToSaturday = day === 0 ? -1 : 6 - day;
+  const thisSat = new Date(d);
+  thisSat.setDate(d.getDate() + diffToSaturday);
+
+  // Finde pasado (al menos 14 días atrás para cubrir completamente fin de semana anterior)
+  const lastSat = new Date(thisSat);
+  lastSat.setDate(thisSat.getDate() - 14);
+
+  // Finde próximo (hasta 15 días adelante para cubrir sábado y domingo próximos)
+  const nextSun = new Date(thisSat);
+  nextSun.setDate(thisSat.getDate() + 15);
+
+  const fmt = (date) => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  return {
+    inicio: fmt(lastSat),
+    fin: fmt(nextSun),
+    lastSaturdayDate: lastSat,
+    nextSundayDate: nextSun,
+  };
 };
+
+// Obtener listado de designaciones abarcando finde pasado, actual y próximo
+export const getUltimos7Dias = async (fechaBase = new Date()) => {
+  const { inicio, fin, lastSaturdayDate, nextSundayDate } =
+    getRangoFindePasadoAProximo(fechaBase);
+
+  try {
+    const res = await buscarPorRango(inicio, fin);
+    let list = Array.isArray(res) ? res : res?.content || res?.data || [];
+    if (Array.isArray(list) && list.length > 0) {
+      const seen = new Set();
+      return list.filter((item) => {
+        const id = item.idDesignacion || item.id;
+        if (!id || seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+    }
+  } catch (err) {
+    console.warn("buscarPorRango falló, usando fallback por fechas:", err);
+  }
+
+  // Fallback: consultar fecha por fecha en el rango
+  try {
+    const promesas = [];
+    const cur = new Date(lastSaturdayDate);
+    while (cur <= nextSundayDate) {
+      const yyyy = cur.getFullYear();
+      const mm = String(cur.getMonth() + 1).padStart(2, "0");
+      const dd = String(cur.getDate()).padStart(2, "0");
+      const fecha = `${yyyy}-${mm}-${dd}`;
+      promesas.push(
+        buscarPorFecha(fecha).catch((e) => {
+          console.warn(`Error buscando designaciones para fecha ${fecha}:`, e);
+          return [];
+        }),
+      );
+      cur.setDate(cur.getDate() + 1);
+    }
+    const results = await Promise.all(promesas);
+    const flat = results.filter(Boolean).flat();
+    const seen = new Set();
+    return flat.filter((item) => {
+      const id = item.idDesignacion || item.id;
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  } catch (e) {
+    console.error("Error al cargar designaciones por rango:", e);
+    return [];
+  }
+};
+
+export const getDesignacionesPeriodoActual = getUltimos7Dias;
 
 // Lista paginada por estado (0: Pendiente, 1: Aceptada, 2: Finalizada, 3: Cancelada)
 export const getAll = (page = 0, size = 50) =>
@@ -155,6 +224,25 @@ export const quitarArbitroManual = (idDesignacion, idArbitro) =>
     .delete(`/designaciones/${idDesignacion}/arbitros/${idArbitro}`)
     .then((r) => r.data);
 
+// Desvincula todos los árbitros de una designación
+export const limpiarArbitrosDesignacion = async (
+  idDesignacion,
+  arbitrosList = [],
+) => {
+  if (Array.isArray(arbitrosList) && arbitrosList.length > 0) {
+    const promises = arbitrosList.map((a) => {
+      const arbId = a.arbitro?.idArbitro || a.idArbitro;
+      if (arbId) {
+        return quitarArbitroManual(idDesignacion, arbId).catch((err) => {
+          console.warn(`No se pudo quitar árbitro ${arbId} en backend:`, err);
+        });
+      }
+      return Promise.resolve();
+    });
+    await Promise.all(promises);
+  }
+};
+
 // Elimina por completo una designación
 export const deleteDesignacion = (id) =>
   api.delete(`/designaciones/${id}`).then((r) => r.data);
@@ -187,6 +275,8 @@ export default {
   buscarPorRango,
   buscarPorFecha,
   getUltimos7Dias,
+  getDesignacionesPeriodoActual,
+  getRangoFindePasadoAProximo,
   getAll,
   getByEstado,
   getIncompletas,
@@ -202,6 +292,7 @@ export default {
   forzarAsignarArbitro,
   asignarArbitroHistorico,
   quitarArbitroManual,
+  limpiarArbitrosDesignacion,
   deleteDesignacion,
   designarListaArbitrosADesignacion,
   getUltimasDesignaciones,
