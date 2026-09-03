@@ -7,7 +7,7 @@
       border-radius: var(--border-radius-lg);
     "
   >
-    <div class="filters-grid">
+    <div :class="onlySearch ? '' : 'filters-grid'">
       <div class="form-group" style="margin-bottom: 0">
         <label class="form-label" style="font-weight: 500; margin-bottom: 6px">
           Buscar por nombre o apellido
@@ -32,7 +32,7 @@
         </div>
       </div>
 
-      <div class="form-group" style="margin-bottom: 0">
+      <div v-if="!onlySearch" class="form-group" style="margin-bottom: 0">
         <label class="form-label" style="font-weight: 500; margin-bottom: 6px">
           Categoría
         </label>
@@ -81,26 +81,6 @@
         </div>
       </div>
 
-      <!-- Filtro por Estado (solo visible en Tab Todos) -->
-      <div
-        v-if="activeTab === 'todos'"
-        class="form-group"
-        style="margin-bottom: 0"
-      >
-        <label class="form-label" style="font-weight: 500; margin-bottom: 6px">
-          Estado en sistema
-        </label>
-        <select
-          :value="filterEstado"
-          @change="$emit('update:filterEstado', $event.target.value)"
-          class="form-input"
-          style="height: 38px"
-        >
-          <option value="">Todos los estados</option>
-          <option value="activos">Solo Habilitados</option>
-          <option value="inactivos">Solo Deshabilitados</option>
-        </select>
-      </div>
     </div>
   </div>
 </template>
@@ -113,6 +93,7 @@ defineProps({
   sortDirection: { type: String, default: "asc" },
   categorias: { type: Array, default: () => [] },
   activeTab: { type: String, default: "activos" },
+  onlySearch: { type: Boolean, default: false },
 });
 
 defineEmits([

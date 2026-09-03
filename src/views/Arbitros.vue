@@ -65,6 +65,7 @@
 
       <!-- Barra de Filtros -->
       <ArbitrosFilters
+        :only-search="activeTab === 'todos'"
         v-model:searchQuery="searchQuery"
         v-model:filterCategory="filterCategory"
         v-model:filterEstado="filterEstado"
@@ -185,58 +186,162 @@
         </div>
       </div>
 
-      <!-- Tab 2: Todos los Árbitros del Sistema -->
-      <div v-else class="card">
-        <div
-          class="card-header"
-          style="
-            border-bottom: 0.5px solid var(--color-border-tertiary);
-            padding-bottom: 12px;
-            margin-bottom: 16px;
-          "
-        >
-          <div>
-            <div
-              class="card-title"
-              style="display: flex; align-items: center; gap: 8px"
+      <!-- Tab 2: Todos los Árbitros del Sistema (Con Sub-tabs) -->
+      <div v-else>
+        <!-- Sub-tabs: Activos e Inactivos para Responsive -->
+        <div class="tab-row" style="margin-bottom: 1.25rem">
+          <button
+            class="tab-btn"
+            :class="{ active: subTabTodos === 'activos' }"
+            @click="subTabTodos = 'activos'"
+          >
+            <i
+              class="ti ti-user-check"
+              style="font-size: 15px; margin-right: 6px"
+            ></i>
+            Activos del Sistema
+            <span
+              class="badge badge-green"
+              style="margin-left: 6px; font-size: 11px"
             >
-              <i
-                class="ti ti-users"
-                style="color: #185fa5; font-size: 18px"
-              ></i>
-              Todos los Árbitros del Sistema
-            </div>
-            <div class="card-sub">
-              Listado general de árbitros activos e inactivos registrados
-            </div>
-          </div>
-          <span class="badge badge-blue">{{ filteredTodos.length }}</span>
+              {{ filteredTodosActivos.length }}
+            </span>
+          </button>
+          <button
+            class="tab-btn"
+            :class="{ active: subTabTodos === 'inactivos' }"
+            @click="subTabTodos = 'inactivos'"
+          >
+            <i
+              class="ti ti-user-x"
+              style="font-size: 15px; margin-right: 6px"
+            ></i>
+            Inactivos del Sistema
+            <span
+              class="badge badge-red"
+              style="margin-left: 6px; font-size: 11px"
+            >
+              {{ filteredTodosInactivos.length }}
+            </span>
+          </button>
         </div>
 
-        <div
-          v-if="filteredTodos.length === 0"
-          class="empty-state"
-          style="padding: 3rem 1rem"
-        >
-          <i
-            class="ti ti-mood-empty"
+        <!-- Columna: Activos del Sistema -->
+        <div v-if="subTabTodos === 'activos'" class="card">
+          <div
+            class="card-header"
             style="
-              font-size: 36px;
-              display: block;
-              margin-bottom: 10px;
-              color: var(--color-text-secondary);
+              border-bottom: 0.5px solid var(--color-border-tertiary);
+              padding-bottom: 12px;
+              margin-bottom: 16px;
             "
-          ></i>
-          No se encontraron árbitros con los filtros aplicados
+          >
+            <div>
+              <div
+                class="card-title"
+                style="display: flex; align-items: center; gap: 8px"
+              >
+                <i
+                  class="ti ti-user-check"
+                  style="color: #0f6e56; font-size: 18px"
+                ></i>
+                Activos del Sistema
+              </div>
+              <div class="card-sub">
+                Árbitros habilitados para designaciones
+              </div>
+            </div>
+            <span class="badge badge-green">{{ filteredTodosActivos.length }}</span>
+          </div>
+
+          <div
+            v-if="filteredTodosActivos.length === 0"
+            class="empty-state"
+            style="padding: 2.5rem 1rem"
+          >
+            <i
+              class="ti ti-mood-empty"
+              style="
+                font-size: 32px;
+                display: block;
+                margin-bottom: 10px;
+                color: var(--color-text-secondary);
+              "
+            ></i>
+            {{
+              searchQuery
+                ? "Ningún árbitro activo coincide con la búsqueda"
+                : "No hay árbitros activos registrados en el sistema"
+            }}
+          </div>
+
+          <div v-else class="flex flex-col gap-3">
+            <ArbitroCard
+              v-for="a in filteredTodosActivos"
+              :key="a.idArbitro"
+              :arbitro="a"
+              :only-status-toggle="true"
+            />
+          </div>
         </div>
 
-        <div v-else class="flex flex-col gap-3">
-          <ArbitroCard
-            v-for="a in filteredTodos"
-            :key="a.idArbitro"
-            :arbitro="a"
-            :only-status-toggle="true"
-          />
+        <!-- Columna: Inactivos del Sistema -->
+        <div v-else class="card">
+          <div
+            class="card-header"
+            style="
+              border-bottom: 0.5px solid var(--color-border-tertiary);
+              padding-bottom: 12px;
+              margin-bottom: 16px;
+            "
+          >
+            <div>
+              <div
+                class="card-title"
+                style="display: flex; align-items: center; gap: 8px"
+              >
+                <i
+                  class="ti ti-user-x"
+                  style="color: #993c1d; font-size: 18px"
+                ></i>
+                Inactivos del Sistema
+              </div>
+              <div class="card-sub">
+                Árbitros deshabilitados en el sistema
+              </div>
+            </div>
+            <span class="badge badge-red">{{ filteredTodosInactivos.length }}</span>
+          </div>
+
+          <div
+            v-if="filteredTodosInactivos.length === 0"
+            class="empty-state"
+            style="padding: 2.5rem 1rem"
+          >
+            <i
+              class="ti ti-mood-smile"
+              style="
+                font-size: 32px;
+                display: block;
+                margin-bottom: 10px;
+                color: var(--color-text-secondary);
+              "
+            ></i>
+            {{
+              searchQuery
+                ? "Ningún árbitro inactivo coincide con la búsqueda"
+                : "No hay árbitros inactivos registrados en el sistema"
+            }}
+          </div>
+
+          <div v-else class="flex flex-col gap-3">
+            <ArbitroCard
+              v-for="a in filteredTodosInactivos"
+              :key="a.idArbitro"
+              :arbitro="a"
+              :only-status-toggle="true"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -258,6 +363,7 @@ import ArbitrosStatsRow from "../components/arbitros/ArbitrosStatsRow.vue";
 import ArbitrosFilters from "../components/arbitros/ArbitrosFilters.vue";
 
 const activeTab = ref("activos");
+const subTabTodos = ref("activos");
 const searchQuery = ref("");
 const filterCategory = ref("");
 const filterEstado = ref("");
@@ -398,6 +504,28 @@ const filteredTodos = computed(() => {
     }
 
     return coincideBusqueda && coincideCategoria && coincideEstado;
+  });
+  return sortRefereesByDirection(filtered);
+});
+
+const filteredTodosActivos = computed(() => {
+  const query = searchQuery.value.toLowerCase().trim();
+  const filtered = arbitrosActivosList.value.filter((a) => {
+    if (!query) return true;
+    const nombreCompleto =
+      `${a.nombre || ""} ${a.apellido || ""}`.toLowerCase();
+    return nombreCompleto.includes(query);
+  });
+  return sortRefereesByDirection(filtered);
+});
+
+const filteredTodosInactivos = computed(() => {
+  const query = searchQuery.value.toLowerCase().trim();
+  const filtered = arbitrosInactivosList.value.filter((a) => {
+    if (!query) return true;
+    const nombreCompleto =
+      `${a.nombre || ""} ${a.apellido || ""}`.toLowerCase();
+    return nombreCompleto.includes(query);
   });
   return sortRefereesByDirection(filtered);
 });
