@@ -1,10 +1,18 @@
 <template>
-  <div class="card transition-all duration-200 hover:shadow-md hover:border-slate-300">
+  <div
+    class="card transition-all duration-200 hover:shadow-md hover:border-slate-300"
+    :class="{ 'opacity-80': !isActiva }"
+  >
     <div class="card-header">
       <div>
         <div class="card-title flex items-center gap-2">
           <span class="text-lg">🏟️</span>
-          <span class="font-semibold text-slate-800">{{ cancha.nombre }}</span>
+          <span
+            class="font-semibold"
+            :class="isActiva ? 'text-slate-800' : 'text-slate-500 line-through'"
+          >
+            {{ cancha.nombre }}
+          </span>
         </div>
       </div>
       <div class="flex gap-2">
@@ -16,13 +24,41 @@
         >
           <i class="ti ti-edit text-blue-600"></i>
         </button>
+
+        <!-- Botón para Eliminar / Activar según estado -->
         <button
+          v-if="isActiva"
           class="btn danger"
-          @click="deleteCancha(cancha.id)"
+          @click="handleToggleEstado"
+          :disabled="updating"
           style="padding: 5px 9px"
           title="Eliminar cancha"
         >
-          <i class="ti ti-trash text-red-600"></i>
+          <i
+            v-if="updating"
+            class="ti ti-loader animate-spin"
+          ></i>
+          <i v-else class="ti ti-trash text-red-600"></i>
+        </button>
+
+        <button
+          v-else
+          class="btn"
+          @click="handleToggleEstado"
+          :disabled="updating"
+          style="
+            padding: 5px 9px;
+            border-color: #bbf7d0;
+            background: #f0fdf4;
+            color: #15803d;
+          "
+          title="Activar cancha"
+        >
+          <i
+            v-if="updating"
+            class="ti ti-loader animate-spin"
+          ></i>
+          <i v-else class="ti ti-circle-check text-emerald-600"></i>
         </button>
       </div>
     </div>
@@ -44,9 +80,9 @@
         Estado: 
         <span 
           class="font-semibold" 
-          :class="cancha.estado ? 'text-emerald-600' : 'text-slate-400'"
+          :class="isActiva ? 'text-emerald-600' : 'text-slate-400'"
         >
-          {{ cancha.estado ? "Activa" : "Inactiva" }}
+          {{ isActiva ? "Activa" : "Inactiva" }}
         </span>
       </span>
       <span class="text-slate-500" v-if="cancha.ciudad">
@@ -57,12 +93,27 @@
 </template>
 
 <script setup>
-import { openModal, deleteCancha } from "../store";
+import { ref, computed } from "vue";
+import { openModal, toggleCanchaEstado, isCanchaActiva } from "../store";
 
-defineProps({
+const props = defineProps({
   cancha: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 });
+
+const isActiva = computed(() => isCanchaActiva(props.cancha));
+const updating = ref(false);
+
+const handleToggleEstado = async () => {
+  if (updating.value) return;
+  updating.value = true;
+  try {
+    const id = props.cancha.id || props.cancha.idCancha;
+    await toggleCanchaEstado(id);
+  } finally {
+    updating.value = false;
+  }
+};
 </script>

@@ -115,20 +115,24 @@ export const saveEditCancha = (id) => {
 
 export const toggleCanchaEstado = (id) => {
   const c = getCancha(id);
-  if (!c) return;
-  c.estado = !c.estado;
+  if (!c) return Promise.reject("Cancha no encontrada");
+
+  const currentEstado = c.estado !== undefined ? Boolean(c.estado) : true;
+  c.estado = !currentEstado;
   updateCanchaInStorage(state, c);
 
-  canchaService
+  return canchaService
     .toggleEstado(id)
     .then((res) => {
       if (res && typeof res === "object") {
         Object.assign(c, res);
         updateCanchaInStorage(state, c);
       }
+      return c;
     })
     .catch((err) => {
       console.warn("toggleEstado failed, keeping local toggle", err);
+      return c;
     });
 };
 

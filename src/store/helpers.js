@@ -1,7 +1,20 @@
 import { computed } from "vue";
 import { state } from "./state";
 
-export const getCancha = (id) => state.canchas.find((c) => c.id === id);
+export const getCancha = (id) =>
+  state.canchas.find(
+    (c) =>
+      c.id === id ||
+      c.idCancha === id ||
+      String(c.id) === String(id) ||
+      String(c.idCancha) === String(id),
+  );
+
+export const isCanchaActiva = (c) => {
+  if (!c) return false;
+  if (c.estado !== undefined) return Boolean(c.estado);
+  return true;
+};
 
 export const getArbitro = (id) =>
   state.arbitros.find((a) => a.idArbitro === id) ||
