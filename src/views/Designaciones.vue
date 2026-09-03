@@ -93,6 +93,7 @@
           :arbitros-designados="arbitrosDesignados"
           @ver-arbitros="verArbitros"
           @action-complete="onActionComplete"
+          @assigned-auto="onActionComplete"
         />
       </div>
 
@@ -156,6 +157,7 @@
           :arbitros-designados="arbitrosDesignados"
           @ver-arbitros="verArbitros"
           @action-complete="onActionComplete"
+          @assigned-auto="onActionComplete"
         />
       </div>
 
@@ -189,6 +191,7 @@
           :arbitros-designados="arbitrosDesignados"
           @ver-arbitros="verArbitros"
           @action-complete="onActionComplete"
+          @assigned-auto="onActionComplete"
         />
       </div>
 
@@ -241,6 +244,7 @@
             :arbitros-designados="arbitrosDesignados"
             @ver-arbitros="verArbitros"
             @action-complete="onActionComplete"
+            @assigned-auto="onActionComplete"
           />
         </div>
       </div>

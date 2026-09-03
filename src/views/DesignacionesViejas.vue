@@ -179,6 +179,7 @@
             show-empty-arbitros-state
             :tipo="0"
             @action-complete="fetchDesignacionesPorFecha(true)"
+            @assigned-auto="onAssignedAuto"
           />
         </div>
       </div>
@@ -342,6 +343,12 @@ watch(
     }
   }
 );
+
+const onAssignedAuto = (id) => {
+  if (id) {
+    arbitrosDesignados.value[id] = state.arbitrosDesignadosMap[id] || [];
+  }
+};
 </script>
 
 <style scoped>

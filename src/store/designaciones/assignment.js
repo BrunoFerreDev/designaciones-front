@@ -10,7 +10,12 @@ import {
 import { persistDesignacionesStorage } from "../storage";
 import { loadArbitros } from "../arbitros";
 import designacionService from "../../services/designacionService";
-import { ejecutarAsignacionAutomatica } from "../../services/asignacionAutomaticaService";
+import {
+  ejecutarAsignacionAutomatica,
+  isAsistente,
+  isInicial,
+  isEtapaCrucesOSemiOFinal,
+} from "../../services/asignacionAutomaticaService";
 
 export const updateDesignacionStateLocal = (idDesignacion) => {
   let des = null;
@@ -86,7 +91,10 @@ export const asignarArbitros = async (idDesignacion) => {
       throw new Error("No se encontró la designación.");
     }
 
-    await loadArbitros();
+    // Cargar árbitros del backend solo si no existen en memoria local
+    if (!state.arbitros || state.arbitros.length === 0) {
+      await loadArbitros();
+    }
 
     const { asignacionesPorDesignacion, advertencias } =
       ejecutarAsignacionAutomatica([des]);
@@ -99,48 +107,7 @@ export const asignarArbitros = async (idDesignacion) => {
     }
 
     state.arbitrosDesignadosMap[idDesignacion] = resultado.arbitros;
-
-    let desObj = null;
-    let idx = state.designacionesIncompletas.findIndex(
-      (d) => (d.idDesignacion || d.id) === idDesignacion,
-    );
-    if (idx !== -1) {
-      desObj = state.designacionesIncompletas[idx];
-      state.designacionesIncompletas.splice(idx, 1);
-    } else {
-      idx = state.designaciones.findIndex(
-        (d) => (d.idDesignacion || d.id) === idDesignacion,
-      );
-      if (idx !== -1) {
-        desObj = state.designaciones[idx];
-      }
-    }
-
-    if (desObj) {
-      desObj.estadoDesignacion = 0; // Sigue pendiente de aceptar
-      const existsInCompletas = state.designaciones.some(
-        (d) => (d.idDesignacion || d.id) === idDesignacion,
-      );
-      if (!existsInCompletas) {
-        state.designaciones.push(desObj);
-      }
-      // Quitar de aConfirmar si estuviese
-      const idxConf = state.designacionesAConfirmar.findIndex(
-        (d) => (d.idDesignacion || d.id) === idDesignacion,
-      );
-      if (idxConf !== -1) {
-        state.designacionesAConfirmar.splice(idxConf, 1);
-      }
-    }
-
-    state.designacionesIncompletas = sortDesignaciones(
-      state.designacionesIncompletas,
-    );
-    state.designaciones = sortDesignaciones(state.designaciones);
-    state.designacionesAConfirmar = sortDesignaciones(
-      state.designacionesAConfirmar,
-    );
-    persistDesignacionesStorage(state);
+    updateDesignacionStateLocal(idDesignacion);
 
     if (advertencias && advertencias.length > 0) {
       console.warn("Advertencias al asignar árbitros:", advertencias);
@@ -160,7 +127,9 @@ export const asignarArbitros = async (idDesignacion) => {
 
 export const asignarLoteDesignacionesAutomaticas = async (designacionesList) => {
   try {
-    await loadArbitros();
+    if (!state.arbitros || state.arbitros.length === 0) {
+      await loadArbitros();
+    }
 
     const { asignacionesPorDesignacion, advertencias } =
       ejecutarAsignacionAutomatica(designacionesList);
@@ -172,50 +141,8 @@ export const asignarLoteDesignacionesAutomaticas = async (designacionesList) => 
       if (info && info.arbitros) {
         state.arbitrosDesignadosMap[idDes] = info.arbitros;
       }
-
-      // Mover de incompletas a completadas (state.designaciones), puramente en frontend
-      let desObj = null;
-      let idx = state.designacionesIncompletas.findIndex(
-        (d) => String(d.idDesignacion || d.id) === String(idDes),
-      );
-      if (idx !== -1) {
-        desObj = state.designacionesIncompletas[idx];
-        state.designacionesIncompletas.splice(idx, 1);
-      } else {
-        idx = state.designaciones.findIndex(
-          (d) => String(d.idDesignacion || d.id) === String(idDes),
-        );
-        if (idx !== -1) {
-          desObj = state.designaciones[idx];
-        }
-      }
-
-      if (desObj) {
-        desObj.estadoDesignacion = 0; // Sigue pendiente de aceptar por el usuario
-        const existsInCompletas = state.designaciones.some(
-          (d) => String(d.idDesignacion || d.id) === String(idDes),
-        );
-        if (!existsInCompletas) {
-          state.designaciones.push(desObj);
-        }
-        // Quitar de aConfirmar si estuviese
-        const idxConf = state.designacionesAConfirmar.findIndex(
-          (d) => String(d.idDesignacion || d.id) === String(idDes),
-        );
-        if (idxConf !== -1) {
-          state.designacionesAConfirmar.splice(idxConf, 1);
-        }
-      }
+      updateDesignacionStateLocal(idDes);
     });
-
-    state.designacionesIncompletas = sortDesignaciones(
-      state.designacionesIncompletas,
-    );
-    state.designaciones = sortDesignaciones(state.designaciones);
-    state.designacionesAConfirmar = sortDesignaciones(
-      state.designacionesAConfirmar,
-    );
-    persistDesignacionesStorage(state);
 
     return {
       asignacionesPorDesignacion,
@@ -247,57 +174,60 @@ export const limpiarArbitrosDesignacion = async (idDesignacion) => {
       des.arbitros ||
       [];
 
-    // Intentar desvincular del backend si ya estaban guardados
-    if (assigned.length > 0) {
+    // 1. Obtener árbitros que provienen y están guardados en el backend
+    let backendRefs = [];
+    if (Array.isArray(des.arbitros) && des.arbitros.length > 0) {
+      backendRefs = des.arbitros;
+    } else if (
+      Array.isArray(des.arbitrosDesignados) &&
+      des.arbitrosDesignados.length > 0
+    ) {
+      backendRefs = des.arbitrosDesignados;
+    } else {
       try {
-        await designacionService.limpiarArbitrosDesignacion(
-          idDesignacion,
-          assigned,
-        );
+        const res = await designacionService.getDesignados(idDesignacion);
+        backendRefs = Array.isArray(res) ? res : res?.data || [];
       } catch (err) {
-        console.warn("Limpieza en backend falló, continuando localmente:", err);
+        console.warn(
+          "No se pudo consultar árbitros guardados del backend:",
+          err,
+        );
       }
     }
 
-    // 1. Limpiar estructuras en memoria reactiva
-    state.arbitrosDesignadosMap[idDesignacion] = [];
-    des.arbitrosDesignados = [];
-    des.arbitros = [];
-    des.estadoDesignacion = 0; // Vuelve a pendiente e incompleta
+    // Conjunto de IDs de árbitros guardados en el backend
+    const backendIdsSet = new Set(
+      backendRefs
+        .map((b) => Number(b.arbitro?.idArbitro || b.idArbitro))
+        .filter(Boolean),
+    );
 
-    // 2. Mover de vuelta a designacionesIncompletas
-    const fromLists = [
-      state.designaciones,
-      state.designacionesAConfirmar,
-      state.designacionesAceptadas,
-    ];
-    fromLists.forEach((l) => {
-      const idx = l.findIndex(
-        (d) => (d.idDesignacion || d.id) === idDesignacion,
+    // Conservar únicamente los árbitros que están guardados en el backend
+    let keptArbitros = [];
+    if (backendIdsSet.size > 0) {
+      keptArbitros = assigned.filter((asg) =>
+        backendIdsSet.has(Number(asg.arbitro?.idArbitro || asg.idArbitro)),
       );
-      if (idx !== -1) {
-        l.splice(idx, 1);
-      }
-    });
-
-    const existsInInc = state.designacionesIncompletas.some(
-      (d) => (d.idDesignacion || d.id) === idDesignacion,
-    );
-    if (!existsInInc) {
-      state.designacionesIncompletas.push(des);
+      backendRefs.forEach((bRef) => {
+        const bId = Number(bRef.arbitro?.idArbitro || bRef.idArbitro);
+        if (
+          bId &&
+          !keptArbitros.some(
+            (k) => Number(k.arbitro?.idArbitro || k.idArbitro) === bId,
+          )
+        ) {
+          keptArbitros.push(bRef);
+        }
+      });
     }
 
-    state.designacionesIncompletas = sortDesignaciones(
-      state.designacionesIncompletas,
-    );
-    state.designaciones = sortDesignaciones(state.designaciones);
-    state.designacionesAConfirmar = sortDesignaciones(
-      state.designacionesAConfirmar,
-    );
-    state.designacionesAceptadas = sortDesignaciones(
-      state.designacionesAceptadas,
-    );
-    persistDesignacionesStorage(state);
+    // Actualizar estructuras en memoria reactiva conservando los del backend
+    state.arbitrosDesignadosMap[idDesignacion] = keptArbitros;
+    des.arbitrosDesignados = keptArbitros;
+    des.arbitros = keptArbitros;
+
+    // Actualizar estado local (si keptArbitros alcanza el mínimo o si queda incompleta)
+    updateDesignacionStateLocal(idDesignacion);
 
     return true;
   } catch (error) {
@@ -463,6 +393,15 @@ export const asignarArbitroADesignacionManual = async (
             "esta cancha";
           throw new Error(
             `El árbitro ya estuvo asignado en la cancha "${canchaNombre}" el sábado anterior. No puede repetir la misma cancha en sábados consecutivos.`,
+          );
+        }
+      }
+
+      const etapa = des.etapaCampeonato || des.etapaTorneo || "";
+      if (isEtapaCrucesOSemiOFinal(etapa)) {
+        if (isAsistente(arb) || isInicial(arb)) {
+          throw new Error(
+            `En etapas definitorias (${etapa}) no está permitido designar árbitros Asistentes o Iniciales.`,
           );
         }
       }

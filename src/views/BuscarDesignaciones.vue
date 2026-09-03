@@ -145,6 +145,7 @@
             :arbitros="arbitrosDesignados[d.idDesignacion || d.id]"
             show-empty-arbitros-state
             @action-complete="ejecutarBusqueda(true, false)"
+            @assigned-auto="onAssignedAuto"
           />
         </div>
 
@@ -426,6 +427,12 @@ watch(
     }
   },
 );
+
+const onAssignedAuto = (id) => {
+  if (id) {
+    arbitrosDesignados.value[id] = state.arbitrosDesignadosMap[id] || [];
+  }
+};
 </script>
 
 <style scoped>

@@ -248,10 +248,28 @@ export const deleteDesignacion = (id) =>
   api.delete(`/designaciones/${id}`).then((r) => r.data);
 
 // Asigna masivamente una lista de árbitros a la jornada
-export const designarListaArbitrosADesignacion = (idDesignacion, idsArbitros) =>
-  api
-    .post(`/designaciones/${idDesignacion}/arbitros/bulk`, idsArbitros)
-    .then((r) => r.data);
+export const designarListaArbitrosADesignacion = async (
+  idDesignacion,
+  idsArbitros,
+) => {
+  if (!Array.isArray(idsArbitros) || idsArbitros.length === 0) return;
+  try {
+    return await api
+      .post(`/designaciones/${idDesignacion}/arbitros/bulk`, idsArbitros)
+      .then((r) => r.data);
+  } catch (errBulk) {
+    console.warn(
+      "Endpoint masivo no disponible o falló, asignando árbitros individualmente:",
+      errBulk,
+    );
+    const promises = idsArbitros.map((idArb) =>
+      asignarArbitro(idDesignacion, idArb, { forzar: true }).catch((errIndiv) => {
+        console.warn(`Error asignando árbitro ${idArb} en backend:`, errIndiv);
+      }),
+    );
+    return await Promise.all(promises);
+  }
+};
 
 // Retorna las designaciones más recientes cargadas en el sistema
 export const getUltimasDesignaciones = () =>

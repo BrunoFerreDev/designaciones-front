@@ -71,6 +71,7 @@
           show-ver-arbitros-btn
           @ver-arbitros="$emit('ver-arbitros', d)"
           @action-complete="$emit('action-complete', $event)"
+          @assigned-auto="$emit('assigned-auto', $event)"
         />
       </div>
     </div>
@@ -146,6 +147,7 @@
           show-ver-arbitros-btn
           @ver-arbitros="$emit('ver-arbitros', d)"
           @action-complete="$emit('action-complete', $event)"
+          @assigned-auto="$emit('assigned-auto', $event)"
         />
       </div>
     </div>
@@ -174,7 +176,7 @@ const props = defineProps({
   arbitrosDesignados: { type: Object, default: () => ({}) },
 });
 
-defineEmits(["ver-arbitros", "action-complete"]);
+defineEmits(["ver-arbitros", "action-complete", "assigned-auto"]);
 
 const sabadoList = computed(() =>
   props.list.filter((d) => getDayOfWeekLocal(d.fecha) !== 0),

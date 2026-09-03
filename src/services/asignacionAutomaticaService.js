@@ -23,6 +23,44 @@ export const isAsistente = (arb) => {
 };
 
 /**
+ * Verifica si un árbitro tiene categoría o rol de Inicial
+ */
+export const isInicial = (arb) => {
+  if (!arb) return false;
+  const cat = String(arb.categoria || "")
+    .toUpperCase()
+    .trim();
+  if (cat === "INICIAL" || cat === "INCIAL") return true;
+  const rol = String(arb.rol || "")
+    .toLowerCase()
+    .trim();
+  return rol.includes("inicial");
+};
+
+/**
+ * Determina si la etapa de campeonato corresponde a cruces, semifinal o final
+ */
+export const isEtapaCrucesOSemiOFinal = (etapa) => {
+  if (!etapa) return false;
+  const norm = String(etapa)
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+  return (
+    norm === "CRUCES" ||
+    norm === "CRUCE" ||
+    norm.includes("CRUCE") ||
+    norm === "SEMIFINAL" ||
+    norm === "SEMIFINALES" ||
+    norm.includes("SEMIFINAL") ||
+    norm === "FINAL" ||
+    norm === "FINALES" ||
+    norm.includes("FINAL")
+  );
+};
+
+/**
  * Categorías ordenadas por jerarquía, de mayor a menor según definición del backend
  */
 export const CATEGORIAS_JERARQUIA = [
@@ -250,6 +288,8 @@ export const ejecutarAsignacionAutomatica = (
       const canchaNombre =
         des.cancha?.nombreCancha || canchaObj?.nombre || "Cancha";
       const req = minArbitros(des.cantidadPartidos || 0);
+      const etapa = des.etapaCampeonato || des.etapaTorneo || "";
+      const esCrucesOSemiOFinal = isEtapaCrucesOSemiOFinal(etapa);
 
       // Regla 3: árbitros excluidos por haber dirigido en esta cancha el fin de semana anterior
       const excluidosPorRepeticion = getArbitrosCanchaFindeAnterior(
@@ -257,14 +297,41 @@ export const ejecutarAsignacionAutomatica = (
         des.fecha,
       );
 
+      // Detectar árbitros ya asignados previamente a esta designación para conservarlos
+      const yaAsignadosRaw =
+        state.arbitrosDesignadosMap[idDes] ||
+        des.arbitrosDesignados ||
+        des.arbitros ||
+        [];
+
+      const seleccionados = [];
+      yaAsignadosRaw.forEach((asg) => {
+        const arbId = asg.arbitro?.idArbitro || asg.idArbitro;
+        if (!arbId) return;
+        const arbObj =
+          todosActivos.find((a) => Number(a.idArbitro) === Number(arbId)) ||
+          asg.arbitro ||
+          asg;
+        if (
+          arbObj &&
+          !seleccionados.some((s) => Number(s.idArbitro) === Number(arbId))
+        ) {
+          seleccionados.push(arbObj);
+          asignadosHoy.add(Number(arbId));
+        }
+      });
+
       return {
         idDesignacion: idDes,
         des,
         targetCanchaId,
         canchaNombre,
         req,
+        etapa,
+        esCrucesOSemiOFinal,
         excluidosPorRepeticion,
-        seleccionados: [],
+        seleccionados,
+        yaAsignadosOriginales: yaAsignadosRaw,
       };
     });
 
@@ -280,6 +347,13 @@ export const ejecutarAsignacionAutomatica = (
     // (AVANZADO, INTERMEDIO o PRINCIPAL_1) por cancha
     // =========================================================================
     canchasDelDia.forEach((cancha) => {
+      // Si la cancha ya alcanzó el cupo requerido, no agregar más
+      if (cancha.seleccionados.length >= cancha.req) return;
+
+      // Si ya cuenta con al menos un Principal 1 o superior entre los ya asignados, no necesita otro
+      const yaTieneP1 = cancha.seleccionados.some(isMinimoPrincipal1);
+      if (yaTieneP1) return;
+
       // Candidatos con nivel mínimo Principal 1 disponibles, no asignados hoy, y no repetidos en esta cancha
       const candidatosP1 = disponiblesParaEsteDia.filter((arb) => {
         const arbId = Number(arb.idArbitro);
@@ -305,8 +379,10 @@ export const ejecutarAsignacionAutomatica = (
     // =========================================================================
     // FASE 2: REGLA 2 - Solo un asistente por cancha (máximo 1)
     // Asignar hasta 1 asistente a aquellas canchas que aún tengan vacantes
+    // (EN CRUCES / SEMIFINAL / FINAL NO SE ASIGNAN ASISTENTES)
     // =========================================================================
     canchasDelDia.forEach((cancha) => {
+      if (cancha.esCrucesOSemiOFinal) return;
       if (cancha.seleccionados.length >= cancha.req) return;
 
       const yaTieneAsistente = cancha.seleccionados.some(isAsistente);
@@ -333,17 +409,24 @@ export const ejecutarAsignacionAutomatica = (
     // =========================================================================
     // FASE 3: COMPLETAR CUPOS RESTANTES HASTA minArbitros
     // REGLA 2: ¡No asignar un segundo asistente! Solo árbitros que NO sean asistentes
+    // REGLA 5: Si la etapa es cruces/semifinal/final, NO asignar asistentes ni iniciales
     // =========================================================================
     canchasDelDia.forEach((cancha) => {
       while (cancha.seleccionados.length < cancha.req) {
         const yaTieneAsistente = cancha.seleccionados.some(isAsistente);
 
-        // Candidatos generales: si ya tiene asistente, EXCLUIR asistentes
+        // Candidatos generales:
+        // Si la etapa es cruces/semifinal/final, EXCLUIR asistentes e iniciales
+        // De lo contrario, si ya tiene asistente, EXCLUIR asistentes
         const candidatos = disponiblesParaEsteDia.filter((arb) => {
           const arbId = Number(arb.idArbitro);
           if (asignadosHoy.has(arbId)) return false;
           if (cancha.excluidosPorRepeticion.has(arbId)) return false;
-          if (yaTieneAsistente && isAsistente(arb)) return false;
+          if (cancha.esCrucesOSemiOFinal) {
+            if (isAsistente(arb) || isInicial(arb)) return false;
+          } else {
+            if (yaTieneAsistente && isAsistente(arb)) return false;
+          }
           return true;
         });
 
@@ -355,12 +438,41 @@ export const ejecutarAsignacionAutomatica = (
           cancha.seleccionados.push(elegido);
           asignadosHoy.add(arbId);
         } else {
+          const motivoFiltro = cancha.esCrucesOSemiOFinal
+            ? ` (excluyendo asistentes e iniciales por ser ${cancha.etapa})`
+            : "";
           advertencias.push(
-            `Fecha ${dateStr} - ${cancha.canchaNombre}: No hay suficientes árbitros disponibles para cubrir el mínimo requerido (${cancha.req}). Faltaron ${cancha.req - cancha.seleccionados.length} árbitro(s).`,
+            `Fecha ${dateStr} - ${cancha.canchaNombre}: No hay suficientes árbitros disponibles${motivoFiltro} para cubrir el mínimo requerido (${cancha.req}). Faltaron ${cancha.req - cancha.seleccionados.length} árbitro(s).`,
           );
           break; // No hay más árbitros disponibles para esta cancha
         }
       }
+
+      // Combinar los ya asignados originalmente con los nuevos agregados preservando objetos
+      const arbitrosFinales = [];
+      const yaIncluidosIds = new Set();
+
+      // 1. Preservar los que ya estaban asignados originalmente
+      (cancha.yaAsignadosOriginales || []).forEach((orig) => {
+        const arbId = orig.arbitro?.idArbitro || orig.idArbitro;
+        if (arbId && !yaIncluidosIds.has(Number(arbId))) {
+          arbitrosFinales.push(orig);
+          yaIncluidosIds.add(Number(arbId));
+        }
+      });
+
+      // 2. Agregar los nuevos seleccionados que faltaban
+      cancha.seleccionados.forEach((arb, idx) => {
+        const arbId = Number(arb.idArbitro);
+        if (!yaIncluidosIds.has(arbId)) {
+          arbitrosFinales.push({
+            idDesignados: Date.now() + idx + Math.random(),
+            arbitro: arb,
+            partidosDirigidos: arb.designaciones || 0,
+          });
+          yaIncluidosIds.add(arbId);
+        }
+      });
 
       // Guardar en el resultado final
       asignacionesPorDesignacion[cancha.idDesignacion] = {
@@ -369,11 +481,7 @@ export const ejecutarAsignacionAutomatica = (
         canchaNombre: cancha.canchaNombre,
         fecha: cancha.des.fecha,
         requeridos: cancha.req,
-        arbitros: cancha.seleccionados.map((arb, idx) => ({
-          idDesignados: Date.now() + idx + Math.random(),
-          arbitro: arb,
-          partidosDirigidos: arb.designaciones || 0,
-        })),
+        arbitros: arbitrosFinales,
         cumplePrincipal1: cancha.seleccionados.some(isPrincipal1),
         cantidadAsistentes: cancha.seleccionados.filter(isAsistente).length,
       };
@@ -389,6 +497,8 @@ export const ejecutarAsignacionAutomatica = (
 
 export default {
   isAsistente,
+  isInicial,
+  isEtapaCrucesOSemiOFinal,
   isPrincipal1,
   isHectorMendoza,
   getArbitrosCanchaFindeAnterior,

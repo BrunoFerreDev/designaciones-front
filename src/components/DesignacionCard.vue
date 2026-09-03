@@ -105,7 +105,7 @@
         <i class="ti ti-notes text-slate-500 text-sm mt-0.5 shrink-0"></i>
         <div class="flex-1 min-w-0">
           <span class="font-semibold text-slate-800">Detalle:</span>
-          <span class="ml-1 text-slate-600 break-words">{{
+          <span class="ml-1 text-slate-600 wrap-break-word">{{
             designacion.detalleDesignacion || designacion.detalle
           }}</span>
         </div>
@@ -127,7 +127,7 @@
 
       <!-- Lista de Árbitros Asignados -->
       <div
-        v-if="arbitros && arbitros.length > 0"
+        v-if="displayedArbitros && displayedArbitros.length > 0"
         class="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-100 animate-fade-in"
       >
         <div
@@ -137,17 +137,17 @@
         </div>
         <div class="flex flex-col gap-1.5">
           <div
-            v-for="arb in arbitros"
+            v-for="arb in displayedArbitros"
             :key="arb.idDesignados || arb.id"
             class="text-xs p-2 bg-white border border-slate-100 rounded-md flex items-center justify-between gap-3"
           >
             <div class="flex items-center gap-2 min-w-0">
-              <i class="ti ti-user text-emerald-600 flex-shrink-0"></i>
+              <i class="ti ti-user text-emerald-600 shrink-0"></i>
               <span class="font-semibold text-slate-700 truncate">
                 {{ arb.arbitro?.nombre }} {{ arb.arbitro?.apellido }}
               </span>
             </div>
-            <div class="flex items-center gap-1.5 flex-shrink-0">
+            <div class="flex items-center gap-1.5 shrink-0">
               <span class="badge badge-gray text-[9px] px-1.5 py-0.5">
                 {{ arb.arbitro?.rol }}
               </span>
@@ -160,7 +160,7 @@
       </div>
       <div
         v-else-if="
-          showEmptyArbitrosState || (arbitros && arbitros.length === 0)
+          showEmptyArbitrosState || (displayedArbitros && displayedArbitros.length === 0)
         "
         class="mt-3 p-3.5 bg-slate-50 rounded-lg border border-dashed border-slate-200 text-center text-xs text-slate-400"
       >
@@ -450,6 +450,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import {
+  state,
   openModal,
   getCancha,
   minArbitros,
@@ -486,7 +487,12 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["ver-arbitros", "action-complete", "deleted"]);
+const emit = defineEmits([
+  "ver-arbitros",
+  "action-complete",
+  "deleted",
+  "assigned-auto",
+]);
 
 const loadingAction = ref(false);
 
@@ -524,8 +530,25 @@ const estadoInfo = computed(() => {
   return getEstadoDesignacionInfo(props.designacion.estadoDesignacion);
 });
 
+const displayedArbitros = computed(() => {
+  const id = props.designacion.idDesignacion || props.designacion.id;
+  if (props.showVerArbitrosBtn) {
+    return props.arbitros;
+  }
+  return (
+    props.arbitros ||
+    state.arbitrosDesignadosMap[id] ||
+    props.designacion.arbitrosDesignados ||
+    props.designacion.arbitros ||
+    []
+  );
+});
+
 const assignedCount = computed(() => {
-  if (props.arbitros) return props.arbitros.length;
+  const id = props.designacion.idDesignacion || props.designacion.id;
+  const fromMap = state.arbitrosDesignadosMap[id];
+  if (fromMap && fromMap.length > 0) return fromMap.length;
+  if (props.arbitros && props.arbitros.length > 0) return props.arbitros.length;
   return (
     props.designacion.arbitrosAsignados ||
     props.designacion.arbitros?.length ||
@@ -538,7 +561,7 @@ const handleAsignarAutom = async () => {
   try {
     const id = props.designacion.idDesignacion || props.designacion.id;
     await asignarArbitros(id);
-    emit("action-complete", id);
+    emit("assigned-auto", id);
   } catch (err) {
     console.error(err);
   } finally {
@@ -558,14 +581,13 @@ const handleLimpiarArbitros = async () => {
   try {
     const id = props.designacion.idDesignacion || props.designacion.id;
     await limpiarArbitrosDesignacion(id);
-    emit("action-complete", id);
+    emit("assigned-auto", id);
   } catch (err) {
     console.error("Error al limpiar árbitros:", err);
   } finally {
     loadingAction.value = false;
   }
 };
-
 const handleAceptar = async () => {
   loadingAction.value = true;
   try {

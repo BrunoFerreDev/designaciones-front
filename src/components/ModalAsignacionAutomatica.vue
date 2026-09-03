@@ -88,6 +88,10 @@
           <i class="ti ti-crown" style="color: #9333ea"></i>
           <span><strong>4. Jerarquía:</strong> Mínimo 1 Principal 1 o superior</span>
         </div>
+        <div style="display: flex; align-items: center; gap: 6px">
+          <i class="ti ti-trophy" style="color: #9333ea"></i>
+          <span><strong>5. Cruces/Semis/Final:</strong> Sin asistentes ni iniciales</span>
+        </div>
       </div>
     </div>
 

@@ -1,6 +1,6 @@
 import { state } from "../state";
-import { formatLocalDateTime } from "../helpers";
-import { updateDesignacionInStorage } from "../storage";
+import { formatLocalDateTime, sortDesignaciones } from "../helpers";
+import { updateDesignacionInStorage, persistDesignacionesStorage } from "../storage";
 import designacionService from "../../services/designacionService";
 
 export const cambiarEstadoDesignacionManual = async (

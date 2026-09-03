@@ -13,6 +13,11 @@ import {
   isRefereeAssignedToDifferentCourtOnSameDay,
   isArbitroActivo,
 } from "../store";
+import {
+  isAsistente,
+  isInicial,
+  isEtapaCrucesOSemiOFinal,
+} from "../services/asignacionAutomaticaService";
 
 export function useGestionarArbitros(options = {}) {
   const isHistorico = options.isHistorico || false;
@@ -154,6 +159,12 @@ export function useGestionarArbitros(options = {}) {
         if (filterByDay.value) {
           if (day === 6 && !arb.disponibleSabado) return false;
           if (day === 0 && !arb.disponibleDomingo) return false;
+        }
+
+        const etapa =
+          designacion.value.etapaCampeonato || designacion.value.etapaTorneo;
+        if (isEtapaCrucesOSemiOFinal(etapa)) {
+          if (isAsistente(arb) || isInicial(arb)) return false;
         }
       }
       return true;
