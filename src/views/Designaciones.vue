@@ -204,10 +204,7 @@ import { onMounted, ref, computed } from "vue";
 import {
   state,
   openModal,
-  loadDesignacionesIncompletas,
-  loadDesignacionesCompletas,
-  loadDesignacionesAceptadas,
-  loadDesignacionesFinalizadas,
+  loadDesignacionesRangoActual,
   loadArbitrosDesignados,
 } from "../store";
 import DesignacionesRefereeSearch from "../components/designaciones/DesignacionesRefereeSearch.vue";
@@ -215,10 +212,7 @@ import DesignacionColumnSection from "../components/designaciones/DesignacionCol
 import DesignacionesAConfirmarList from "../components/designaciones/DesignacionesAConfirmarList.vue";
 
 onMounted(() => {
-  loadDesignacionesIncompletas();
-  loadDesignacionesCompletas();
-  loadDesignacionesAceptadas();
-  loadDesignacionesFinalizadas();
+  loadDesignacionesRangoActual();
 });
 
 const visibleArbitros = ref({});

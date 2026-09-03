@@ -52,25 +52,36 @@ export const buscarPorRango = (inicio, fin) =>
 export const buscarPorFecha = (fecha) =>
   buscar({ fecha });
 
-// Obtener listado de designaciones de los últimos 7 días
-export const getUltimos7Dias = async (fechaBase = new Date()) => {
+// Obtener listado de designaciones en el rango: 7 días antes y 7 días después del día actual
+export const getDesignacionesRangoActual = async (fechaBase = new Date()) => {
   const base =
     typeof fechaBase === "string"
       ? new Date(fechaBase.replace(" ", "T"))
       : new Date(fechaBase);
-  const promesas = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(base);
-    d.setDate(base.getDate() - i);
+
+  const inicioDate = new Date(base);
+  inicioDate.setDate(base.getDate() - 7);
+
+  const finDate = new Date(base);
+  finDate.setDate(base.getDate() + 7);
+
+  const formatLocalDate = (d) => {
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
-    const fecha = `${yyyy}-${mm}-${dd}`;
-    promesas.push(buscarPorFecha(fecha));
-  }
-  const results = await Promise.all(promesas);
-  return results.filter(Boolean).flat();
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const inicio = formatLocalDate(inicioDate);
+  const fin = formatLocalDate(finDate);
+
+  const res = await buscarPorRango(inicio, fin);
+  return Array.isArray(res) ? res : res?.data || [];
 };
+
+// Obtener listado de designaciones de los últimos 7 días (mantiene compatibilidad)
+export const getUltimos7Dias = (fechaBase = new Date()) =>
+  getDesignacionesRangoActual(fechaBase);
 
 // Lista paginada por estado (0: Pendiente, 1: Aceptada, 2: Finalizada, 3: Cancelada)
 export const getAll = (page = 0, size = 50) =>
@@ -186,6 +197,7 @@ export default {
   buscar,
   buscarPorRango,
   buscarPorFecha,
+  getDesignacionesRangoActual,
   getUltimos7Dias,
   getAll,
   getByEstado,

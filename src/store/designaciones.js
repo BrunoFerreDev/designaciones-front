@@ -23,13 +23,13 @@ import {
 
 let loadingPromise = null;
 
-export const loadDesignacionesUltimos7Dias = async () => {
+export const loadDesignacionesRangoActual = async () => {
   if (loadingPromise) return loadingPromise;
 
   loadingPromise = (async () => {
     try {
-      const res = await designacionService.getUltimos7Dias();
-      const list = Array.isArray(res) ? res : [];
+      const res = await designacionService.getDesignacionesRangoActual();
+      const list = Array.isArray(res) ? res : res?.data || [];
 
       const incompletas = list.filter((d) => d.estadoDesignacion === 0);
       const completas = list.filter((d) => d.estadoDesignacion === 1);
@@ -55,7 +55,7 @@ export const loadDesignacionesUltimos7Dias = async () => {
 
       persistDesignacionesStorage(state);
     } catch (e) {
-      console.warn("Failed to load designaciones for last 7 days", e);
+      console.warn("Failed to load designaciones for current range (-7 to +7 days)", e);
     } finally {
       loadingPromise = null;
     }
@@ -64,30 +64,27 @@ export const loadDesignacionesUltimos7Dias = async () => {
   return loadingPromise;
 };
 
+export const loadDesignacionesUltimos7Dias = loadDesignacionesRangoActual;
+
 export const loadDesignacionesIncompletas = async () => {
-  await loadDesignacionesUltimos7Dias();
+  await loadDesignacionesRangoActual();
 };
 
 export const loadDesignacionesAceptadas = async () => {
-  await loadDesignacionesUltimos7Dias();
+  await loadDesignacionesRangoActual();
 };
 
 export const loadDesignacionesCompletas = async () => {
-  await loadDesignacionesUltimos7Dias();
+  await loadDesignacionesRangoActual();
 };
 
 export const loadDesignacionesFinalizadas = async () => {
-  await loadDesignacionesUltimos7Dias();
+  await loadDesignacionesRangoActual();
 };
 
 export const reloadAllDesignaciones = async () => {
   try {
-    await Promise.all([
-      loadDesignacionesIncompletas(),
-      loadDesignacionesCompletas(),
-      loadDesignacionesAceptadas(),
-      loadDesignacionesFinalizadas(),
-    ]);
+    await loadDesignacionesRangoActual();
   } catch (err) {
     console.warn("Failed to reload all designaciones", err);
   }
