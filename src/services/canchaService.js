@@ -9,7 +9,7 @@ const toggleEstado = (id) =>
 const createCancha = (dto) => api.post("/canchas", dto).then((r) => r.data);
 const updateCancha = (idCancha, dto) =>
   api.put(`/canchas/actualizar/${idCancha}`, dto).then((r) => r.data);
-const getDesignacionesByCancha = (idCancha, page = 0, size = 10) =>
+const getDesignacionesByCancha = (idCancha, page = 0, size = 15) =>
   api
     .get("/canchas/designaciones", { params: { idCancha, page, size } })
     .then((r) => r.data);

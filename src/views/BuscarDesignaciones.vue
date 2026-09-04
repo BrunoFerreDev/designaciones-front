@@ -176,6 +176,7 @@ import {
   loadArbitrosNoDisponibles,
   loadCanchas,
   isArbitroActivo,
+  sortDesignaciones,
 } from "../store";
 import designacionService from "../services/designacionService";
 import arbitroService from "../services/arbitroService";
@@ -205,7 +206,7 @@ const selectedEstado = ref("");
 const currentPage = ref(0);
 const totalPages = ref(1);
 const totalElements = ref(0);
-const pageSize = ref(10);
+const pageSize = ref(15);
 
 const arbitrosDesignados = ref({});
 const resultadosCargados = ref({});
@@ -332,11 +333,14 @@ const ejecutarBusqueda = async (silent = false, resetPage = false) => {
         pageSize.value,
       );
 
-      const content = pageData?.content || [];
-      data = content.map((item) => item.Designacion || item);
+      const content = Array.isArray(pageData)
+        ? pageData
+        : pageData?.content || [];
+      data = content.map((item) => item.Designacion || item.designacion || item);
 
       totalPages.value = pageData?.totalPages || 1;
-      totalElements.value = pageData?.totalElements || data.length;
+      totalElements.value =
+        pageData?.totalElements || (Array.isArray(pageData) ? pageData.length : data.length);
     } else if (searchMode.value === "court") {
       if (!selectedCanchaId.value) {
         errorMessage.value = "Por favor, selecciona una cancha.";
@@ -349,11 +353,14 @@ const ejecutarBusqueda = async (silent = false, resetPage = false) => {
         pageSize.value,
       );
 
-      const content = pageData?.content || [];
-      data = content.map((item) => item.Designacion || item);
+      const content = Array.isArray(pageData)
+        ? pageData
+        : pageData?.content || [];
+      data = content.map((item) => item.Designacion || item.designacion || item);
 
       totalPages.value = pageData?.totalPages || 1;
-      totalElements.value = pageData?.totalElements || data.length;
+      totalElements.value =
+        pageData?.totalElements || (Array.isArray(pageData) ? pageData.length : data.length);
     } else if (searchMode.value === "status") {
       if (
         selectedEstado.value === "" ||
@@ -373,7 +380,7 @@ const ejecutarBusqueda = async (silent = false, resetPage = false) => {
       const content = Array.isArray(pageData)
         ? pageData
         : pageData?.content || [];
-      data = content.map((item) => item.Designacion || item);
+      data = content.map((item) => item.Designacion || item.designacion || item);
 
       totalPages.value = pageData?.totalPages || 1;
       totalElements.value =
@@ -381,7 +388,12 @@ const ejecutarBusqueda = async (silent = false, resetPage = false) => {
         (Array.isArray(pageData) ? pageData.length : data.length);
     }
 
-    resultados.value = data || [];
+    const rawList = Array.isArray(data) ? data : data?.content || data?.data || [];
+    const normalizedList = rawList.map(
+      (item) => item.Designacion || item.designacion || item,
+    );
+
+    resultados.value = normalizedList;
     realizoBusqueda.value = true;
 
     for (const d of resultados.value) {

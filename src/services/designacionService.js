@@ -87,7 +87,7 @@ export const getUltimos7Dias = (fechaBase = new Date()) =>
 export const getAll = (page = 0, size = 50) =>
   api.get("/designaciones", { params: { page, size } }).then((r) => r.data);
 
-export const getByEstado = (estado = 1, page = 0, size = 50) =>
+export const getByEstado = (estado = 1, page = 0, size = 15) =>
   api
     .get("/designaciones", { params: { estado, page, size } })
     .then((r) => r.data);

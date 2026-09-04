@@ -48,7 +48,7 @@ const updateDisponibilidadTotal = () =>
 const toggleEstado = (idArbitro) =>
   api.put(`/arbitros/${idArbitro}/toggle`).then((r) => r.data);
 const deleteArbitro = (id) => api.delete(`/arbitros/${id}`).then((r) => r.data);
-const getDesignacionesByArbitro = (idArbitro, page = 0, size = 10, orden = "DESC") => {
+const getDesignacionesByArbitro = (idArbitro, page = 0, size = 15, orden = null) => {
   const params = { idArbitro, page, size };
   if (orden) params.orden = orden;
   return api

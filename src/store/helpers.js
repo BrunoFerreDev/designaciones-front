@@ -123,14 +123,51 @@ export const formatFecha = (fechaStr) => {
 
 export const sortDesignaciones = (list) => {
   if (!Array.isArray(list)) return [];
-  return list.slice().sort((a, b) => {
-    const timeA = a.fecha ? new Date(a.fecha).getTime() : 0;
-    const timeB = b.fecha ? new Date(b.fecha).getTime() : 0;
-    if (timeA !== timeB) {
-      return timeB - timeA; // Most recent to oldest
+  const parseTime = (raw) => {
+    if (!raw) return 0;
+    const val =
+      typeof raw === "object" && !(raw instanceof Date) && !Array.isArray(raw)
+        ? raw.fecha ||
+          raw.fechaDesignacion ||
+          raw.Designacion?.fecha ||
+          raw.designacion?.fecha ||
+          raw
+        : raw;
+    if (!val) return 0;
+    if (val instanceof Date) return val.getTime();
+    if (typeof val === "number") return val;
+    if (Array.isArray(val)) {
+      const [y = 0, m = 1, d = 1, h = 0, min = 0, s = 0] = val;
+      return new Date(y, m - 1, d, h, min, s).getTime();
     }
-    const nameA = a.cancha?.nombreCancha || "";
-    const nameB = b.cancha?.nombreCancha || "";
+    if (typeof val === "string") {
+      const match = val.match(
+        /(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/,
+      );
+      if (match) {
+        return new Date(
+          Number(match[1]),
+          Number(match[2]) - 1,
+          Number(match[3]),
+          Number(match[4] || 0),
+          Number(match[5] || 0),
+          Number(match[6] || 0),
+        ).getTime();
+      }
+      const parsed = new Date(val).getTime();
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  };
+
+  return list.slice().sort((a, b) => {
+    const timeA = parseTime(a);
+    const timeB = parseTime(b);
+    if (timeA !== timeB) {
+      return timeB - timeA; // Descendente: de más recientes a más viejas
+    }
+    const nameA = a.cancha?.nombreCancha || a.cancha?.nombre || "";
+    const nameB = b.cancha?.nombreCancha || b.cancha?.nombre || "";
     return nameA.localeCompare(nameB);
   });
 };
