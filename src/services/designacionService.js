@@ -107,6 +107,9 @@ export const getFinalizadas = (page = 0, size = 50) =>
 export const getCanceladas = (page = 0, size = 50) =>
   getByEstado(3, page, size);
 
+export const getSuspendidas = (page = 0, size = 50) =>
+  getByEstado(4, page, size);
+
 // Marcar la jornada como Finalizada (estado 2) e impactar estadísticas/finanzas
 export const finalizarDesignacion = (idDesignacion, detalle) => {
   const params = detalle ? { detalle } : {};
@@ -206,6 +209,7 @@ export default {
   getAceptadas,
   getFinalizadas,
   getCanceladas,
+  getSuspendidas,
   finalizarDesignacion,
   aceptarDesignacion,
   reprogramarDesignacion,

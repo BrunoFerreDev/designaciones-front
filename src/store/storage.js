@@ -70,10 +70,14 @@ export const initLocalStorage = (state) => {
   const designaciones = safeGet(KEYS.DESIGNACIONES, null);
   if (Array.isArray(designaciones) && designaciones.length > 0) {
     state.designacionesIncompletas = sortDesignaciones(
-      designaciones.filter((d) => Number(d.estadoDesignacion) === 0),
+      designaciones.filter(
+        (d) => Number(d.estadoDesignacion) === 0 && !d.aConfirmar,
+      ),
     );
     state.designaciones = sortDesignaciones(
-      designaciones.filter((d) => Number(d.estadoDesignacion) === 1),
+      designaciones.filter(
+        (d) => Number(d.estadoDesignacion) === 1 && !d.aConfirmar,
+      ),
     );
     state.designacionesFinalizadas = sortDesignaciones(
       designaciones.filter((d) => Number(d.estadoDesignacion) === 2),
@@ -81,12 +85,19 @@ export const initLocalStorage = (state) => {
     state.designacionesAceptadas = sortDesignaciones(
       designaciones.filter((d) => Number(d.estadoDesignacion) === 3),
     );
+    state.designacionesSuspendidas = sortDesignaciones(
+      designaciones.filter((d) => Number(d.estadoDesignacion) === 4),
+    );
+    state.designacionesAConfirmar = sortDesignaciones(
+      designaciones.filter((d) => Boolean(d.aConfirmar)),
+    );
 
     // Cargar mapa de árbitros si vienen en los objetos
     designaciones.forEach((d) => {
       const id = d.idDesignacion || d.id;
       if (id && d.arbitrosDesignados && Array.isArray(d.arbitrosDesignados)) {
         state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
+        state.arbitrosDesignadosMap[String(id)] = d.arbitrosDesignados;
       }
     });
   }
@@ -108,15 +119,23 @@ export const persistDesignacionesStorage = (state) => {
     ...state.designaciones,
     ...state.designacionesFinalizadas,
     ...state.designacionesAceptadas,
+    ...state.designacionesSuspendidas,
     ...state.designacionesAConfirmar,
   ];
 
   all.forEach((d) => {
     const id = d.idDesignacion || d.id;
     if (id) {
-      const refs = state.arbitrosDesignadosMap[id];
-      map.set(id, {
+      const refs =
+        state.arbitrosDesignadosMap[id] ||
+        state.arbitrosDesignadosMap[String(id)] ||
+        state.arbitrosDesignadosMap[Number(id)] ||
+        d.arbitrosDesignados ||
+        [];
+      map.set(String(id), {
         ...d,
+        idDesignacion: d.idDesignacion || id,
+        id: d.id || id,
         ...(refs && refs.length > 0 ? { arbitrosDesignados: refs } : {}),
       });
     }
@@ -135,47 +154,85 @@ export const updateDesignacionInStorage = (state, updatedDes) => {
     state.designaciones,
     state.designacionesFinalizadas,
     state.designacionesAceptadas,
+    state.designacionesSuspendidas,
     state.designacionesAConfirmar,
   ];
 
   let prevData = null;
+  let wasInAConfirmar = false;
+
   lists.forEach((list) => {
-    const idx = list.findIndex((d) => (d.idDesignacion || d.id) === id);
+    const idx = list.findIndex(
+      (d) =>
+        (d.idDesignacion || d.id) === id ||
+        String(d.idDesignacion || d.id) === String(id),
+    );
     if (idx !== -1) {
       prevData = list[idx];
+      if (list === state.designacionesAConfirmar) {
+        wasInAConfirmar = true;
+      }
       list.splice(idx, 1);
     }
   });
 
   const merged = { ...(prevData || {}), ...updatedDes };
-  const st = Number(merged.estadoDesignacion !== undefined ? merged.estadoDesignacion : 0);
+  const st = Number(
+    merged.estadoDesignacion !== undefined ? merged.estadoDesignacion : 0,
+  );
 
-  // Discriminar por estado de designación en memoria reactiva
-  switch (st) {
-    case 0:
-      state.designacionesIncompletas.push(merged);
-      break;
-    case 1:
-      state.designaciones.push(merged);
-      break;
-    case 2:
-      state.designacionesFinalizadas.push(merged);
-      break;
-    case 3:
-      state.designacionesAceptadas.push(merged);
-      break;
-    default:
-      state.designaciones.push(merged);
-      break;
+  // Si estaba en aConfirmar o viene marcado como tal, mantenerlo en aConfirmar
+  if (wasInAConfirmar || merged.aConfirmar) {
+    state.designacionesAConfirmar.push(merged);
+  } else {
+    // Discriminar por estado de designación en memoria reactiva
+    switch (st) {
+      case 0:
+        state.designacionesIncompletas.push(merged);
+        break;
+      case 1:
+        state.designaciones.push(merged);
+        break;
+      case 2:
+        state.designacionesFinalizadas.push(merged);
+        break;
+      case 3:
+        state.designacionesAceptadas.push(merged);
+        break;
+      case 4:
+        state.designacionesSuspendidas.push(merged);
+        break;
+      default:
+        state.designaciones.push(merged);
+        break;
+    }
   }
 
-  state.designacionesIncompletas = sortDesignaciones(state.designacionesIncompletas);
+  state.designacionesIncompletas = sortDesignaciones(
+    state.designacionesIncompletas,
+  );
   state.designaciones = sortDesignaciones(state.designaciones);
-  state.designacionesFinalizadas = sortDesignaciones(state.designacionesFinalizadas);
-  state.designacionesAceptadas = sortDesignaciones(state.designacionesAceptadas);
+  state.designacionesFinalizadas = sortDesignaciones(
+    state.designacionesFinalizadas,
+  );
+  state.designacionesAceptadas = sortDesignaciones(
+    state.designacionesAceptadas,
+  );
+  state.designacionesSuspendidas = sortDesignaciones(
+    state.designacionesSuspendidas,
+  );
+  state.designacionesAConfirmar = sortDesignaciones(
+    state.designacionesAConfirmar,
+  );
 
-  if (merged.arbitrosDesignados && Array.isArray(merged.arbitrosDesignados)) {
-    state.arbitrosDesignadosMap[id] = merged.arbitrosDesignados;
+  const refs =
+    merged.arbitrosDesignados ||
+    state.arbitrosDesignadosMap[id] ||
+    state.arbitrosDesignadosMap[String(id)] ||
+    state.arbitrosDesignadosMap[Number(id)];
+  if (refs && Array.isArray(refs)) {
+    state.arbitrosDesignadosMap[id] = refs;
+    state.arbitrosDesignadosMap[String(id)] = refs;
   }
 
   // Guardar todas en una sola clave "designaciones"
@@ -188,17 +245,23 @@ export const removeDesignacionFromStorage = (state, id) => {
     state.designaciones,
     state.designacionesFinalizadas,
     state.designacionesAceptadas,
+    state.designacionesSuspendidas,
     state.designacionesAConfirmar,
   ];
 
   lists.forEach((list) => {
-    const idx = list.findIndex((d) => (d.idDesignacion || d.id) === id);
+    const idx = list.findIndex(
+      (d) =>
+        (d.idDesignacion || d.id) === id ||
+        String(d.idDesignacion || d.id) === String(id),
+    );
     if (idx !== -1) {
       list.splice(idx, 1);
     }
   });
 
   delete state.arbitrosDesignadosMap[id];
+  delete state.arbitrosDesignadosMap[String(id)];
   persistDesignacionesStorage(state);
 };
 

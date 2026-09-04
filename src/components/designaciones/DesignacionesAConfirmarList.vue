@@ -81,6 +81,7 @@
           </div>
           <button
             class="btn primary"
+            :disabled="sendingCanchaMap[grupo.id]"
             style="
               padding: 6px 14px;
               font-size: 12px;
@@ -89,9 +90,10 @@
               align-items: center;
               gap: 6px;
             "
-            @click="confirmarEnvioCancha(grupo.id)"
+            @click="handleConfirmarCancha(grupo.id)"
           >
-            <i class="ti ti-cloud-upload"></i>
+            <i v-if="sendingCanchaMap[grupo.id]" class="ti ti-loader animate-spin"></i>
+            <i v-else class="ti ti-cloud-upload"></i>
             Confirmar y Enviar al Backend
           </button>
         </div>
@@ -229,6 +231,7 @@
             >
               <button
                 class="btn primary text-xs"
+                :disabled="sendingMap[d.idDesignacion || d.id]"
                 style="
                   padding: 3px 8px;
                   font-size: 10px;
@@ -236,9 +239,10 @@
                   background-color: #0f6e56;
                   color: white;
                 "
-                @click="confirmarEnvioDesignacion(d.idDesignacion || d.id)"
+                @click="handleConfirmarDesignacion(d.idDesignacion || d.id)"
               >
-                <i class="ti ti-send"></i> Confirmar y Enviar
+                <i v-if="sendingMap[d.idDesignacion || d.id]" class="ti ti-loader animate-spin"></i>
+                <i v-else class="ti ti-send"></i> Confirmar y Enviar
               </button>
               <button
                 class="btn text-xs"
@@ -271,7 +275,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { ref, computed } from "vue";
 import {
   state,
   openModal,
@@ -281,6 +285,29 @@ import {
   confirmarEnvioDesignacion,
   deshacerFinalizacionLocal,
 } from "../../store";
+
+const sendingMap = ref({});
+const sendingCanchaMap = ref({});
+
+const handleConfirmarDesignacion = async (id) => {
+  if (sendingMap.value[id]) return;
+  sendingMap.value[id] = true;
+  try {
+    await confirmarEnvioDesignacion(id);
+  } finally {
+    sendingMap.value[id] = false;
+  }
+};
+
+const handleConfirmarCancha = async (canchaId) => {
+  if (sendingCanchaMap.value[canchaId]) return;
+  sendingCanchaMap.value[canchaId] = true;
+  try {
+    await confirmarEnvioCancha(canchaId);
+  } finally {
+    sendingCanchaMap.value[canchaId] = false;
+  }
+};
 
 const props = defineProps({
   list: { type: Array, default: () => [] },

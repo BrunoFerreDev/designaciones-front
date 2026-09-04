@@ -174,6 +174,7 @@ export const asignarArbitros = async (idDesignacion) => {
         (d) => (d.idDesignacion || d.id) === idDesignacion,
       );
       if (!existsInConfirmar) {
+        desObj.aConfirmar = true;
         state.designacionesAConfirmar.push(desObj);
       }
     }
@@ -185,6 +186,7 @@ export const asignarArbitros = async (idDesignacion) => {
     state.designacionesAConfirmar = sortDesignaciones(
       state.designacionesAConfirmar,
     );
+    persistDesignacionesStorage(state);
 
     return state.arbitrosDesignadosMap[idDesignacion];
   } catch (error) {

@@ -28,6 +28,7 @@ export const state = reactive({
   designacionesFinalizadas: [],
   designacionesAConfirmar: [],
   designacionesAceptadas: [],
+  designacionesSuspendidas: [],
   designacionesArbitros: [],
   modal: null,
   nextCanchaId: 4,

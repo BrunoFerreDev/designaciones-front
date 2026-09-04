@@ -35,11 +35,13 @@ export const loadDesignacionesRangoActual = async () => {
       const completas = list.filter((d) => d.estadoDesignacion === 1);
       const finalizadas = list.filter((d) => d.estadoDesignacion === 2);
       const aceptadas = list.filter((d) => d.estadoDesignacion === 3);
+      const suspendidas = list.filter((d) => d.estadoDesignacion === 4);
 
       state.designacionesIncompletas = sortDesignaciones(incompletas);
       state.designaciones = sortDesignaciones(completas);
       state.designacionesFinalizadas = sortDesignaciones(finalizadas);
       state.designacionesAceptadas = sortDesignaciones(aceptadas);
+      state.designacionesSuspendidas = sortDesignaciones(suspendidas);
 
       // Pre-cargar árbitros asignados en el mapa
       list.forEach(async (d) => {
@@ -79,6 +81,10 @@ export const loadDesignacionesCompletas = async () => {
 };
 
 export const loadDesignacionesFinalizadas = async () => {
+  await loadDesignacionesRangoActual();
+};
+
+export const loadDesignacionesSuspendidas = async () => {
   await loadDesignacionesRangoActual();
 };
 
@@ -219,6 +225,8 @@ export const updateDesignacion = () => {
     .then((updated) => {
       if (updated && typeof updated === "object") {
         updateDesignacionInStorage(state, {
+          idDesignacion,
+          id: idDesignacion,
           canchaId: Number(canchaId),
           cancha: c,
           ...updated,

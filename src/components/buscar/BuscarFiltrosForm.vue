@@ -2,12 +2,12 @@
   <div>
     <!-- Selector de Modo de Búsqueda -->
     <div class="tab-row" style="max-width: 800px; margin-bottom: 1.5rem">
-
       <button
         :class="['tab-btn', { active: searchMode === 'range' }]"
         @click="$emit('update:searchMode', 'range')"
       >
-        <i class="ti ti-calendar-event" style="margin-right: 6px"></i>Rango de Fechas
+        <i class="ti ti-calendar-event" style="margin-right: 6px"></i>Rango de
+        Fechas
       </button>
       <button
         :class="['tab-btn', { active: searchMode === 'monthly' }]"
@@ -112,7 +112,9 @@
               <label class="form-label">Mes</label>
               <select
                 :value="selectedMonth"
-                @change="$emit('update:selectedMonth', Number($event.target.value))"
+                @change="
+                  $emit('update:selectedMonth', Number($event.target.value))
+                "
                 class="form-input"
                 required
               >
@@ -137,7 +139,9 @@
               <label class="form-label">Año</label>
               <select
                 :value="selectedYear"
-                @change="$emit('update:selectedYear', Number($event.target.value))"
+                @change="
+                  $emit('update:selectedYear', Number($event.target.value))
+                "
                 class="form-input"
                 required
               >
@@ -168,7 +172,9 @@
                 :key="a.idArbitro"
                 :value="a.idArbitro"
               >
-                {{ a.apellido }}, {{ a.nombre }} ({{ getCategoryLabel(a.categoria) }})
+                {{ a.apellido }}, {{ a.nombre }} ({{
+                  getCategoryLabel(a.categoria)
+                }})
               </option>
             </select>
           </div>
@@ -188,11 +194,7 @@
               required
             >
               <option value="" disabled>Seleccione una cancha...</option>
-              <option
-                v-for="c in listaCanchas"
-                :key="c.id"
-                :value="c.id"
-              >
+              <option v-for="c in listaCanchas" :key="c.id" :value="c.id">
                 {{ c.nombre }} ({{ getCategoryLabel(c.categoria) }})
               </option>
             </select>
@@ -217,6 +219,7 @@
               <option value="1">Aceptada</option>
               <option value="2">Jornada finalizada</option>
               <option value="3">Jornada cancelada</option>
+              <option value="4">Suspendida en juego</option>
             </select>
           </div>
 
@@ -297,4 +300,3 @@ const getCategoryLabel = (cat) => {
   }
 }
 </style>
-
