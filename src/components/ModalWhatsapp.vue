@@ -19,15 +19,15 @@
     </div>
 
     <div class="modal-body" style="padding: 1.5rem;">
-      <div v-if="state.designaciones.filter(d => d.estadoDesignacion === 1 || d.estado === 1).length === 0" class="empty-state" style="text-align: center; padding: 2rem 0;">
+      <div v-if="allRelevantDesignaciones.length === 0" class="empty-state" style="text-align: center; padding: 2rem 0;">
         <i class="ti ti-alert-circle" style="font-size: 48px; color: var(--color-text-secondary); margin-bottom: 1rem;"></i>
-        <div style="font-weight: 600; color: var(--color-text-primary); margin-bottom: 0.5rem;">No hay designaciones completas</div>
+        <div style="font-weight: 600; color: var(--color-text-primary); margin-bottom: 0.5rem;">No hay designaciones para compartir</div>
         <div style="font-size: 13px; color: var(--color-text-secondary);">Asigna árbitros a tus partidos primero para poder generar el mensaje de WhatsApp.</div>
       </div>
 
       <div v-else>
-        <!-- Selector de Día -->
-        <div style="display: flex; gap: 8px; margin-bottom: 1.25rem;">
+        <!-- Selector de Día y Estado de Carga -->
+        <div style="display: flex; gap: 8px; margin-bottom: 1rem;">
           <button
             v-for="opt in filterOptions"
             :key="opt.id"
@@ -45,12 +45,42 @@
           </button>
         </div>
 
-        <div style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 12px;">
+        <!-- Barra de opciones y feedback de carga -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 8px;">
+          <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-secondary); cursor: pointer; user-select: none;">
+            <input 
+              type="checkbox" 
+              v-model="ocultarSinArbitros" 
+              style="cursor: pointer; accent-color: #25d366;"
+            />
+            <span>Ocultar partidos sin árbitros</span>
+          </label>
+
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span v-if="loadingReferees" style="font-size: 11px; color: #059669; display: inline-flex; align-items: center; gap: 4px;">
+              <i class="ti ti-loader animate-spin" style="font-size: 13px;"></i>
+              Actualizando árbitros...
+            </span>
+
+            <button 
+              v-if="isUserEdited" 
+              @click="resetManualEdit"
+              class="btn text-xs"
+              style="padding: 3px 8px; font-size: 11px; border-color: var(--color-border-secondary); color: var(--color-text-secondary);"
+              title="Restaurar el texto generado automáticamente"
+            >
+              <i class="ti ti-refresh" style="margin-right: 3px;"></i>Restablecer original
+            </button>
+          </div>
+        </div>
+
+        <div style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px;">
           Podés editar el texto acá abajo antes de copiarlo o enviarlo:
         </div>
 
         <textarea
           v-model="messageText"
+          @input="isUserEdited = true"
           style="
             width: 100%;
             height: 320px;
@@ -70,7 +100,7 @@
           onblur="this.style.borderColor='var(--color-border-primary)'; this.style.boxShadow='none';"
         ></textarea>
 
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 1.5rem; gap: 12px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 1.25rem; gap: 12px; flex-wrap: wrap;">
           <button 
             class="btn" 
             @click="copyToClipboard"
@@ -107,10 +137,13 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue"
-import { state, closeModal, getCancha } from "../store"
+import { state, closeModal, getCancha, getArbitro, loadArbitrosDesignados } from "../store"
 
 const isSpecificId = state.modal?.id && !['todos', 'sabado', 'domingo'].includes(state.modal?.id);
 const filterDay = ref(state.modal?.id || "todos")
+const ocultarSinArbitros = ref(false)
+const isUserEdited = ref(false)
+const loadingReferees = ref(false)
 
 const filterOptions = computed(() => {
   if (isSpecificId) {
@@ -120,9 +153,9 @@ const filterOptions = computed(() => {
     ]
   }
   return [
-    {id: 'todos', label: 'Todos'}, 
-    {id: 'sabado', label: 'Sábados'}, 
-    {id: 'domingo', label: 'Domingos'}
+    { id: 'todos', label: 'Todos' }, 
+    { id: 'sabado', label: 'Sábados' }, 
+    { id: 'domingo', label: 'Domingos' }
   ]
 })
 
@@ -154,6 +187,24 @@ const meses = [
   "diciembre",
 ]
 
+const getAllDesignaciones = () => [
+  ...state.designacionesIncompletas,
+  ...state.designaciones,
+  ...state.designacionesAConfirmar,
+  ...state.designacionesFinalizadas,
+  ...(state.designacionesAceptadas || []),
+]
+
+const allRelevantDesignaciones = computed(() => {
+  const all = getAllDesignaciones()
+  if (isSpecificId) {
+    return all.filter(
+      (d) => String(d.idDesignacion || d.id) === String(state.modal?.id)
+    )
+  }
+  return all.filter((d) => d.estadoDesignacion === 1 || d.estado === 1 || d.estadoDesignacion === 3)
+})
+
 const getDayOfWeek = (fechaStr) => {
   if (!fechaStr) return -1;
   try {
@@ -170,27 +221,103 @@ const getDayOfWeek = (fechaStr) => {
   return -1;
 };
 
-const generateMessage = () => {
-  const allDesignaciones = [
-    ...state.designacionesIncompletas,
-    ...state.designaciones,
-    ...state.designacionesAConfirmar,
-    ...state.designacionesFinalizadas
-  ];
-  
-  // Filtrar explícitamente por estadoDesignacion === 1 (Completa)
-  let list = allDesignaciones.filter(d => d.estadoDesignacion === 1 || d.estado === 1);
-  
-  if (filterDay.value === "sabado") {
-    list = list.filter((d) => getDayOfWeek(d.fecha) !== 0)
-  } else if (filterDay.value === "domingo") {
-    list = list.filter((d) => getDayOfWeek(d.fecha) === 0)
-  } else if (filterDay.value !== "todos") {
-    list = list.filter((d) => (d.idDesignacion || d.id) === filterDay.value)
+// Resolver árbitros asignados usando store map, objeto local o fallback a helpers
+const getRefereesForDesignacion = (d) => {
+  if (!d) return [];
+  const id = d.idDesignacion || d.id;
+  const list =
+    state.arbitrosDesignadosMap[id] ||
+    state.arbitrosDesignadosMap[String(id)] ||
+    state.arbitrosDesignadosMap[Number(id)] ||
+    d.arbitrosDesignados ||
+    d.arbitros ||
+    [];
+
+  if (!Array.isArray(list)) return [];
+
+  return list
+    .map((item) => {
+      if (!item) return null;
+      let arb = item.arbitro || item;
+      if (typeof arb === "number" || (typeof arb === "string" && !isNaN(Number(arb)))) {
+        const found = getArbitro(Number(arb));
+        if (found) arb = found;
+      } else if (!arb.nombre && arb.idArbitro) {
+        const found = getArbitro(arb.idArbitro);
+        if (found) arb = { ...found, ...arb };
+      }
+      return arb;
+    })
+    .filter(Boolean);
+};
+
+// Carga asíncrona de árbitros faltantes para las designaciones a mostrar
+const loadMissingArbitros = async (designacionesList) => {
+  const missing = designacionesList.filter((d) => {
+    const id = d.idDesignacion || d.id;
+    if (!id) return false;
+    const existing =
+      state.arbitrosDesignadosMap[id] ||
+      state.arbitrosDesignadosMap[String(id)] ||
+      state.arbitrosDesignadosMap[Number(id)] ||
+      (d.arbitrosDesignados && d.arbitrosDesignados.length > 0);
+    return !existing || existing.length === 0;
+  });
+
+  if (missing.length === 0) return;
+
+  loadingReferees.value = true;
+  try {
+    await Promise.all(
+      missing.map((d) => loadArbitrosDesignados(d.idDesignacion || d.id))
+    );
+  } catch (err) {
+    console.warn("Error cargando árbitros en ModalWhatsapp:", err);
+  } finally {
+    loadingReferees.value = false;
+    if (!isUserEdited.value) {
+      generateMessage();
+    }
+  }
+};
+
+const getFilteredList = () => {
+  const all = getAllDesignaciones()
+  let list = []
+
+  if (isSpecificId && filterDay.value !== 'todos') {
+    list = all.filter(
+      (d) => String(d.idDesignacion || d.id) === String(filterDay.value)
+    )
+  } else {
+    list = all.filter(
+      (d) => d.estadoDesignacion === 1 || d.estado === 1 || d.estadoDesignacion === 3
+    )
+    if (filterDay.value === "sabado") {
+      list = list.filter((d) => getDayOfWeek(d.fecha) !== 0)
+    } else if (filterDay.value === "domingo") {
+      list = list.filter((d) => getDayOfWeek(d.fecha) === 0)
+    }
   }
 
+  // Filtrar vacíos si la opción está activa
+  if (ocultarSinArbitros.value) {
+    list = list.filter((d) => {
+      const refs = getRefereesForDesignacion(d)
+      return refs.length > 0
+    })
+  }
+
+  return list
+}
+
+const generateMessage = () => {
+  const list = getFilteredList()
+
   if (list.length === 0) {
-    messageText.value = `📋 *DESIGNACIONES DE ÁRBITROS*\n\n_No hay designaciones completadas para el día seleccionado_`
+    messageText.value = `📋 *DESIGNACIONES DE ÁRBITROS*\n\n_No hay designaciones ${
+      ocultarSinArbitros.value ? "con árbitros asignados " : ""
+    }para el día seleccionado_`
     return
   }
 
@@ -218,20 +345,21 @@ const generateMessage = () => {
 
     // Ordenar designaciones por horario de inicio
     const dayDesignations = groups[dateStr].sort((a, b) => {
-      const timeA = a.fecha.includes("T") ? a.fecha.split("T")[1] : ""
-      const timeB = b.fecha.includes("T") ? b.fecha.split("T")[1] : ""
+      const timeA = a.fecha && a.fecha.includes("T") ? a.fecha.split("T")[1] : ""
+      const timeB = b.fecha && b.fecha.includes("T") ? b.fecha.split("T")[1] : ""
       return timeA.localeCompare(timeB)
     })
 
     dayDesignations.forEach((d) => {
       const canchaNombre =
         d.cancha?.nombreCancha ||
+        d.cancha?.nombre ||
         getCancha(d.idCancha || d.canchaId)?.nombre ||
         "Cancha Desconocida"
 
       let timeFormatted = ""
       let hasConfirmar = false
-      if (d.fecha.includes("T")) {
+      if (d.fecha && d.fecha.includes("T")) {
         const timePart = d.fecha.split("T")[1]
         const [hh, min] = timePart.split(":")
         if (Number(hh) === 0 && Number(min) === 0) {
@@ -249,14 +377,15 @@ const generateMessage = () => {
       }\n`
 
       // Árbitros designados
-      if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
-        d.arbitrosDesignados.forEach((arb) => {
-          const nombreCompleto = `${arb.arbitro?.nombre || ""} ${
-            arb.arbitro?.apellido || ""
-          }`.trim()
+      const arbitros = getRefereesForDesignacion(d)
+      if (arbitros.length > 0) {
+        arbitros.forEach((arb) => {
+          const nombre = (arb.nombre || "").trim()
+          const apellido = (arb.apellido || "").trim()
+          const nombreCompleto = `${nombre} ${apellido}`.trim() || arb.nombreCompleto || "Árbitro"
           const normalized = nombreCompleto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
           const isHectorMendoza = normalized === "hector mendoza"
-          const rol = isHectorMendoza ? "Chofer" : (arb.arbitro?.rol || "Árbitro")
+          const rol = isHectorMendoza ? "Chofer" : (arb.rol || "Árbitro")
           const emoji = isHectorMendoza ? "🚗" : "👤"
           text += `    • ${emoji} ${nombreCompleto} - *${rol}*\n`
         })
@@ -269,6 +398,11 @@ const generateMessage = () => {
 
   // Quitar el último salto de línea innecesario
   messageText.value = text.trim()
+}
+
+const resetManualEdit = () => {
+  isUserEdited.value = false
+  generateMessage()
 }
 
 const copyToClipboard = async () => {
@@ -289,11 +423,34 @@ const sendWhatsApp = () => {
   window.open(url, "_blank")
 }
 
-watch(filterDay, () => {
+const refreshAndPreload = async () => {
   generateMessage()
+  const list = getFilteredList()
+  await loadMissingArbitros(list)
+}
+
+watch(filterDay, () => {
+  isUserEdited.value = false
+  refreshAndPreload()
 })
 
+watch(ocultarSinArbitros, () => {
+  if (!isUserEdited.value) {
+    generateMessage()
+  }
+})
+
+watch(
+  () => state.arbitrosDesignadosMap,
+  () => {
+    if (!isUserEdited.value && !loadingReferees.value) {
+      generateMessage()
+    }
+  },
+  { deep: true }
+)
+
 onMounted(() => {
-  generateMessage()
+  refreshAndPreload()
 })
 </script>

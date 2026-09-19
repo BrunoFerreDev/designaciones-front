@@ -43,18 +43,24 @@ export const loadDesignacionesRangoActual = async () => {
       state.designacionesAceptadas = sortDesignaciones(aceptadas);
       state.designacionesSuspendidas = sortDesignaciones(suspendidas);
 
-      // Pre-cargar árbitros asignados en el mapa
-      list.forEach(async (d) => {
+      // Pre-cargar árbitros asignados en el mapa de forma concurrente y ordenada
+      const loadPromises = list.map(async (d) => {
         const id = d.idDesignacion || d.id;
+        if (!id) return;
         if (d.arbitrosDesignados && d.arbitrosDesignados.length > 0) {
           state.arbitrosDesignadosMap[id] = d.arbitrosDesignados;
-        } else {
+          state.arbitrosDesignadosMap[String(id)] = d.arbitrosDesignados;
+        } else if (!state.arbitrosDesignadosMap[id] && !state.arbitrosDesignadosMap[String(id)]) {
           const refs = await loadArbitrosDesignados(id);
           state.arbitrosDesignadosMap[id] = refs;
+          state.arbitrosDesignadosMap[String(id)] = refs;
+          d.arbitrosDesignados = refs;
+        } else {
+          d.arbitrosDesignados = state.arbitrosDesignadosMap[id] || state.arbitrosDesignadosMap[String(id)];
         }
-        persistDesignacionesStorage(state);
       });
 
+      await Promise.allSettled(loadPromises);
       persistDesignacionesStorage(state);
     } catch (e) {
       console.warn("Failed to load designaciones for current range (-7 to +7 days)", e);
@@ -97,13 +103,20 @@ export const reloadAllDesignaciones = async () => {
 };
 
 export const loadArbitrosDesignados = async (idDesignacion) => {
-  if (state.arbitrosDesignadosMap[idDesignacion]) {
-    return state.arbitrosDesignadosMap[idDesignacion];
+  if (
+    state.arbitrosDesignadosMap[idDesignacion] ||
+    state.arbitrosDesignadosMap[String(idDesignacion)]
+  ) {
+    return (
+      state.arbitrosDesignadosMap[idDesignacion] ||
+      state.arbitrosDesignadosMap[String(idDesignacion)]
+    );
   }
   try {
     const res = await designacionService.getDesignados(idDesignacion);
     const data = Array.isArray(res) ? res : res.data || res;
     state.arbitrosDesignadosMap[idDesignacion] = data;
+    state.arbitrosDesignadosMap[String(idDesignacion)] = data;
     persistDesignacionesStorage(state);
     return data;
   } catch (e) {

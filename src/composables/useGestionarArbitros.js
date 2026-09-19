@@ -36,6 +36,10 @@ export function useGestionarArbitros(options = {}) {
       (state.designacionesAceptadas &&
         state.designacionesAceptadas.find(
           (d) => (d.idDesignacion || d.id) === id,
+        )) ||
+      (state.designacionesSuspendidas &&
+        state.designacionesSuspendidas.find(
+          (d) => (d.idDesignacion || d.id) === id,
         ));
     if (found) return found;
 

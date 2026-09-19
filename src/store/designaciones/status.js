@@ -14,6 +14,7 @@ export const cambiarEstadoDesignacionManual = async (
     ...state.designacionesFinalizadas,
     ...state.designacionesAConfirmar,
     ...(state.designacionesAceptadas || []),
+    ...(state.designacionesSuspendidas || []),
   ];
   let des = list.find((d) => (d.idDesignacion || d.id) === idDesignacion);
   if (
@@ -150,11 +151,14 @@ export const reprogramarDesignacionManual = async (
   reloadFn = null,
 ) => {
   try {
-    await designacionService.reprogramarDesignacion(idDesignacion);
+    const res = await designacionService.reprogramarDesignacion(idDesignacion);
+    if (res && typeof res === "object" && (res.idDesignacion || res.id)) {
+      updateDesignacionInStorage(state, res);
+    }
     if (reloadFn) {
       await reloadFn();
     }
-    return { success: true };
+    return res || { success: true };
   } catch (error) {
     console.error("Error al reprogramar designación", error);
     alert("Hubo un error al intentar reprogramar la designación.");

@@ -319,6 +319,29 @@
       "
     >
       <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <!-- Reprogramar (para Canceladas o Suspendidas) -->
+        <button
+          v-if="
+            (currentDesignacion?.estadoDesignacion === 3 ||
+              currentDesignacion?.estadoDesignacion === 4) &&
+            currentDesignacion?.editable !== false
+          "
+          class="btn text-xs"
+          style="
+            border-color: #ff9800;
+            color: #ff9800;
+            background: #fffaf0;
+            padding: 6px 12px;
+            gap: 6px;
+          "
+          @click="handleReprogramar"
+          :disabled="loading"
+          title="Reprogramar designación para 7 días después"
+        >
+          <i class="ti ti-calendar-time"></i>
+          <span>Reprogramar</span>
+        </button>
+
         <!-- Cambiar Estado -->
         <button
           v-if="currentDesignacion?.editable !== false"
@@ -366,6 +389,7 @@ import {
   formatFecha,
   loadArbitrosDesignados,
   getEstadoDesignacionInfo,
+  reprogramarDesignacionManual,
 } from "../store";
 import designacionService from "../services/designacionService";
 
@@ -381,6 +405,7 @@ const currentDesignacion = computed(() => {
     ...state.designacionesFinalizadas,
     ...state.designacionesAConfirmar,
     ...(state.designacionesAceptadas || []),
+    ...(state.designacionesSuspendidas || []),
   ];
   let localFound = id
     ? list.find((d) => (d.idDesignacion || d.id) === id)
@@ -477,6 +502,36 @@ const openEdit = () => {
 const openChangeStatus = () => {
   const id = designacionId.value;
   openModal("changeStatus", id, currentDesignacion.value);
+};
+
+const handleReprogramar = async () => {
+  const d = currentDesignacion.value;
+  if (!d || !d.fecha) return;
+
+  const dateObj = new Date(d.fecha.replace(" ", "T"));
+  dateObj.setDate(dateObj.getDate() + 7);
+
+  const day = String(dateObj.getDate()).padStart(2, "0");
+  const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const year = dateObj.getFullYear();
+  const hours = String(dateObj.getHours()).padStart(2, "0");
+  const minutes = String(dateObj.getMinutes()).padStart(2, "0");
+  const newDateStr = `${day}/${month}/${year} a las ${hours}:${minutes} hs`;
+
+  const confirmMsg = `⚠️ AVISO DE REPROGRAMACIÓN:\n\nLa designación se reprogramará automáticamente para dentro de 7 días después:\n📅 Nueva fecha: ${newDateStr}\n\n¿Confirmar reprogramación?`;
+
+  if (confirm(confirmMsg)) {
+    loading.value = true;
+    try {
+      const id = d.idDesignacion || d.id;
+      await reprogramarDesignacionManual(id);
+      closeModal();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      loading.value = false;
+    }
+  }
 };
 
 onMounted(async () => {

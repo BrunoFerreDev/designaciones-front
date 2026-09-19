@@ -238,6 +238,7 @@ export const asignarArbitroADesignacionManual = async (
         ...state.designacionesAConfirmar,
         ...state.designacionesFinalizadas,
         ...(state.designacionesAceptadas || []),
+        ...(state.designacionesSuspendidas || []),
       ].find((d) => (d.idDesignacion || d.id) === idDesignacion) ||
       (state.modal?.data &&
       (state.modal.data.idDesignacion || state.modal.data.id) === idDesignacion
@@ -281,6 +282,7 @@ export const asignarArbitroADesignacionManual = async (
         ...state.designacionesFinalizadas,
         ...state.designacionesAConfirmar,
         ...(state.designacionesAceptadas || []),
+        ...(state.designacionesSuspendidas || []),
       ];
       for (const otherD of allLists) {
         const otherId = otherD.idDesignacion || otherD.id;
@@ -397,6 +399,7 @@ export const forzarAsignarArbitroADesignacionManual = async (
         ...state.designacionesAConfirmar,
         ...state.designacionesFinalizadas,
         ...(state.designacionesAceptadas || []),
+        ...(state.designacionesSuspendidas || []),
       ].find((d) => (d.idDesignacion || d.id) === idDesignacion) ||
       (state.modal?.data &&
       (state.modal.data.idDesignacion || state.modal.data.id) === idDesignacion

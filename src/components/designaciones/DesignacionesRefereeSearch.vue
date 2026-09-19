@@ -165,6 +165,7 @@ const props = defineProps({
   incompletas: { type: Array, default: () => [] },
   completas: { type: Array, default: () => [] },
   aceptadas: { type: Array, default: () => [] },
+  suspendidas: { type: Array, default: () => [] },
   aConfirmar: { type: Array, default: () => [] },
 });
 
@@ -179,6 +180,7 @@ const filteredMatches = computed(() => {
     ...props.incompletas,
     ...props.completas,
     ...props.aceptadas,
+    ...props.suspendidas,
     ...props.aConfirmar,
   ];
 

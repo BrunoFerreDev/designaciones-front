@@ -230,7 +230,8 @@
         v-if="
           (designacion.estadoDesignacion === 0 ||
             designacion.estadoDesignacion === 1 ||
-            designacion.estadoDesignacion === 3) &&
+            designacion.estadoDesignacion === 3 ||
+            designacion.estadoDesignacion === 4) &&
           designacion.editable !== false
         "
         class="btn text-xs"
@@ -252,11 +253,32 @@
         <span>Editar árbitros</span>
       </button>
 
-      <!-- Editar / Reprogramar Designación -->
+      <!-- Reprogramar Designación (para Canceladas o Suspendidas) -->
       <button
         v-if="
-          (designacion.estadoDesignacion === 0 ||
-            designacion.estadoDesignacion === 3) &&
+          (designacion.estadoDesignacion === 3 ||
+            designacion.estadoDesignacion === 4) &&
+          designacion.editable !== false
+        "
+        class="btn text-xs"
+        style="
+          padding: 6px 12px;
+          gap: 6px;
+          border-color: #ff9800;
+          color: #ff9800;
+        "
+        @click="handleReprogramar"
+        :disabled="loadingAction"
+        title="Reprogramar designación"
+      >
+        <i class="ti ti-calendar-time"></i>
+        <span>Reprogramar</span>
+      </button>
+
+      <!-- Editar Designación (para Incompletas) -->
+      <button
+        v-if="
+          designacion.estadoDesignacion === 0 &&
           designacion.editable !== false
         "
         class="btn text-xs"
@@ -267,25 +289,16 @@
           color: #ff9800;
         "
         @click="
-          designacion.estadoDesignacion === 3
-            ? handleReprogramar()
-            : openModal(
-                'editDesignacion',
-                designacion.idDesignacion || designacion.id,
-                designacion,
-              )
+          openModal(
+            'editDesignacion',
+            designacion.idDesignacion || designacion.id,
+            designacion,
+          )
         "
+        title="Editar designación"
       >
-        <i
-          :class="
-            designacion.estadoDesignacion === 3
-              ? 'ti ti-calendar-time'
-              : 'ti ti-edit'
-          "
-        ></i>
-        <span>{{
-          designacion.estadoDesignacion === 3 ? "Reprogramar" : "Editar"
-        }}</span>
+        <i class="ti ti-edit"></i>
+        <span>Editar</span>
       </button>
 
       <!-- Cambiar Estado -->

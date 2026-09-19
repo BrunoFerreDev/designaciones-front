@@ -41,12 +41,26 @@ export const logoutUser = async () => {
   } catch (error) {
     console.error("Logout error:", error);
   } finally {
-    localStorage.removeItem("jwt_token");
-    localStorage.removeItem("user");
+    localStorage.clear();
+    sessionStorage.clear();
 
     state.token = null;
     state.user = null;
     state.isAuthenticated = false;
+
+    // Limpiar estado en memoria
+    state.canchas = [];
+    state.arbitros = [];
+    state.arbitrosNoDisponibles = [];
+    state.designaciones = [];
+    state.designacionesIncompletas = [];
+    state.designacionesFinalizadas = [];
+    state.designacionesAConfirmar = [];
+    state.designacionesAceptadas = [];
+    state.designacionesSuspendidas = [];
+    state.designacionesArbitros = [];
+    state.arbitrosDesignadosMap = {};
+    state.suspensiones = [];
 
     router.push("/login");
   }

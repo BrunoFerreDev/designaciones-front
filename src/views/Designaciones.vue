@@ -48,6 +48,7 @@
         :incompletas="filteredIncompletas"
         :completas="filteredCompletas"
         :aceptadas="filteredAceptadas"
+        :suspendidas="filteredSuspendidas"
         :a-confirmar="filteredAConfirmar"
       />
 
@@ -195,6 +196,59 @@
           />
         </div>
       </div>
+
+      <!-- Sección 6: Designaciones Suspendidas (Estado 4) -->
+      <div v-if="filteredSuspendidas.length > 0" class="mt-4" style="margin-bottom: 2rem">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+          "
+        >
+          <div
+            style="
+              font-size: 14px;
+              font-weight: 600;
+              color: var(--color-text-secondary);
+            "
+          >
+            ⏸️ Designaciones Suspendidas ({{ filteredSuspendidas.length }})
+          </div>
+          <button
+            class="btn"
+            style="
+              font-size: 11px;
+              padding: 4px 8px;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+            "
+            @click="showSuspendidas = !showSuspendidas"
+          >
+            <i
+              :class="showSuspendidas ? 'ti ti-eye-off' : 'ti ti-eye'"
+              style="font-size: 14px"
+            ></i>
+            {{ showSuspendidas ? "Ocultar" : "Mostrar" }}
+          </button>
+        </div>
+
+        <div v-if="showSuspendidas" class="animate-fade-in">
+          <DesignacionColumnSection
+            :list="filteredSuspendidas"
+            prefix="susp"
+            tag-bg="#f3e8ff"
+            tag-color="#7e22ce"
+            empty-sabado-text="Sin designaciones suspendidas para el sábado"
+            empty-domingo-text="Sin designaciones suspendidas para el domingo"
+            :arbitros-designados="arbitrosDesignados"
+            @ver-arbitros="verArbitros"
+            @action-complete="onActionComplete"
+          />
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -217,11 +271,13 @@ onMounted(() => {
 
 const visibleArbitros = ref({});
 const showFinalizadas = ref(true);
+const showSuspendidas = ref(true);
 
 const filteredIncompletas = computed(() => state.designacionesIncompletas);
 const filteredCompletas = computed(() => state.designaciones);
 const filteredFinalizadas = computed(() => state.designacionesFinalizadas);
 const filteredAceptadas = computed(() => state.designacionesAceptadas);
+const filteredSuspendidas = computed(() => state.designacionesSuspendidas);
 const filteredAConfirmar = computed(() => state.designacionesAConfirmar);
 
 const hasAnyDesignaciones = computed(
@@ -229,7 +285,8 @@ const hasAnyDesignaciones = computed(
     filteredCompletas.value.length > 0 ||
     filteredIncompletas.value.length > 0 ||
     filteredFinalizadas.value.length > 0 ||
-    filteredAceptadas.value.length > 0,
+    filteredAceptadas.value.length > 0 ||
+    filteredSuspendidas.value.length > 0,
 );
 
 const arbitrosDesignados = computed(() => {
@@ -254,7 +311,8 @@ const verArbitros = async (d) => {
   }
 };
 
-const onActionComplete = (id) => {
+const onActionComplete = async (id) => {
   visibleArbitros.value[id] = true;
+  await loadDesignacionesRangoActual();
 };
 </script>
